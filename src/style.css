@@ -1,0 +1,550 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Variables CSS personalizadas */
+:root {
+  --volleyball-primary: #2563eb;
+  --volleyball-secondary: #dc2626;
+  --volleyball-accent: #f59e0b;
+  --volleyball-dark: #1f2937;
+  --volleyball-light: #f8fafc;
+
+  /* Colores semánticos */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Espaciado específico del scoreboard */
+  --scoreboard-padding: 1.5rem;
+  --scoreboard-gap: 1rem;
+  --scoreboard-border-radius: 1rem;
+
+  /* Tamaños de fuente del scoreboard */
+  --score-font-size: 4rem;
+  --team-name-font-size: 1.5rem;
+  --set-font-size: 1.125rem;
+
+  /* Configuración de animaciones */
+  --animation-duration-fast: 200ms;
+  --animation-duration-normal: 300ms;
+  --animation-duration-slow: 500ms;
+
+  /* Configuración de sombras */
+  --shadow-scoreboard: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-overlay: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Reset y configuración base */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply antialiased;
+    font-feature-settings:
+      'kern' 1,
+      'liga' 1,
+      'calt' 1;
+  }
+
+  /* Configuración para diferentes entornos */
+  body.obs-environment {
+    @apply cursor-none overflow-hidden;
+    background: transparent !important;
+  }
+
+  body.overlay-mode {
+    @apply bg-transparent overflow-hidden cursor-none;
+  }
+
+  /* Typography base */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold leading-tight;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+
+  /* Form elements */
+  input,
+  textarea,
+  select {
+    @apply transition-colors duration-200;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+  }
+
+  /* Button reset */
+  button {
+    @apply transition-all duration-200;
+  }
+
+  button:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Botones del scoreboard */
+  .btn-scoreboard {
+    @apply px-6 py-3 rounded-lg font-bold text-white transition-all duration-200 transform active:scale-95 hover:scale-105;
+    box-shadow: var(--shadow-scoreboard);
+  }
+
+  .btn-scoreboard-primary {
+    @apply btn-scoreboard bg-blue-600 hover:bg-blue-700;
+  }
+
+  .btn-scoreboard-secondary {
+    @apply btn-scoreboard bg-gray-600 hover:bg-gray-700;
+  }
+
+  .btn-scoreboard-danger {
+    @apply btn-scoreboard bg-red-600 hover:bg-red-700;
+  }
+
+  .btn-scoreboard-success {
+    @apply btn-scoreboard bg-green-600 hover:bg-green-700;
+  }
+
+  /* Cards */
+  .card-scoreboard {
+    @apply bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden;
+  }
+
+  .card-scoreboard-dark {
+    @apply bg-gray-800 rounded-2xl shadow-xl border border-gray-700 text-white overflow-hidden;
+  }
+
+  /* Team cards */
+  .team-card {
+    @apply card-scoreboard p-6 transition-all duration-300 hover:scale-105;
+    box-shadow: var(--shadow-scoreboard);
+  }
+
+  .team-card-local {
+    @apply team-card bg-gradient-to-br from-blue-600 to-blue-800 text-white;
+  }
+
+  .team-card-visitor {
+    @apply team-card bg-gradient-to-br from-red-600 to-red-800 text-white;
+  }
+
+  /* Score display */
+  .score-display {
+    @apply font-scoreboard text-8xl font-black text-yellow-400;
+    font-size: var(--score-font-size);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: -0.05em;
+  }
+
+  .team-name-display {
+    @apply font-display text-2xl font-black uppercase tracking-wide;
+    font-size: var(--team-name-font-size);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .sets-display {
+    @apply text-3xl font-bold bg-black bg-opacity-30 px-4 py-2 rounded-xl border border-white border-opacity-20;
+    font-size: var(--set-font-size);
+  }
+
+  /* Serve indicator */
+  .serve-indicator {
+    @apply bg-green-500 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center justify-center gap-2;
+    animation: servingPulse 2s infinite;
+  }
+
+  /* Team logo */
+  .team-logo {
+    @apply w-20 h-20 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-4xl bg-gradient-to-br;
+  }
+
+  .team-logo-local {
+    @apply team-logo from-blue-500 to-blue-700;
+  }
+
+  .team-logo-visitor {
+    @apply team-logo from-red-500 to-red-700;
+  }
+
+  /* History items */
+  .history-item {
+    @apply p-3 rounded-lg border-l-4 transition-all duration-300 hover:scale-105 hover:shadow-md;
+  }
+
+  .history-item-info {
+    @apply history-item bg-gray-600 border-gray-400;
+  }
+
+  .history-item-success {
+    @apply history-item bg-green-600 border-green-400;
+  }
+
+  .history-item-warning {
+    @apply history-item bg-yellow-600 border-yellow-400;
+  }
+
+  .history-item-local {
+    @apply history-item bg-blue-600 border-blue-400;
+  }
+
+  .history-item-visitor {
+    @apply history-item bg-red-600 border-red-400;
+  }
+
+  .history-item-winner {
+    @apply history-item bg-purple-600 border-purple-400;
+    animation: servingPulse 2s infinite;
+  }
+
+  /* Overlay specific styles */
+  .overlay-scoreboard {
+    @apply bg-gradient-to-r from-black from-0% via-blue-900 via-25% via-indigo-900 via-50% via-red-900 via-75% to-black to-100%;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(30, 64, 175, 0.95) 25%,
+      rgba(79, 70, 229, 0.95) 50%,
+      rgba(220, 38, 38, 0.95) 75%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--shadow-overlay);
+  }
+
+  .center-logo-overlay {
+    @apply w-24 h-24 bg-black bg-opacity-60 border-4 border-white border-opacity-30 rounded-full flex items-center justify-center text-3xl;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Input styles */
+  .input-scoreboard {
+    @apply w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-600 transition-all duration-200;
+  }
+
+  /* Container layouts */
+  .controller-layout {
+    @apply min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white;
+  }
+
+  .overlay-layout {
+    @apply fixed top-0 left-0 w-full h-auto bg-transparent;
+  }
+
+  /* Responsive utilities */
+  .responsive-text {
+    font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+  }
+
+  .responsive-score {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+  }
+
+  .responsive-team-name {
+    font-size: clamp(1rem, 3vw, 1.75rem);
+  }
+}
+
+/* Utilities personalizadas */
+@layer utilities {
+  /* Animaciones específicas del volleyball */
+  .animate-score-bounce {
+    animation: scoreBounce 0.6s ease-in-out;
+  }
+
+  .animate-set-win {
+    animation: setWin 1s ease-in-out;
+  }
+
+  .animate-serve-pulse {
+    animation: servingPulse 2s infinite;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.5s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out;
+  }
+
+  .animate-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .animate-shimmer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  /* Text utilities */
+  .text-shadow-sm {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+  }
+
+  .text-outline {
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Background utilities */
+  .bg-glass {
+    @apply bg-white bg-opacity-10 backdrop-blur-sm border border-white border-opacity-20;
+  }
+
+  .bg-glass-dark {
+    @apply bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-10;
+  }
+
+  /* Border utilities */
+  .border-glass {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Positioning utilities */
+  .center-absolute {
+    @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
+  }
+
+  /* Visibility utilities */
+  .invisible-cursor {
+    cursor: none !important;
+  }
+
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Print utilities */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .print-only {
+      display: block !important;
+    }
+  }
+
+  /* Screen reader utilities */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    @apply sr-only;
+  }
+
+  /* Debug utilities (solo en desarrollo) */
+  .debug-grid {
+    background-image:
+      linear-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .debug-outline * {
+    outline: 1px solid red !important;
+  }
+}
+
+/* Animaciones personalizadas */
+@keyframes scoreBounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes setWin {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(2deg);
+  }
+}
+
+@keyframes servingPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Configuración responsive específica */
+@media (max-width: 768px) {
+  :root {
+    --score-font-size: 3rem;
+    --team-name-font-size: 1.25rem;
+    --set-font-size: 1rem;
+    --scoreboard-padding: 1rem;
+    --scoreboard-gap: 0.75rem;
+  }
+
+  .score-display {
+    @apply text-6xl;
+  }
+
+  .team-name-display {
+    @apply text-xl;
+  }
+
+  .team-logo {
+    @apply w-16 h-16 text-2xl;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --score-font-size: 2.5rem;
+    --team-name-font-size: 1rem;
+    --set-font-size: 0.875rem;
+  }
+
+  .score-display {
+    @apply text-5xl;
+  }
+
+  .team-name-display {
+    @apply text-lg;
+  }
+}
+
+/* Configuración para diferentes resoluciones de overlay */
+@media (min-width: 1920px) {
+  .overlay-layout {
+    max-width: 1920px;
+    margin: 0 auto;
+  }
+}
+
+/* Configuración para modo oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --volleyball-light: #1f2937;
+    --volleyball-dark: #f8fafc;
+  }
+}
+
+/* Configuración para reducir movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Configuración para alto contraste */
+@media (prefers-contrast: high) {
+  .text-shadow,
+  .text-shadow-sm,
+  .text-shadow-lg {
+    text-shadow: none;
+  }
+
+  .border-glass {
+    border-color: currentColor;
+  }
+
+  .bg-glass,
+  .bg-glass-dark {
+    backdrop-filter: none;
+    @apply bg-white bg-opacity-90;
+  }
+}

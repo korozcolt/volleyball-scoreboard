@@ -1,6 +1,7 @@
 {
   "name": "volleyball-scoreboard",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Professional Volleyball Scoreboard for Live Streaming with OBS",
   "private": true,
   "type": "module",
   "engines": {
@@ -15,8 +16,24 @@
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:*",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "controller": "vite --port 3000 --open /controller",
+    "overlay": "vite --port 3001 --open /overlay",
+    "dev:dual": "concurrently \"npm run controller\" \"npm run overlay\"",
+    "clean": "rm -rf dist node_modules/.cache",
+    "prepare": "npm run lint && npm run type-check"
   },
+  "keywords": [
+    "volleyball",
+    "scoreboard",
+    "streaming",
+    "obs",
+    "vue",
+    "typescript",
+    "sports"
+  ],
+  "author": "Kronnos <ing.korozco@gmail.com>",
+  "license": "MIT",
   "dependencies": {
     "date-fns": "^4.1.0",
     "lodash-es": "^4.17.21",
