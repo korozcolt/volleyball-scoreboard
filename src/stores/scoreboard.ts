@@ -1,7 +1,6 @@
 import {
   DEFAULT_GAME_SETTINGS,
   DEFAULT_MESSAGES,
-  VOLLEYBALL_CONSTANTS,
 } from '@utils/constants'
 import type {
   GameHistory,
@@ -10,13 +9,18 @@ import type {
   HistoryType,
   ScoreboardEvent,
   Team,
-} from '@types/game.types'
+} from '../types/game.types'
+import { VOLLEYBALL_CONSTANTS } from '../types/game.types'
 import { checkSetWin, generateId, validateScore } from '@utils/validators'
-import { computed, ref } from 'vue'
+import { computed, ref, readonly } from 'vue'
+import { useSettings } from '@/composables/useSettings'
 
 import { defineStore } from 'pinia'
 
 export const useScoreboardStore = defineStore('scoreboard', () => {
+  // Configuración persistente
+  const settingsManager = useSettings()
+  
   // Estado principal del juego
   const gameState = ref<GameState>({
     local: {
@@ -88,7 +92,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
   })
 
   // Funciones de utilidad
-  const addToHistory = (message: string, type: HistoryType = 'info') => {
+  const addToHistory = (message: string, type: HistoryType = 'info', score?: { local: number; visitor: number }) => {
     const historyItem: GameHistory = {
       id: generateId(),
       message,
@@ -109,7 +113,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     }
   }
 
-  const emitEvent = (type: ScoreboardEvent['type'], team?: 'local' | 'visitor', data?: any) => {
+  const emitEvent = (type: ScoreboardEvent['type'], team?: 'local' | 'visitor', data?: Record<string, unknown>) => {
     const event: ScoreboardEvent = {
       type,
       team,
@@ -264,6 +268,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
   const updateTeamName = (team: 'local' | 'visitor', name: string) => {
     if (name.trim()) {
       gameState.value[team].name = name.trim()
+      settingsManager.updateTeamName(team, name.trim())
       addToHistory(DEFAULT_MESSAGES.TEAM_NAME_UPDATED, 'info')
       emitEvent('update_team_name', team, { name: name.trim() })
     }
@@ -271,13 +276,22 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
 
   const updateTeamLogo = (team: 'local' | 'visitor', logo: string) => {
     gameState.value[team].logo = logo
+    settingsManager.updateTeamLogo(team, logo)
     addToHistory(DEFAULT_MESSAGES.LOGO_UPDATED, 'info')
     emitEvent('update_team_logo', team, { logo })
   }
 
   const updateTeamColor = (team: 'local' | 'visitor', color: string) => {
     gameState.value[team].color = color
+    settingsManager.updateTeamColor(team, color)
     emitEvent('update_team_color', team, { color })
+  }
+
+  const updateLeagueLogo = (logo: string) => {
+    gameState.value.leagueLogo = logo
+    settingsManager.updateLeagueLogo(logo)
+    addToHistory('🏆 Logo de liga actualizado', 'info')
+    emitEvent('update_league_logo', undefined, { logo })
   }
 
   const toggleServe = () => {
@@ -304,17 +318,44 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     gameState.value = state
   }
 
+  // Cargar configuración guardada
+  const loadSavedSettings = () => {
+    settingsManager.initializeSettings()
+    const settings = settingsManager.settings.value
+    
+    // Aplicar configuración guardada al estado del juego
+    gameState.value.local.name = settings.teamNames.local
+    gameState.value.visitor.name = settings.teamNames.visitor
+    gameState.value.local.color = settings.teamColors.local
+    gameState.value.visitor.color = settings.teamColors.visitor
+    
+    // Aplicar logos si existen
+    if (settings.teamLogos.local) {
+      gameState.value.local.logo = settings.teamLogos.local
+    }
+    if (settings.teamLogos.visitor) {
+      gameState.value.visitor.logo = settings.teamLogos.visitor
+    }
+    if (settings.leagueLogo) {
+      gameState.value.leagueLogo = settings.leagueLogo
+    }
+    
+    // Aplicar configuración del juego
+    gameState.value.settings = { ...settings.gameSettings }
+  }
+
   // Inicialización
   const initializeGame = () => {
+    loadSavedSettings()
     addToHistory(DEFAULT_MESSAGES.GAME_START, 'info')
     emitEvent('game_start')
   }
 
   return {
     // Estado
-    gameState: readonly(gameState),
-    events: readonly(events),
-    lastEventId: readonly(lastEventId),
+    gameState,
+    events,
+    lastEventId,
 
     // Getters
     currentTeamServing,
@@ -336,6 +377,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     updateTeamName,
     updateTeamLogo,
     updateTeamColor,
+    updateLeagueLogo,
     updateGameSettings,
 
     // Utilidades
@@ -343,6 +385,10 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     getGameState,
     restoreGameState,
     initializeGame,
+    loadSavedSettings,
+    
+    // Configuración persistente
+    settingsManager,
   }
 })
 

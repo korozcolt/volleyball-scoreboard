@@ -84,7 +84,7 @@
   input:focus,
   textarea:focus,
   select:focus {
-    @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+    @apply outline-none ring-2 ring-blue-500/50;
   }
 
   /* Button reset */
@@ -99,122 +99,160 @@
 
 /* Componentes personalizados */
 @layer components {
-  /* Botones del scoreboard */
-  .btn-scoreboard {
-    @apply px-6 py-3 rounded-lg font-bold text-white transition-all duration-200 transform active:scale-95 hover:scale-105;
-    box-shadow: var(--shadow-scoreboard);
-  }
-
-  .btn-scoreboard-primary {
-    @apply btn-scoreboard bg-blue-600 hover:bg-blue-700;
-  }
-
-  .btn-scoreboard-secondary {
-    @apply btn-scoreboard bg-gray-600 hover:bg-gray-700;
-  }
-
-  .btn-scoreboard-danger {
-    @apply btn-scoreboard bg-red-600 hover:bg-red-700;
-  }
-
-  .btn-scoreboard-success {
-    @apply btn-scoreboard bg-green-600 hover:bg-green-700;
-  }
 
   /* Cards */
   .card-scoreboard {
-    @apply bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden;
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
   }
 
   .card-scoreboard-dark {
-    @apply bg-gray-800 rounded-2xl shadow-xl border border-gray-700 text-white overflow-hidden;
+    background-color: #1f2937;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid #374151;
+    color: white;
+    overflow: hidden;
   }
 
   /* Team cards */
   .team-card {
-    @apply card-scoreboard p-6 transition-all duration-300 hover:scale-105;
+    background-color: white;
+    border-radius: 1rem;
     box-shadow: var(--shadow-scoreboard);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    padding: 1.5rem;
+    transition: all 0.3s;
+  }
+
+  .team-card:hover {
+    transform: scale(1.05);
   }
 
   .team-card-local {
-    @apply team-card bg-gradient-to-br from-blue-600 to-blue-800 text-white;
+    background: linear-gradient(to bottom right, #2563eb, #1e40af);
+    color: white;
   }
 
   .team-card-visitor {
-    @apply team-card bg-gradient-to-br from-red-600 to-red-800 text-white;
+    background: linear-gradient(to bottom right, #dc2626, #b91c1c);
+    color: white;
   }
 
   /* Score display */
   .score-display {
-    @apply font-scoreboard text-8xl font-black text-yellow-400;
+    font-family: var(--font-scoreboard);
     font-size: var(--score-font-size);
+    font-weight: 900;
+    color: #facc15;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     letter-spacing: -0.05em;
   }
 
   .team-name-display {
-    @apply font-display text-2xl font-black uppercase tracking-wide;
+    font-family: var(--font-display);
     font-size: var(--team-name-font-size);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
   }
 
   .sets-display {
-    @apply text-3xl font-bold bg-black bg-opacity-30 px-4 py-2 rounded-xl border border-white border-opacity-20;
     font-size: var(--set-font-size);
+    font-weight: 700;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   /* Serve indicator */
   .serve-indicator {
-    @apply bg-green-500 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center justify-center gap-2;
+    background-color: #22c55e;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     animation: servingPulse 2s infinite;
   }
 
   /* Team logo */
   .team-logo {
-    @apply w-20 h-20 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-4xl bg-gradient-to-br;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 9999px;
+    border: 4px solid white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.25rem;
   }
 
   .team-logo-local {
-    @apply team-logo from-blue-500 to-blue-700;
+    background: linear-gradient(to bottom right, #3b82f6, #1d4ed8);
   }
 
   .team-logo-visitor {
-    @apply team-logo from-red-500 to-red-700;
+    background: linear-gradient(to bottom right, #ef4444, #b91c1c);
   }
 
   /* History items */
   .history-item {
-    @apply p-3 rounded-lg border-l-4 transition-all duration-300 hover:scale-105 hover:shadow-md;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid;
+    transition: all 0.3s;
+  }
+
+  .history-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 
   .history-item-info {
-    @apply history-item bg-gray-600 border-gray-400;
+    background-color: #4b5563;
+    border-left-color: #9ca3af;
   }
 
   .history-item-success {
-    @apply history-item bg-green-600 border-green-400;
+    background-color: #16a34a;
+    border-left-color: #4ade80;
   }
 
   .history-item-warning {
-    @apply history-item bg-yellow-600 border-yellow-400;
+    background-color: #ca8a04;
+    border-left-color: #facc15;
   }
 
   .history-item-local {
-    @apply history-item bg-blue-600 border-blue-400;
+    background-color: #2563eb;
+    border-left-color: #60a5fa;
   }
 
   .history-item-visitor {
-    @apply history-item bg-red-600 border-red-400;
+    background-color: #dc2626;
+    border-left-color: #f87171;
   }
 
   .history-item-winner {
-    @apply history-item bg-purple-600 border-purple-400;
+    background-color: #9333ea;
+    border-left-color: #c084fc;
     animation: servingPulse 2s infinite;
   }
 
   /* Overlay specific styles */
   .overlay-scoreboard {
-    @apply bg-gradient-to-r from-black from-0% via-blue-900 via-25% via-indigo-900 via-50% via-red-900 via-75% to-black to-100%;
     background: linear-gradient(
       90deg,
       rgba(0, 0, 0, 0.9) 0%,
@@ -229,22 +267,53 @@
   }
 
   .center-logo-overlay {
-    @apply w-24 h-24 bg-black bg-opacity-60 border-4 border-white border-opacity-30 rounded-full flex items-center justify-center text-3xl;
+    width: 6rem;
+    height: 6rem;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.875rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   }
 
   /* Input styles */
   .input-scoreboard {
-    @apply w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:bg-gray-600 transition-all duration-200;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 0.5rem;
+    color: white;
+    transition: all 0.2s;
+  }
+
+  .input-scoreboard::placeholder {
+    color: #9ca3af;
+  }
+
+  .input-scoreboard:focus {
+    border-color: #3b82f6;
+    background-color: #4b5563;
+    outline: none;
   }
 
   /* Container layouts */
   .controller-layout {
-    @apply min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white;
+    min-height: 100vh;
+    background: linear-gradient(to bottom right, #1e3a8a, #581c87, #312e81);
+    color: white;
   }
 
   .overlay-layout {
-    @apply fixed top-0 left-0 w-full h-auto bg-transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    background-color: transparent;
   }
 
   /* Responsive utilities */
@@ -323,11 +392,11 @@
 
   /* Background utilities */
   .bg-glass {
-    @apply bg-white bg-opacity-10 backdrop-blur-sm border border-white border-opacity-20;
+    @apply bg-white/10 backdrop-blur-sm border border-white/20;
   }
 
   .bg-glass-dark {
-    @apply bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-10;
+    @apply bg-black/30 backdrop-blur-sm border border-white/10;
   }
 
   /* Border utilities */
@@ -545,6 +614,6 @@
   .bg-glass,
   .bg-glass-dark {
     backdrop-filter: none;
-    @apply bg-white bg-opacity-90;
+    @apply bg-white/90;
   }
 }

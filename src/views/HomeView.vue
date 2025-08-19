@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Play, Monitor, Settings, Github, ExternalLink } from 'lucide-vue-next'
 import { openInNewWindow } from '@/router'
@@ -124,19 +124,19 @@ const openOverlayInNewWindow = () => {
 
         <!-- Estadísticas del proyecto -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
-          <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+          <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div class="text-2xl font-bold text-white">v{{ projectStats.version }}</div>
             <div class="text-sm text-blue-200">Versión</div>
           </div>
-          <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+          <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div class="text-2xl font-bold text-white">{{ projectStats.features }}+</div>
             <div class="text-sm text-blue-200">Características</div>
           </div>
-          <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+          <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div class="text-2xl font-bold text-white">100%</div>
             <div class="text-sm text-blue-200">Open Source</div>
           </div>
-          <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4">
+          <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div class="text-2xl font-bold text-white">0ms</div>
             <div class="text-sm text-blue-200">Latencia</div>
           </div>
@@ -154,12 +154,12 @@ const openOverlayInNewWindow = () => {
               class="p-6 rounded-2xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-2xl"
               :class="[
                 action.color,
-                action.primary ? 'ring-4 ring-yellow-400 ring-opacity-50' : '',
+                action.primary ? 'ring-4 ring-yellow-400/50' : '',
               ]"
             >
               <component :is="action.icon" class="w-8 h-8 text-white mx-auto mb-4" />
               <h3 class="text-lg font-bold text-white mb-2">{{ action.title }}</h3>
-              <p class="text-sm text-white text-opacity-90">{{ action.description }}</p>
+              <p class="text-sm text-white/90">{{ action.description }}</p>
 
               <div v-if="action.primary" class="mt-3">
                 <span
@@ -175,7 +175,7 @@ const openOverlayInNewWindow = () => {
     </header>
 
     <!-- Características principales -->
-    <section class="py-16 bg-white bg-opacity-5 backdrop-blur-sm">
+    <section class="py-16 bg-white/5 backdrop-blur-sm">
       <div class="container mx-auto px-4">
         <div class="text-center mb-12">
           <h2 class="text-4xl font-bold text-white mb-4">Características Principales</h2>
@@ -188,7 +188,7 @@ const openOverlayInNewWindow = () => {
           <div
             v-for="feature in features"
             :key="feature.title"
-            class="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-6 transition-all duration-300 hover:bg-opacity-20 hover:transform hover:scale-105"
+            class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 transition-all duration-300 hover:bg-white/20 hover:transform hover:scale-105"
           >
             <div class="text-4xl mb-4">{{ feature.icon }}</div>
             <h3 class="text-xl font-bold text-white mb-3">{{ feature.title }}</h3>
@@ -266,7 +266,7 @@ const openOverlayInNewWindow = () => {
     </section>
 
     <!-- Footer -->
-    <footer class="py-8 bg-black bg-opacity-20">
+    <footer class="py-8 bg-black/20">
       <div class="container mx-auto px-4 text-center">
         <div class="flex flex-col md:flex-row items-center justify-between">
           <div class="text-blue-200 mb-4 md:mb-0">
@@ -293,7 +293,7 @@ const openOverlayInNewWindow = () => {
     <!-- Loading overlay -->
     <div
       v-if="isLoading"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
     >
       <div class="bg-white rounded-lg p-6 text-center">
         <div

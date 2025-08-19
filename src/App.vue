@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView } from 'vue-router'
 import { useScoreboardStore } from '@stores/scoreboard'
 
-const route = useRoute()
 const scoreboardStore = useScoreboardStore()
 
 // Inicializar el store cuando se monta la aplicación
@@ -24,10 +23,10 @@ onUnmounted(() => {
 
     <!-- Indicador de desarrollo (solo en dev) -->
     <div
-      v-if="$route.meta?.isOverlay && import.meta.env.DEV"
+      v-if="$route.meta?.isOverlay"
       class="fixed top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs rounded z-50 opacity-75"
     >
-      OVERLAY MODE - DEV
+      OVERLAY MODE
     </div>
   </div>
 </template>

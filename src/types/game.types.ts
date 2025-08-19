@@ -50,6 +50,7 @@ export interface GameState {
   gameFinished: boolean
   startTime: Date
   settings: GameSettings
+  leagueLogo?: string
   metadata?: {
     tournament?: string
     venue?: string
@@ -61,7 +62,7 @@ export interface GameState {
 export interface ScoreboardEvent {
   type: EventType
   team?: 'local' | 'visitor'
-  data?: any
+  data?: Record<string, unknown>
   timestamp: Date
 }
 
@@ -73,6 +74,10 @@ export type EventType =
   | 'reset_game'
   | 'update_team_name'
   | 'update_team_logo'
+  | 'update_team_color'
+  | 'update_league_logo'
+  | 'toggle_serve'
+  | 'game_start'
   | 'game_finished'
   | 'set_finished'
 
@@ -144,8 +149,10 @@ export interface UseCommunicationReturn {
   broadcast: (state: GameState) => void
   listen: (callback: (state: CommunicationState) => void) => () => void
   getCurrentState: () => CommunicationState | null
-  isConnected: Readonly<Ref<boolean>>
-  lastUpdate: Readonly<Ref<Date | null>>
+  isConnected: Ref<boolean>
+  lastUpdate: Ref<Date | null>
+  connectionStatus: Ref<string>
+  syncWithExistingState: () => void
 }
 
 // Importaciones de Vue para los tipos

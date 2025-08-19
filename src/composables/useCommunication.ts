@@ -1,5 +1,5 @@
 import { COMMUNICATION_CONFIG, STORAGE_KEYS } from '@utils/constants'
-import type { CommunicationState, GameState, UseCommunicationReturn } from '@types/game.types'
+import type { CommunicationState, GameState, UseCommunicationReturn } from '../types/game.types'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { debounce } from 'lodash-es'
@@ -144,31 +144,33 @@ export function useCommunication(): UseCommunicationReturn {
   /**
    * Validar que el estado recibido sea válido
    */
-  const validateState = (state: any): asserts state is CommunicationState => {
+  const validateState = (state: unknown): asserts state is CommunicationState => {
     if (!state || typeof state !== 'object') {
       throw new Error('Invalid state: not an object')
     }
 
-    if (!state.local || !state.visitor) {
+    const stateObj = state as Record<string, unknown>
+
+    if (!stateObj.local || !stateObj.visitor) {
       throw new Error('Invalid state: missing team data')
     }
 
-    if (typeof state.currentSet !== 'number' || state.currentSet < 1) {
+    if (typeof stateObj.currentSet !== 'number' || stateObj.currentSet < 1) {
       throw new Error('Invalid state: invalid currentSet')
     }
 
-    if (!Array.isArray(state.history)) {
+    if (!Array.isArray(stateObj.history)) {
       throw new Error('Invalid state: invalid history')
     }
 
     // Validar timestamp
-    if (typeof state.timestamp !== 'number') {
+    if (typeof stateObj.timestamp !== 'number') {
       throw new Error('Invalid state: missing timestamp')
     }
 
     // Verificar que el timestamp no sea muy antiguo (más de 1 hora)
     const now = Date.now()
-    if (now - state.timestamp > 3600000) {
+    if (now - stateObj.timestamp > 3600000) {
       console.warn('State timestamp is very old, might be stale')
     }
   }
@@ -278,9 +280,9 @@ export function useCommunication(): UseCommunicationReturn {
     getCurrentState,
 
     // Estado de la conexión
-    isConnected: readonly(isConnected),
-    lastUpdate: readonly(lastUpdate),
-    connectionStatus: readonly(connectionStatus),
+    isConnected,
+    lastUpdate,
+    connectionStatus,
 
     // Utilidades
     cleanup,
