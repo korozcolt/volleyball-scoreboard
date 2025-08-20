@@ -210,7 +210,7 @@ export const BREAKPOINTS = {
 
 // Configuración de desarrollo
 export const DEV_CONFIG = {
-  MOCK_DATA: process.env.NODE_ENV === 'development',
-  DEBUG_MODE: process.env.NODE_ENV === 'development',
-  LOG_LEVEL: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  MOCK_DATA: import.meta.env.DEV,
+  DEBUG_MODE: import.meta.env.DEV,
+  LOG_LEVEL: import.meta.env.DEV ? 'debug' : 'info',
 } as const

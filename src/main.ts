@@ -83,7 +83,7 @@ if (typeof window !== 'undefined') {
   }
 
   // Detectar si está corriendo en OBS
-  const isInOBS = window.obsstudio !== undefined
+  const isInOBS = (window as Window & { obsstudio?: unknown }).obsstudio !== undefined
   if (isInOBS) {
     document.body.classList.add('obs-environment')
     console.log('📺 Detectado entorno OBS Studio')
