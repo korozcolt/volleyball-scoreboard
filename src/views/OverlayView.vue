@@ -179,14 +179,22 @@
         {{ notification.message }}
       </div>
     </div>
+
+    <!-- Score History Component -->
+    <ScoreHistory
+      :is-visible="showScoreHistory"
+      :local-team-name="scoreboard.gameState?.local.name || 'Local'"
+      :visitor-team-name="scoreboard.gameState?.visitor.name || 'Visitante'"
+      @hide="hideScoreHistory"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useScoreboardStore } from '@/stores/scoreboard'
 import { useCommunication } from '@/composables/useCommunication'
-// Removed unused import
+import ScoreHistory from '@/components/overlay/ScoreHistory.vue'
 
 const scoreboard = useScoreboardStore()
 const communication = useCommunication()
@@ -195,6 +203,9 @@ const communication = useCommunication()
 const localScoreChanged = ref(false)
 const visitorScoreChanged = ref(false)
 const notifications = ref<Array<{ id: string; message: string; type: string }>>([])
+
+// Estado para el historial de puntos
+const showScoreHistory = ref(false)
 
 // Initialize game on mount
 onMounted(() => {
@@ -210,9 +221,16 @@ onMounted(() => {
       console.log('Overlay state updated:', newState)
     }
   })
+
+  // Listen for show score history event
+  window.addEventListener('showScoreHistory', showScoreHistoryPanel)
 })
 
 // Cleanup is handled automatically by the communication composable
+onUnmounted(() => {
+  // Remove event listener
+  window.removeEventListener('showScoreHistory', showScoreHistoryPanel)
+})
 
 // Watch for score changes to trigger animations
 watch(
@@ -319,6 +337,20 @@ const getNotificationClass = (type: string): string => {
       return 'border-blue-500 bg-blue-900/90'
   }
 }
+
+// Funciones para el historial de puntos
+const showScoreHistoryPanel = () => {
+  showScoreHistory.value = true
+}
+
+const hideScoreHistory = () => {
+  showScoreHistory.value = false
+}
+
+// Exponer función para uso externo
+defineExpose({
+  showScoreHistoryPanel,
+})
 </script>
 
 <style scoped>

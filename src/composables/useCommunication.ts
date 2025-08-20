@@ -1,6 +1,6 @@
 import { COMMUNICATION_CONFIG, STORAGE_KEYS } from '@utils/constants'
 import type { CommunicationState, GameState, UseCommunicationReturn } from '../types/game.types'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 import { debounce } from 'lodash-es'
 
@@ -29,7 +29,7 @@ export function useCommunication(): UseCommunicationReturn {
         const testKey = 'test_storage_quota'
         localStorage.setItem(testKey, 'test')
         localStorage.removeItem(testKey)
-      } catch (quotaError) {
+      } catch {
         // Si hay error de quota, limpiar datos antiguos
         console.warn('LocalStorage quota exceeded, cleaning old data...')
         cleanOldStorageData()
@@ -39,7 +39,7 @@ export function useCommunication(): UseCommunicationReturn {
       try {
         const stateString = JSON.stringify(stateData)
         localStorage.setItem(STORAGE_KEYS.GAME_STATE, stateString)
-      } catch (storageError) {
+      } catch {
         console.warn('Failed to save to localStorage, using alternative communication')
         // Continuar con otros métodos de comunicación
       }
@@ -80,7 +80,7 @@ export function useCommunication(): UseCommunicationReturn {
           localStorage.removeItem(key)
         }
       })
-      
+
       // Limpiar otros datos no esenciales
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('volleyball') && key !== STORAGE_KEYS.GAME_STATE) {

@@ -120,7 +120,12 @@ export const formatSets = (localSets: number, visitorSets: number): string => {
 /**
  * Valida la configuración del juego
  */
-export const validateGameSettings = (settings: any): boolean => {
+export const validateGameSettings = (settings: {
+  maxSets: number;
+  pointsToWin: number;
+  minAdvantage: number;
+  decidingSetPoints: number;
+}): boolean => {
   return (
     typeof settings.maxSets === 'number' &&
     settings.maxSets >= 3 &&
@@ -181,7 +186,13 @@ export const getNextPlayerInRotation = (currentRotation: number[]): number => {
 /**
  * Valida si un evento del historial es válido
  */
-export const validateHistoryEvent = (event: any): boolean => {
+export const validateHistoryEvent = (event: {
+  id: string;
+  message: string;
+  type: string;
+  timestamp: Date;
+  set: number;
+}): boolean => {
   return (
     typeof event.id === 'string' &&
     typeof event.message === 'string' &&

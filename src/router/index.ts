@@ -166,7 +166,7 @@ export const openInNewWindow = (route: string, windowName: string = '_blank') =>
 // Configuración específica para desarrollo
 if (import.meta.env.DEV) {
   // Agregar helpers globales en desarrollo
-  ; (window as any).volleyball = {
+  ; (window as Window & { volleyball?: object }).volleyball = {
     router,
     navigateTo,
     openController: () => openInNewWindow(ROUTES.CONTROLLER, 'controller'),

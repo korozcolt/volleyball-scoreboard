@@ -92,7 +92,7 @@ if (typeof window !== 'undefined') {
   // Configuración para desarrollo con múltiples ventanas
   if (import.meta.env.DEV) {
     // Helper para abrir controlador y overlay simultáneamente
-    ; (window as any).openDualMode = () => {
+    ; (window as Window & { openDualMode?: () => void }).openDualMode = () => {
       window.open('/controller', 'controller', 'width=1200,height=800,left=0,top=0')
       window.open('/overlay', 'overlay', 'width=1920,height=200,left=0,top=800')
     }

@@ -8,11 +8,9 @@ import type {
   GameStatus,
   HistoryType,
   ScoreboardEvent,
-  Team,
 } from '../types/game.types'
-import { VOLLEYBALL_CONSTANTS } from '../types/game.types'
 import { checkSetWin, generateId, validateScore } from '@utils/validators'
-import { computed, ref, readonly } from 'vue'
+import { computed, ref } from 'vue'
 import { useSettings } from '@/composables/useSettings'
 
 import { defineStore } from 'pinia'
@@ -20,7 +18,7 @@ import { defineStore } from 'pinia'
 export const useScoreboardStore = defineStore('scoreboard', () => {
   // Configuración persistente
   const settingsManager = useSettings()
-  
+
   // Estado principal del juego
   const gameState = ref<GameState>({
     local: {
@@ -55,6 +53,9 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
   // Estado de eventos para comunicación
   const events = ref<ScoreboardEvent[]>([])
   const lastEventId = ref<string>('')
+
+  // Estado del historial de puntos (últimos 6 puntos)
+  const scoreHistory = ref<Array<{ local: number; visitor: number; timestamp: Date }>>([])
 
   // Getters computados
   const currentTeamServing = computed(() => {
@@ -92,7 +93,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
   })
 
   // Funciones de utilidad
-  const addToHistory = (message: string, type: HistoryType = 'info', score?: { local: number; visitor: number }) => {
+  const addToHistory = (message: string, type: HistoryType = 'info', _score?: { local: number; visitor: number }) => {
     const historyItem: GameHistory = {
       id: generateId(),
       message,
@@ -110,6 +111,22 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     // Mantener solo los últimos 50 elementos
     if (gameState.value.history.length > 50) {
       gameState.value.history = gameState.value.history.slice(0, 50)
+    }
+  }
+
+  // Función para agregar al historial de puntos
+  const addToScoreHistory = () => {
+    const scoreEntry = {
+      local: gameState.value.local.score,
+      visitor: gameState.value.visitor.score,
+      timestamp: new Date()
+    }
+
+    scoreHistory.value.unshift(scoreEntry)
+
+    // Mantener solo los últimos 6 puntos
+    if (scoreHistory.value.length > 6) {
+      scoreHistory.value = scoreHistory.value.slice(0, 6)
     }
   }
 
@@ -142,6 +159,9 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
 
     // Incrementar puntuación
     teamData.score++
+
+    // Agregar al historial de puntos
+    addToScoreHistory()
 
     // Cambiar saque al equipo que anotó
     teamData.serving = true
@@ -322,13 +342,13 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
   const loadSavedSettings = () => {
     settingsManager.initializeSettings()
     const settings = settingsManager.settings.value
-    
+
     // Aplicar configuración guardada al estado del juego
     gameState.value.local.name = settings.teamNames.local
     gameState.value.visitor.name = settings.teamNames.visitor
     gameState.value.local.color = settings.teamColors.local
     gameState.value.visitor.color = settings.teamColors.visitor
-    
+
     // Aplicar logos si existen
     if (settings.teamLogos.local) {
       gameState.value.local.logo = settings.teamLogos.local
@@ -339,7 +359,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     if (settings.leagueLogo) {
       gameState.value.leagueLogo = settings.leagueLogo
     }
-    
+
     // Aplicar configuración del juego
     gameState.value.settings = { ...settings.gameSettings }
   }
@@ -356,6 +376,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     gameState,
     events,
     lastEventId,
+    scoreHistory,
 
     // Getters
     currentTeamServing,
@@ -386,7 +407,7 @@ export const useScoreboardStore = defineStore('scoreboard', () => {
     restoreGameState,
     initializeGame,
     loadSavedSettings,
-    
+
     // Configuración persistente
     settingsManager,
   }

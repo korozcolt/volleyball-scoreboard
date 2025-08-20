@@ -132,7 +132,7 @@
       <!-- Game Controls -->
       <div class="bg-gray-800 rounded-lg p-6 mb-8">
         <h3 class="text-lg font-semibold mb-4">Controles del Juego</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
           <button
             @click="scoreboard.toggleServe"
             class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
@@ -157,6 +157,12 @@
             class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
           >
             🔄 Rotar Visitante
+          </button>
+          <button
+            @click="showScoreHistory"
+            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+          >
+            📊 Historial Puntos
           </button>
         </div>
       </div>
@@ -242,6 +248,22 @@ const getEventTypeClass = (type: string) => {
     winner: 'bg-purple-600 text-purple-100'
   }
   return classes[type as keyof typeof classes] || 'bg-gray-600 text-gray-100'
+}
+
+// Score history function
+const showScoreHistory = () => {
+  // Send custom event to overlay to show score history
+  window.dispatchEvent(
+    new CustomEvent('showScoreHistory', {
+      detail: { timestamp: Date.now() }
+    })
+  )
+  
+  // También enviarlo a través del sistema de comunicación
+  communication.broadcast(scoreboard.getGameState())
+  
+  // Log para debugging
+  console.log('Score history button clicked')
 }
 
 // Keyboard shortcuts

@@ -54,10 +54,10 @@ export function useGameState(): UseGameStateReturn {
   const winnerTeam = computed(() => store.winnerTeam)
   const gameProgress = computed(() => {
     const state = store.gameState
-    const setsToWin = Math.ceil(state.settings.maxSets / 2)
+    const _setsToWin = Math.ceil(state.settings.maxSets / 2)
     const targetPoints = state.currentSet === 5 ? state.settings.decidingSetPoints : state.settings.pointsToWin
     const currentPoints = state.local.score + state.visitor.score
-    
+
     return {
       setsPlayed: state.currentSet - 1,
       totalSets: state.settings.maxSets,
@@ -124,7 +124,7 @@ export function useGameState(): UseGameStateReturn {
   })
 
   // Funciones de utilidad
-  const formatGameDuration = (duration: number): string => {
+  const _formatGameDuration = (duration: number): string => {
     const hours = Math.floor(duration / 3600000)
     const minutes = Math.floor((duration % 3600000) / 60000)
     const seconds = Math.floor((duration % 60000) / 1000)
@@ -141,7 +141,7 @@ export function useGameState(): UseGameStateReturn {
     return maxScore >= targetPoints - 1 && maxScore - minScore >= 1
   }
 
-  const checkIfMatchPoint = (state: GameState): boolean => {
+  const _checkIfMatchPoint = (state: GameState): boolean => {
     const setsToWin = Math.ceil(state.settings.maxSets / 2)
     const targetPoints = state.currentSet === 5 ? state.settings.decidingSetPoints : state.settings.pointsToWin
 
@@ -160,7 +160,7 @@ export function useGameState(): UseGameStateReturn {
     return store.gameState[team].score > 0
   }
 
-  const canRotate = (team: 'local' | 'visitor'): boolean => {
+  const canRotate = (_team: 'local' | 'visitor'): boolean => {
     return store.gameState.settings.enableRotation && !store.isGameFinished
   }
 
