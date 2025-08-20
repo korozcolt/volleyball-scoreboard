@@ -24,8 +24,25 @@ export function useCommunication(): UseCommunicationReturn {
         version: COMMUNICATION_CONFIG.STORAGE_VERSION,
       }
 
-      // Guardar en localStorage
-      localStorage.setItem(STORAGE_KEYS.GAME_STATE, JSON.stringify(stateData))
+      // Limpiar localStorage si está lleno
+      try {
+        const testKey = 'test_storage_quota'
+        localStorage.setItem(testKey, 'test')
+        localStorage.removeItem(testKey)
+      } catch (quotaError) {
+        // Si hay error de quota, limpiar datos antiguos
+        console.warn('LocalStorage quota exceeded, cleaning old data...')
+        cleanOldStorageData()
+      }
+
+      // Intentar guardar en localStorage con manejo de errores
+      try {
+        const stateString = JSON.stringify(stateData)
+        localStorage.setItem(STORAGE_KEYS.GAME_STATE, stateString)
+      } catch (storageError) {
+        console.warn('Failed to save to localStorage, using alternative communication')
+        // Continuar con otros métodos de comunicación
+      }
 
       // Emitir evento personalizado para comunicación en la misma pestaña
       window.dispatchEvent(
@@ -48,6 +65,30 @@ export function useCommunication(): UseCommunicationReturn {
       console.error('Error broadcasting state:', error)
       isConnected.value = false
       connectionStatus.value = 'disconnected'
+    }
+  }
+
+  /**
+   * Limpiar datos antiguos del localStorage
+   */
+  const cleanOldStorageData = () => {
+    try {
+      // Limpiar datos de configuración antiguos si existen
+      const keysToCheck = ['volleyball-scoreboard-settings', 'volleyball_scoreboard_state']
+      keysToCheck.forEach(key => {
+        if (localStorage.getItem(key)) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      // Limpiar otros datos no esenciales
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('volleyball') && key !== STORAGE_KEYS.GAME_STATE) {
+          localStorage.removeItem(key)
+        }
+      })
+    } catch (error) {
+      console.error('Error cleaning localStorage:', error)
     }
   }
 
@@ -144,7 +185,7 @@ export function useCommunication(): UseCommunicationReturn {
   /**
    * Validar que el estado recibido sea válido
    */
-  const validateState = (state: unknown): asserts state is CommunicationState => {
+  const validateState: (state: unknown) => asserts state is CommunicationState = (state: unknown): asserts state is CommunicationState => {
     if (!state || typeof state !== 'object') {
       throw new Error('Invalid state: not an object')
     }

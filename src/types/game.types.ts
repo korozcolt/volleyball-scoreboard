@@ -98,6 +98,50 @@ export const VOLLEYBALL_CONSTANTS = {
 
 export type RotationPosition = (typeof VOLLEYBALL_CONSTANTS.ROTATION_POSITIONS)[number]
 
+// Interfaces adicionales para el estado del juego
+export interface GameProgress {
+  setsPlayed: number
+  totalSets: number
+  currentSetProgress: number
+  estimatedTimeRemaining?: number
+}
+
+export interface GameStats {
+  totalPoints: { local: number; visitor: number }
+  averageSetDuration: number
+  longestRally?: number
+  serviceAces?: { local: number; visitor: number }
+  errors?: { local: number; visitor: number }
+}
+
+export interface CurrentSetInfo {
+  setNumber: number
+  startTime: Date
+  duration: number
+  isDecidingSet: boolean
+  pointsToWin: number
+}
+
+export interface ServeInfo {
+  currentServer: 'local' | 'visitor'
+  serverPosition: number
+  consecutiveServes: number
+  lastServeChange: Date
+}
+
+export interface ScoreboardStore {
+  gameState: GameState
+  scorePoint: (team: 'local' | 'visitor') => void
+  removePoint: (team: 'local' | 'visitor') => void
+  rotateTeam: (team: 'local' | 'visitor') => void
+  nextSet: () => void
+  resetGame: () => void
+  updateTeamName: (team: 'local' | 'visitor', name: string) => void
+  updateTeamLogo: (team: 'local' | 'visitor', logo: string) => void
+  updateTeamColor: (team: 'local' | 'visitor', color: string) => void
+  toggleServe: () => void
+}
+
 // Estados del juego
 export type GameStatus = 'waiting' | 'playing' | 'finished' | 'paused'
 
@@ -132,7 +176,30 @@ export interface OverlayConfig {
 
 // Tipos para los composables
 export interface UseGameStateReturn {
+  // Estado principal
   gameState: Readonly<Ref<GameState>>
+  store: ScoreboardStore
+
+  // Estados computados
+  isGameFinished: ComputedRef<boolean>
+  currentSet: ComputedRef<number>
+  gameStatus: ComputedRef<GameStatus>
+  winnerTeam: ComputedRef<Team | null>
+  gameProgress: ComputedRef<GameProgress>
+  currentTeamServing: ComputedRef<'local' | 'visitor' | null>
+
+  // Equipos
+  localTeam: ComputedRef<Team>
+  visitorTeam: ComputedRef<Team>
+
+  // Información detallada
+  gameStats: ComputedRef<GameStats>
+  currentSetInfo: ComputedRef<CurrentSetInfo>
+  serveInfo: ComputedRef<ServeInfo>
+  recentHistory: ComputedRef<GameHistory[]>
+  currentSetHistory: ComputedRef<GameHistory[]>
+
+  // Acciones principales
   scorePoint: (team: 'local' | 'visitor') => void
   removePoint: (team: 'local' | 'visitor') => void
   rotateTeam: (team: 'local' | 'visitor') => void
@@ -140,9 +207,18 @@ export interface UseGameStateReturn {
   resetGame: () => void
   updateTeamName: (team: 'local' | 'visitor', name: string) => void
   updateTeamLogo: (team: 'local' | 'visitor', logo: string) => void
-  isGameFinished: ComputedRef<boolean>
-  currentSet: ComputedRef<number>
-  gameStatus: ComputedRef<GameStatus>
+  updateTeamColor: (team: 'local' | 'visitor', color: string) => void
+  toggleServe: () => void
+
+  // Validaciones
+  canScorePoint: (team: 'local' | 'visitor') => boolean
+  canRemovePoint: (team: 'local' | 'visitor') => boolean
+  canRotate: (team: 'local' | 'visitor') => boolean
+  canStartNextSet: () => boolean
+
+  // Análisis
+  getTeamMomentum: (team: 'local' | 'visitor') => number
+  getSetMVP: (setNumber: number) => Player | null
 }
 
 export interface UseCommunicationReturn {
@@ -153,6 +229,14 @@ export interface UseCommunicationReturn {
   lastUpdate: Ref<Date | null>
   connectionStatus: Ref<string>
   syncWithExistingState: () => void
+  cleanup: () => void
+  getConnectionStats: () => {
+    isConnected: boolean
+    lastUpdate: Date | null
+    status: 'connected' | 'disconnected' | 'reconnecting'
+    activeListeners: number
+    supportsModernAPI: boolean
+  }
 }
 
 // Importaciones de Vue para los tipos

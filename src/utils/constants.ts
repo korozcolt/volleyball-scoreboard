@@ -1,4 +1,4 @@
-import type { GameSettings, OverlayConfig } from '@types/game.types'
+import type { GameSettings, OverlayConfig } from '@/types/game.types'
 
 // Configuración por defecto del juego
 export const DEFAULT_GAME_SETTINGS: GameSettings = {

@@ -1,6 +1,6 @@
-import { computed, type ComputedRef } from 'vue'
+import { computed } from 'vue'
 import { useScoreboardStore } from '@stores/scoreboard'
-import type { GameState, GameStatus, Team, UseGameStateReturn } from '@types/game.types'
+import type { GameState, UseGameStateReturn } from '@/types/game.types'
 
 /**
  * Composable principal para manejar el estado del juego
@@ -52,7 +52,19 @@ export function useGameState(): UseGameStateReturn {
   const currentSet = computed(() => store.currentSet)
   const gameStatus = computed(() => store.gameStatus)
   const winnerTeam = computed(() => store.winnerTeam)
-  const gameProgress = computed(() => store.gameProgress)
+  const gameProgress = computed(() => {
+    const state = store.gameState
+    const setsToWin = Math.ceil(state.settings.maxSets / 2)
+    const targetPoints = state.currentSet === 5 ? state.settings.decidingSetPoints : state.settings.pointsToWin
+    const currentPoints = state.local.score + state.visitor.score
+    
+    return {
+      setsPlayed: state.currentSet - 1,
+      totalSets: state.settings.maxSets,
+      currentSetProgress: Math.min((currentPoints / (targetPoints * 2)) * 100, 100),
+      estimatedTimeRemaining: undefined, // Placeholder
+    }
+  })
   const currentTeamServing = computed(() => store.currentTeamServing)
 
   // Getters específicos para equipos
@@ -62,32 +74,30 @@ export function useGameState(): UseGameStateReturn {
   // Estadísticas del juego
   const gameStats = computed(() => {
     const state = store.gameState
-    const totalPoints = state.local.score + state.visitor.score
+    const totalPointsLocal = state.local.score
+    const totalPointsVisitor = state.visitor.score
     const duration = new Date().getTime() - state.startTime.getTime()
 
     return {
-      totalPoints,
-      duration,
-      setsPlayed: state.currentSet,
-      averagePointsPerSet: totalPoints / state.currentSet,
-      gameTimeFormatted: formatGameDuration(duration),
-      longestSet: Math.max(state.local.score, state.visitor.score),
+      totalPoints: { local: totalPointsLocal, visitor: totalPointsVisitor },
+      averageSetDuration: duration / state.currentSet,
+      longestRally: 0, // Placeholder - se puede implementar más tarde
+      serviceAces: { local: 0, visitor: 0 }, // Placeholder
+      errors: { local: 0, visitor: 0 }, // Placeholder
     }
   })
 
   // Estado del set actual
   const currentSetInfo = computed(() => {
     const state = store.gameState
-    const targetPoints = state.currentSet === 5 ? state.settings.decidingSetPoints : state.settings.pointsToWin
+    const pointsToWin = state.currentSet === 5 ? state.settings.decidingSetPoints : state.settings.pointsToWin
 
     return {
-      number: state.currentSet,
-      targetPoints,
+      setNumber: state.currentSet,
+      startTime: state.startTime,
+      duration: new Date().getTime() - state.startTime.getTime(),
       isDecidingSet: state.currentSet === 5,
-      localProgress: (state.local.score / targetPoints) * 100,
-      visitorProgress: (state.visitor.score / targetPoints) * 100,
-      isSetPoint: checkIfSetPoint(state.local.score, state.visitor.score, targetPoints),
-      isMatchPoint: checkIfMatchPoint(state),
+      pointsToWin,
     }
   })
 
@@ -97,10 +107,10 @@ export function useGameState(): UseGameStateReturn {
     const servingTeam = state.local.serving ? state.local : state.visitor
 
     return {
-      team: state.local.serving ? 'local' : 'visitor',
-      teamName: servingTeam.name,
-      player: servingTeam.currentPlayer,
-      playerName: servingTeam.players?.[servingTeam.currentPlayer - 1]?.name || `#${servingTeam.currentPlayer}`,
+      currentServer: state.local.serving ? 'local' as const : 'visitor' as const,
+      serverPosition: servingTeam.currentPlayer,
+      consecutiveServes: 0, // Placeholder - se puede implementar más tarde
+      lastServeChange: state.startTime, // Placeholder
     }
   })
 
@@ -159,31 +169,31 @@ export function useGameState(): UseGameStateReturn {
   }
 
   // Funciones de análisis
-  const getTeamMomentum = (team: 'local' | 'visitor'): 'positive' | 'negative' | 'neutral' => {
+  const getTeamMomentum = (team: 'local' | 'visitor'): number => {
     const recentEvents = store.gameState.history
       .slice(0, 5)
       .filter(event => event.type === team || event.type === 'local' || event.type === 'visitor')
 
-    if (recentEvents.length < 3) return 'neutral'
+    if (recentEvents.length < 3) return 0
 
     const teamEvents = recentEvents.filter(event => event.type === team).length
     const totalEvents = recentEvents.length
 
-    if (teamEvents / totalEvents > 0.6) return 'positive'
-    if (teamEvents / totalEvents < 0.4) return 'negative'
-    return 'neutral'
+    // Retorna un valor entre -1 y 1
+    return (teamEvents / totalEvents - 0.5) * 2
   }
 
-  const getSetMVP = (): { team: 'local' | 'visitor'; points: number } | null => {
-    const currentSetEvents = currentSetHistory.value
-    const localPoints = currentSetEvents.filter(event => event.type === 'local').length
-    const visitorPoints = currentSetEvents.filter(event => event.type === 'visitor').length
+  const getSetMVP = (setNumber: number) => {
+    const setEvents = store.gameState.history.filter(event => event.set === setNumber)
+    const localPoints = setEvents.filter(event => event.type === 'local').length
+    const visitorPoints = setEvents.filter(event => event.type === 'visitor').length
 
     if (localPoints === visitorPoints) return null
 
+    // Retorna un Player básico o null
     return localPoints > visitorPoints
-      ? { team: 'local', points: localPoints }
-      : { team: 'visitor', points: visitorPoints }
+      ? { id: 1, position: 1, name: 'Local MVP' }
+      : { id: 2, position: 1, name: 'Visitor MVP' }
   }
 
   return {

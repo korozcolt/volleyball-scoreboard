@@ -4,95 +4,143 @@
     <div v-if="!scoreboard.gameState" class="flex items-center justify-center h-full">
       <div class="text-white text-xl">Cargando...</div>
     </div>
-    
-    <!-- Main Scoreboard - New Design -->
-    <div v-else class="scoreboard-container flex items-center justify-center h-screen w-screen absolute inset-0">
-      <div class="scoreboard-new bg-black border-4 border-white p-8 max-w-6xl w-full mx-4">
-        
-        <!-- Main Content Row -->
-        <div class="main-content flex items-center justify-between">
-          
+
+    <!-- Centered Professional Scoreboard -->
+    <div
+      v-else
+      class="scoreboard-container fixed inset-0 flex flex-col items-center justify-center z-50"
+    >
+      <!-- Sets Information Above Scoreboard - Centered Format -->
+      <div class="sets-info w-full bg-transparent py-4 px-8 flex justify-center text-center mb-2">
+        <div class="sets-display text-white text-5xl font-bold uppercase tracking-wider">
+          <span class="text-blue-400">{{ scoreboard.gameState.local.sets }}</span>
+          <span class="mx-6 text-6xl">SET</span>
+          <span class="text-red-400">{{ scoreboard.gameState.visitor.sets }}</span>
+        </div>
+      </div>
+
+      <div
+        class="centered-scoreboard w-full bg-gradient-to-r from-gray-900 via-black to-gray-900 shadow-lg"
+      >
+        <!-- Main Scoreboard Bar -->
+        <div class="scoreboard-bar h-44 px-8 flex items-center justify-between">
           <!-- Local Team Section -->
-          <div class="team-section local-team flex items-center space-x-6">
+          <div class="team-section local-team flex items-center space-x-6 flex-1 min-w-0">
             <!-- Team Logo -->
-            <div class="team-logo-container">
-              <div v-if="getTeamLogo('local')" class="team-logo w-20 h-20 overflow-hidden">
-                <img :src="getTeamLogo('local')" :alt="scoreboard.gameState.local.name" class="w-full h-full object-cover" />
+            <div class="team-logo-container w-32 h-32 flex-shrink-0 relative">
+              <div v-if="getTeamLogo('local')" class="team-logo w-full h-full">
+                <img
+                  :src="getTeamLogo('local')"
+                  :alt="scoreboard.gameState.local.name"
+                  class="w-full h-full object-contain"
+                />
               </div>
-              <div v-else class="team-logo w-20 h-20 bg-blue-600 flex items-center justify-center">
-                <span class="text-2xl font-bold text-white">{{ getTeamInitials(scoreboard.gameState.local.name) }}</span>
+              <div
+                v-else
+                class="team-logo-placeholder w-full h-full bg-blue-600 flex items-center justify-center text-white font-bold text-4xl"
+              >
+                {{ getTeamInitials(scoreboard.gameState.local.name) }}
+              </div>
+              <!-- Serve Indicator -->
+              <div
+                v-if="scoreboard.gameState.local.serving"
+                class="serve-indicator absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"
+              >
+                <span class="text-black text-sm font-bold">🏐</span>
               </div>
             </div>
-            
+
             <!-- Team Info -->
-            <div class="team-info">
-              <!-- Team Label -->
-              <div class="team-label text-sm font-bold text-white uppercase tracking-widest mb-1">
-                LOCAL
-              </div>
-              <!-- Team Name -->
-              <div class="team-name text-2xl font-bold text-white uppercase tracking-wide mb-2">
+            <div class="team-info flex-grow mx-4">
+              <div
+                class="team-name text-white text-5xl font-black uppercase tracking-wider"
+                style="transform: scaleX(2.2); transform-origin: left"
+              >
                 {{ scoreboard.gameState.local.name || 'ATHLETIC' }}
-              </div>
-              <!-- Sets -->
-              <div class="team-sets flex items-center space-x-2">
-                <span class="sets-label text-sm font-bold text-white uppercase">SETS</span>
-                <span class="sets-value text-xl font-bold text-white">{{ scoreboard.gameState.local.sets }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Center Section -->
-          <div class="center-section flex items-center space-x-8">
-            <!-- Local Points -->
-            <div class="points-container local-points-container">
-              <div class="points-box bg-blue-600 text-white text-6xl font-black px-8 py-4 transition-all duration-300" :class="{ 'score-animation': localScoreChanged }">
+          <!-- Center Score Section -->
+          <div class="score-section flex items-center space-x-8 px-12">
+            <!-- Local Score -->
+            <div class="score-display">
+              <div
+                class="score-number local-score text-white text-9xl font-black px-8 py-6 bg-blue-600 min-w-[160px] text-center transition-all duration-300"
+                :class="{ 'score-flash': localScoreChanged }"
+              >
                 {{ scoreboard.gameState.local.score }}
               </div>
             </div>
-            
-            <!-- Center Logo -->
-            <div class="center-logo">
-              <div v-if="getLeagueLogo()" class="league-logo w-24 h-24 mx-auto">
-                <img :src="getLeagueLogo()" alt="Liga" class="w-full h-full object-contain" />
+
+            <!-- Center Logo/Divider -->
+            <div class="center-element flex flex-col items-center space-y-4">
+              <div class="league-logo-container w-24 h-24">
+                <div v-if="getLeagueLogo()" class="league-logo w-full h-full">
+                  <img
+                    :src="getLeagueLogo()"
+                    alt="Liga"
+                    class="w-full h-full object-contain opacity-90"
+                  />
+                </div>
+                <div
+                  v-else
+                  class="volleyball-icon w-full h-full text-white/50 flex items-center justify-center text-6xl"
+                >
+                  🏐
+                </div>
               </div>
-              <div v-else class="volleyball-icon text-6xl">🏐</div>
+              <div
+                class="score-divider w-24 h-1 bg-gradient-to-r from-transparent via-gray-400 to-transparent"
+              ></div>
             </div>
-            
-            <!-- Visitor Points -->
-            <div class="points-container visitor-points-container">
-              <div class="points-box bg-red-600 text-white text-6xl font-black px-8 py-4 transition-all duration-300" :class="{ 'score-animation': visitorScoreChanged }">
+
+            <!-- Visitor Score -->
+            <div class="score-display">
+              <div
+                class="score-number visitor-score text-white text-9xl font-black px-8 py-6 bg-red-600 min-w-[160px] text-center transition-all duration-300"
+                :class="{ 'score-flash': visitorScoreChanged }"
+              >
                 {{ scoreboard.gameState.visitor.score }}
               </div>
             </div>
           </div>
 
           <!-- Visitor Team Section -->
-          <div class="team-section visitor-team flex items-center space-x-6 flex-row-reverse">
-            <!-- Team Logo -->
-            <div class="team-logo-container">
-              <div v-if="getTeamLogo('visitor')" class="team-logo w-20 h-20 overflow-hidden">
-                <img :src="getTeamLogo('visitor')" :alt="scoreboard.gameState.visitor.name" class="w-full h-full object-cover" />
-              </div>
-              <div v-else class="team-logo w-20 h-20 bg-red-600 flex items-center justify-center">
-                <span class="text-2xl font-bold text-white">{{ getTeamInitials(scoreboard.gameState.visitor.name) }}</span>
-              </div>
-            </div>
-            
+          <div
+            class="team-section visitor-team flex items-center space-x-6 flex-1 min-w-0 justify-end"
+          >
             <!-- Team Info -->
-            <div class="team-info text-right">
-              <!-- Team Label -->
-              <div class="team-label text-sm font-bold text-white uppercase tracking-widest mb-1">
-                VISITANTE
-              </div>
-              <!-- Team Name -->
-              <div class="team-name text-2xl font-bold text-white uppercase tracking-wide mb-2">
+            <div class="team-info flex-grow mx-4 text-right">
+              <div
+                class="team-name text-white text-5xl font-black uppercase tracking-wider"
+                style="transform: scaleX(2.2); transform-origin: right"
+              >
                 {{ scoreboard.gameState.visitor.name || 'INTER UNIDOS' }}
               </div>
-              <!-- Sets -->
-              <div class="team-sets flex items-center space-x-2 justify-end">
-                <span class="sets-value text-xl font-bold text-white">{{ scoreboard.gameState.visitor.sets }}</span>
-                <span class="sets-label text-sm font-bold text-white uppercase">SETS</span>
+            </div>
+
+            <!-- Team Logo -->
+            <div class="team-logo-container w-32 h-32 flex-shrink-0 relative">
+              <div v-if="getTeamLogo('visitor')" class="team-logo w-full h-full">
+                <img
+                  :src="getTeamLogo('visitor')"
+                  :alt="scoreboard.gameState.visitor.name"
+                  class="w-full h-full object-contain"
+                />
+              </div>
+              <div
+                v-else
+                class="team-logo-placeholder w-full h-full bg-red-600 flex items-center justify-center text-white font-bold text-4xl"
+              >
+                {{ getTeamInitials(scoreboard.gameState.visitor.name) }}
+              </div>
+              <!-- Serve Indicator -->
+              <div
+                v-if="scoreboard.gameState.visitor.serving"
+                class="serve-indicator absolute -top-2 -left-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"
+              >
+                <span class="text-black text-sm font-bold">🏐</span>
               </div>
             </div>
           </div>
@@ -101,9 +149,17 @@
     </div>
 
     <!-- Game Status Overlay -->
-    <div v-if="scoreboard.gameState.gameFinished || isSetFinished" class="game-status-overlay fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-      <div class="status-message bg-gradient-to-r from-yellow-600 to-yellow-500 text-black px-8 py-4 rounded-2xl shadow-2xl border-4 border-yellow-300">
-        <div v-if="scoreboard.gameState.gameFinished" class="text-3xl font-bold text-center animate-bounce">
+    <div
+      v-if="scoreboard.gameState.gameFinished || isSetFinished"
+      class="game-status-overlay fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50"
+    >
+      <div
+        class="status-message bg-gradient-to-r from-yellow-600 to-yellow-500 text-black px-8 py-4 rounded-2xl shadow-2xl border-4 border-yellow-300"
+      >
+        <div
+          v-if="scoreboard.gameState.gameFinished"
+          class="text-3xl font-bold text-center animate-bounce"
+        >
           🏆 {{ getWinner() }} GANA EL PARTIDO! 🏆
         </div>
         <div v-else-if="isSetFinished" class="text-2xl font-bold text-center">
@@ -138,18 +194,21 @@ const communication = useCommunication()
 // Reactive state for animations
 const localScoreChanged = ref(false)
 const visitorScoreChanged = ref(false)
-const notifications = ref<Array<{ id: string; message: string; type: string }>>([]);
+const notifications = ref<Array<{ id: string; message: string; type: string }>>([])
 
 // Initialize game on mount
 onMounted(() => {
   if (!scoreboard.gameState) {
     scoreboard.initializeGame()
   }
-  
+
   // Start listening for state changes
   communication.listen((newState) => {
-    // Handle state updates if needed
-    console.log('State updated:', newState)
+    // Apply received state to the scoreboard
+    if (newState) {
+      scoreboard.restoreGameState(newState)
+      console.log('Overlay state updated:', newState)
+    }
   })
 })
 
@@ -163,7 +222,7 @@ watch(
     setTimeout(() => {
       localScoreChanged.value = false
     }, 1000)
-  }
+  },
 )
 
 watch(
@@ -173,18 +232,18 @@ watch(
     setTimeout(() => {
       visitorScoreChanged.value = false
     }, 1000)
-  }
+  },
 )
 
 // Computed properties
 
 const isSetFinished = computed(() => {
   if (!scoreboard.gameState) return false
-  
+
   const local = scoreboard.gameState.local
   const visitor = scoreboard.gameState.visitor
   const settings = scoreboard.gameState.settings
-  
+
   return (
     (local.score >= settings.pointsToWin && local.score - visitor.score >= 2) ||
     (visitor.score >= settings.pointsToWin && visitor.score - local.score >= 2)
@@ -198,7 +257,7 @@ const getTeamInitials = (teamName: string): string => {
   if (!teamName) return '??'
   return teamName
     .split(' ')
-    .map(word => word.charAt(0))
+    .map((word) => word.charAt(0))
     .join('')
     .substring(0, 2)
     .toUpperCase()
@@ -207,44 +266,44 @@ const getTeamInitials = (teamName: string): string => {
 const getTeamLogo = (team: 'local' | 'visitor'): string | undefined => {
   const settings = scoreboard.settingsManager?.settings
   if (!settings) return undefined
-  
+
   return settings.teamLogos[team] || undefined
 }
 
 const getLeagueLogo = (): string | undefined => {
   const settings = scoreboard.settingsManager?.settings
   if (!settings) return undefined
-  
+
   return settings.leagueLogo || undefined
 }
 
 const getWinner = (): string => {
   if (!scoreboard.gameState) return ''
-  
+
   const local = scoreboard.gameState.local
   const visitor = scoreboard.gameState.visitor
-  
+
   if (local.sets > visitor.sets) {
     return local.name
   } else if (visitor.sets > local.sets) {
     return visitor.name
   }
-  
+
   return 'EMPATE'
 }
 
 const getSetWinner = (): string => {
   if (!scoreboard.gameState) return ''
-  
+
   const local = scoreboard.gameState.local
   const visitor = scoreboard.gameState.visitor
-  
+
   if (local.score > visitor.score) {
     return local.name
   } else if (visitor.score > local.score) {
     return visitor.name
   }
-  
+
   return 'EMPATE'
 }
 
@@ -263,109 +322,268 @@ const getNotificationClass = (type: string): string => {
 </script>
 
 <style scoped>
-/* Apply Vina Sans font to all text */
+/* Centered Professional Scoreboard Styles */
 .overlay-view {
-  font-family: 'Vina Sans', cursive;
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-weight: 600;
 }
 
-.scoreboard-new {
-  font-family: 'Vina Sans', cursive;
-  min-height: 300px;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+/* Centered Scoreboard Container */
+.centered-scoreboard {
+  position: relative;
+  backdrop-filter: blur(8px);
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  margin: 0;
 }
 
-.points-box {
-  font-family: 'Vina Sans', cursive;
-  min-width: 120px;
-  text-align: center;
-  border: 2px solid white;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+/* Main Scoreboard Bar */
+.scoreboard-bar {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.98) 0%, rgba(0, 0, 0, 0.98) 100%);
+  border-radius: 0;
+  min-height: 176px;
 }
 
+/* Team Sections */
+.team-section {
+  min-width: 0;
+  flex: 1;
+}
+
+.team-info {
+  min-width: 0;
+}
+
+/* Team Names */
 .team-name {
-  font-family: 'Vina Sans', cursive;
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  font-size: 1.5rem;
 }
 
-.team-label {
-  font-family: 'Vina Sans', cursive;
+/* Team Sets */
+.team-sets {
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-.sets-label {
-  font-family: 'Vina Sans', cursive;
+/* Team Logos */
+.team-logo-container {
+  flex-shrink: 0;
 }
 
-.sets-value {
-  font-family: 'Vina Sans', cursive;
+.team-logo {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  transition: all 0.3s ease;
 }
 
-.score-animation {
-  animation: scoreFlash 0.5s ease-in-out;
-  transform: scale(1.1);
-  box-shadow: 0 0 25px rgba(255, 255, 0, 0.6);
+.team-logo:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+.team-logo-placeholder {
+  border: none;
+  border-radius: 0;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+/* Score Section */
+.score-section {
+  flex-shrink: 0;
+}
+
+/* Score Numbers */
+.score-number {
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  border: none;
+  border-radius: 0;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.home-score,
+.local-score {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.away-score,
+.visitor-score {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+/* Score Animation */
+.score-flash {
+  animation: scoreFlash 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes scoreFlash {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); box-shadow: 0 0 30px rgba(255, 255, 0, 0.8); }
-  100% { transform: scale(1.1); }
+  0% {
+    transform: scale(1);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  25% {
+    transform: scale(1.08);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 8px 24px rgba(255, 255, 255, 0.3),
+      0 0 20px rgba(255, 255, 255, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.4);
+  }
 }
 
+/* Center Element */
+.center-element {
+  flex-shrink: 0;
+}
+
+.league-logo-container {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.league-logo {
+  transition: all 0.3s ease;
+}
+
+.volleyball-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.score-divider {
+  opacity: 0.7;
+}
+
+/* Notification Styles */
 .animate-slide-in {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes slideIn {
   from {
-    transform: translateX(100%);
+    transform: translateX(100%) translateY(-10px);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateX(0) translateY(0);
     opacity: 1;
   }
 }
 
-.volleyball-icon {
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+.notification {
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-weight: 600;
 }
 
-.team-logo img {
-  transition: transform 0.3s ease;
-}
-
-.team-logo:hover img {
-  transform: scale(1.05);
-}
-
-.game-status-overlay {
-  backdrop-filter: blur(8px);
-}
-
-.status-message {
-  animation: statusPulse 2s ease-in-out infinite;
-  font-family: 'Vina Sans', cursive;
-}
-
-@keyframes statusPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .scoreboard-new {
-    max-width: 90vw;
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .scoreboard-bar {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
-  
-  .points-box {
-    text-size: 4xl;
-    min-width: 100px;
-    px: 6;
-    py: 3;
+
+  .score-section {
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
-  
+
+  .team-section {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .scoreboard-bar {
+    height: 3.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .score-section {
+    gap: 1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .score-number {
+    font-size: 3rem;
+    padding: 0.5rem 1rem;
+    min-width: 80px;
+  }
+
   .team-name {
-    text-size: xl;
+    font-size: 1rem;
+  }
+
+  .team-sets {
+    font-size: 0.75rem;
+  }
+
+  .team-logo-container {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .league-logo-container {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .scoreboard-bar {
+    height: 3rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .team-section {
+    gap: 0.75rem;
+  }
+
+  .score-section {
+    gap: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .score-number {
+    font-size: 2.5rem;
+    padding: 0.375rem 0.75rem;
+    min-width: 70px;
+  }
+
+  .team-name {
+    font-size: 0.875rem;
+  }
+
+  .team-sets {
+    font-size: 0.625rem;
+  }
+
+  .team-logo-container {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .league-logo-container {
+    width: 1.5rem;
+    height: 1.5rem;
   }
 }
 </style>

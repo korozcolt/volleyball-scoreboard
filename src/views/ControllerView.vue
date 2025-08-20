@@ -186,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useScoreboardStore } from '@/stores/scoreboard'
 import { useCommunication } from '@/composables/useCommunication'
 import { KEYBOARD_SHORTCUTS } from '@/utils/constants'
@@ -295,7 +295,31 @@ onMounted(() => {
     console.log('Communication state updated:', state)
   })
   document.addEventListener('keydown', handleKeydown)
+  
+  // Broadcast initial state
+  if (scoreboard.gameState) {
+    communication.broadcast(scoreboard.getGameState())
+  }
 })
+
+// Watch for game state changes and broadcast them with throttling
+let lastBroadcastTime = 0
+const BROADCAST_THROTTLE = 500 // 500ms throttle
+
+watch(
+  () => scoreboard.gameState,
+  (newState) => {
+    if (newState) {
+      const now = Date.now()
+      if (now - lastBroadcastTime > BROADCAST_THROTTLE) {
+        communication.broadcast(scoreboard.getGameState())
+        lastBroadcastTime = now
+        console.log('Broadcasting game state:', newState)
+      }
+    }
+  },
+  { deep: true, flush: 'post' }
+)
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
