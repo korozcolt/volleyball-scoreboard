@@ -120,7 +120,7 @@ const resolveUploadPath = (pathname) => {
 
 const handleLogoUpload = async (request, response) => {
   const webRequest = new Request(`http://localhost${request.url}`, {
-    method: request.method,
+    method: 'POST',
     headers: request.headers,
     body: Readable.toWeb(request),
     duplex: 'half',

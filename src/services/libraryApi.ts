@@ -17,11 +17,17 @@ export const libraryApi = {
   },
 
   async saveTeam(team: Partial<TeamProfile> & BroadcastTeamConfig) {
-    const response = await fetch(team.id ? `/api/teams/${team.id}` : '/api/teams', {
-      method: team.id ? 'PUT' : 'POST',
-      headers: jsonHeaders,
-      body: JSON.stringify(team),
-    })
+    const response = team.id
+      ? await fetch(`/api/teams/${team.id}`, {
+          method: 'PUT',
+          headers: jsonHeaders,
+          body: JSON.stringify(team),
+        })
+      : await fetch('/api/teams', {
+          method: 'POST',
+          headers: jsonHeaders,
+          body: JSON.stringify(team),
+        })
     const payload = await readJson<{ team: TeamProfile }>(response)
     return payload.team
   },
