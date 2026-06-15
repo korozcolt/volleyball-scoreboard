@@ -57,15 +57,12 @@ app.mount('#app')
 
 // Configuración adicional para el entorno
 if (typeof window !== 'undefined') {
-  // Configurar título dinámico
-  const originalTitle = document.title
-
   // Event listener para cambios de visibilidad (útil para OBS)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      document.title = '⏸️ ' + originalTitle
+      document.title = `En pausa | ${router.currentRoute.value.meta.title ?? 'VolleyStream'}`
     } else {
-      document.title = originalTitle
+      document.title = String(router.currentRoute.value.meta.title ?? 'VolleyStream Broadcast Dashboard')
     }
   })
 

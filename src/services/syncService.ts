@@ -28,6 +28,15 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
     sourceId,
   })
 
+  const getSocketUrl = () => {
+    const configuredUrl = import.meta.env.VITE_SYNC_WS_URL
+    if (configuredUrl) return configuredUrl
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const isProd = import.meta.env.PROD
+    return isProd ? `${protocol}//${window.location.host}/ws` : `${protocol}//${window.location.hostname}:3010`
+  }
+
   const parseEnvelope = (raw: string | null): SyncEnvelope<T> | null => {
     if (!raw) return null
 
@@ -90,8 +99,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
           return
         }
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        socket = new WebSocket(`${protocol}//${window.location.hostname}:3010`)
+        socket = new WebSocket(getSocketUrl())
 
         socket.onopen = () => {
           while (socketQueue.length && socket?.readyState === WebSocket.OPEN) {

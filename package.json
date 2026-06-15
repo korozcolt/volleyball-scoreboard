@@ -11,6 +11,7 @@
     "dev": "vite",
     "dev:obs": "concurrently \"npm run sync\" \"npm run dev -- --host 0.0.0.0\"",
     "sync": "node scripts/sync-server.mjs",
+    "start": "node scripts/production-server.mjs",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",

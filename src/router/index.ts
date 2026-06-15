@@ -13,8 +13,8 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Home',
     component: HomeView,
     meta: {
-      title: 'Volleyball Scoreboard',
-      description: 'Sistema profesional de marcador de volleyball',
+      title: 'VolleyStream Broadcast Dashboard',
+      description: 'Suite de marcador y overlay OBS para transmisiones de volleyball',
     },
   },
   {
@@ -22,8 +22,8 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Controller',
     component: ControllerView,
     meta: {
-      title: 'Panel de Control - Volleyball Scoreboard',
-      description: 'Panel de administración del marcador',
+      title: 'Control de Partido | VolleyStream',
+      description: 'Panel operativo para marcador, saque, sets, timeouts y overlays',
       requiresFullscreen: false,
     },
   },
@@ -32,8 +32,8 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Overlay',
     component: OverlayView,
     meta: {
-      title: 'Overlay - Volleyball Scoreboard',
-      description: 'Overlay para transmisión en OBS',
+      title: 'Overlay OBS | VolleyStream',
+      description: 'Salida limpia para OBS con marcador de volleyball sincronizado',
       requiresFullscreen: true,
       isOverlay: true,
     },
@@ -43,8 +43,8 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Settings',
     component: SettingsView,
     meta: {
-      title: 'Configuración - Volleyball Scoreboard',
-      description: 'Configuración del sistema',
+      title: 'Configuracion Broadcast | VolleyStream',
+      description: 'Configuracion de equipos, torneo, sponsor, colores y estilo visual',
     },
   },
   // Rutas de redirección para compatibilidad
@@ -66,7 +66,7 @@ const routes: Array<RouteRecordRaw> = [
     name: 'NotFound',
     component: () => import('@/views/NotFoundView.vue'),
     meta: {
-      title: 'Página no encontrada',
+      title: 'Pagina no encontrada | VolleyStream',
     },
   },
 ]
