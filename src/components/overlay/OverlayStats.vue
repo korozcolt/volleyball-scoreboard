@@ -25,7 +25,18 @@ const metricRows = [
       :class="side === 'visitor' ? 'order-3 flex-row-reverse text-right' : 'order-1'"
       :style="{ '--team-color': gameState[side].primaryColor }"
     >
-      <div class="stats-team-code">{{ gameState[side].shortCode.slice(0, 3) }}</div>
+      <div class="stats-team-identity">
+        <img
+          v-if="gameState[side].logoUrl"
+          :src="gameState[side].logoUrl"
+          :alt="gameState[side].name"
+          class="stats-team-logo"
+        />
+        <div v-else class="stats-team-code">{{ gameState[side].shortCode.slice(0, 3) }}</div>
+        <div v-if="gameState[side].logoUrl" class="stats-team-badge">
+          {{ gameState[side].shortCode.slice(0, 3) }}
+        </div>
+      </div>
       <div class="min-w-0 flex-1">
         <div class="truncate text-xs font-black uppercase tracking-[0.22em] text-white/60">
           {{ gameState[side].name }}

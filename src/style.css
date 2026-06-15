@@ -268,20 +268,45 @@
 
   .flag-tile {
     display: flex;
-    height: 56px;
-    width: 86px;
+    height: 78px;
+    width: 78px;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.1);
+    background:
+      radial-gradient(circle at center, rgba(255, 255, 255, 0.2), transparent 68%),
+      rgba(255, 255, 255, 0.1);
+    padding: 0.42rem;
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
     transform: skewX(-8deg);
   }
 
   .flag-tile > * {
     transform: skewX(8deg);
+  }
+
+  .history-team-logo {
+    display: flex;
+    height: 28px;
+    width: 28px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.3rem;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 0.16rem;
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 900;
+  }
+
+  .history-team-logo img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
   }
 
   .team-code {
@@ -480,8 +505,15 @@
       linear-gradient(225deg, rgba(84, 18, 18, 0.92), rgba(18, 8, 50, 0.88));
   }
 
-  .stats-team-code {
+  .stats-team-identity {
+    position: relative;
+    display: flex;
     min-width: 136px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stats-team-code {
     font-size: 4.4rem;
     font-weight: 900;
     font-style: italic;
@@ -492,6 +524,28 @@
       0 10px 24px rgba(0, 0, 0, 0.68),
       0 0 20px color-mix(in srgb, var(--team-color) 54%, transparent);
     transform: skewX(-8deg);
+  }
+
+  .stats-team-logo {
+    height: 96px;
+    width: 96px;
+    object-fit: contain;
+    filter:
+      drop-shadow(0 12px 20px rgba(0, 0, 0, 0.54))
+      drop-shadow(0 0 18px color-mix(in srgb, var(--team-color) 36%, transparent));
+  }
+
+  .stats-team-badge {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%) skewX(-8deg);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(0, 0, 0, 0.66);
+    padding: 0.12rem 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
   }
 }
 

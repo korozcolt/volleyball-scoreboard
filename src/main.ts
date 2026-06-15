@@ -66,19 +66,6 @@ if (typeof window !== 'undefined') {
     }
   })
 
-  // Configurar service worker en producción
-  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('✅ Service Worker registrado:', registration)
-        })
-        .catch(error => {
-          console.log('❌ Error al registrar Service Worker:', error)
-        })
-    })
-  }
-
   // Detectar si está corriendo en OBS
   const isInOBS = (window as Window & { obsstudio?: unknown }).obsstudio !== undefined
   if (isInOBS) {

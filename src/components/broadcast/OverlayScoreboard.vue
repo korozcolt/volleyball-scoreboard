@@ -88,17 +88,60 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
         <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#082cff] to-[#ff3d1f]"></div>
         <div class="text-[10px] font-black uppercase tracking-[0.2em] text-white/65">Set {{ setNumber }}</div>
         <template v-if="gameState.completedSets[setNumber - 1]">
-          <div class="text-2xl font-black leading-none text-white">
-            {{ gameState.completedSets[setNumber - 1].local }} -
-            {{ gameState.completedSets[setNumber - 1].visitor }}
+          <div class="mt-1 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
+            <div class="history-team-logo justify-self-end">
+              <img
+                v-if="gameState.local.logoUrl"
+                :src="gameState.local.logoUrl"
+                :alt="gameState.local.name"
+              />
+              <span v-else>{{ teamInitial('local') }}</span>
+            </div>
+            <div class="text-2xl font-black leading-none text-white">
+              {{ gameState.completedSets[setNumber - 1].local }} -
+              {{ gameState.completedSets[setNumber - 1].visitor }}
+            </div>
+            <div class="history-team-logo justify-self-start">
+              <img
+                v-if="gameState.visitor.logoUrl"
+                :src="gameState.visitor.logoUrl"
+                :alt="gameState.visitor.name"
+              />
+              <span v-else>{{ teamInitial('visitor') }}</span>
+            </div>
           </div>
-          <div class="mt-1 text-xs font-black text-[#7bd0ff]">
-            {{ gameState[gameState.completedSets[setNumber - 1].winner].shortCode }}
+          <div class="mt-1 flex items-center justify-center gap-1 text-xs font-black text-[#7bd0ff]">
+            <span>Ganó</span>
+            <img
+              v-if="gameState[gameState.completedSets[setNumber - 1].winner].logoUrl"
+              :src="gameState[gameState.completedSets[setNumber - 1].winner].logoUrl"
+              :alt="gameState[gameState.completedSets[setNumber - 1].winner].name"
+              class="h-4 w-4 object-contain"
+            />
+            <span v-else>{{ gameState[gameState.completedSets[setNumber - 1].winner].shortCode }}</span>
           </div>
         </template>
         <template v-else-if="setNumber === gameState.currentSet">
-          <div class="text-2xl font-black leading-none text-white">
-            {{ gameState.local.score }} - {{ gameState.visitor.score }}
+          <div class="mt-1 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
+            <div class="history-team-logo justify-self-end">
+              <img
+                v-if="gameState.local.logoUrl"
+                :src="gameState.local.logoUrl"
+                :alt="gameState.local.name"
+              />
+              <span v-else>{{ teamInitial('local') }}</span>
+            </div>
+            <div class="text-2xl font-black leading-none text-white">
+              {{ gameState.local.score }} - {{ gameState.visitor.score }}
+            </div>
+            <div class="history-team-logo justify-self-start">
+              <img
+                v-if="gameState.visitor.logoUrl"
+                :src="gameState.visitor.logoUrl"
+                :alt="gameState.visitor.name"
+              />
+              <span v-else>{{ teamInitial('visitor') }}</span>
+            </div>
           </div>
           <div class="mt-1 text-xs font-black text-[#ffb2b7]">Actual</div>
         </template>
@@ -132,7 +175,7 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
             v-if="gameState.local.logoUrl"
             :src="gameState.local.logoUrl"
             :alt="gameState.local.name"
-            class="h-full w-full object-cover"
+            class="h-full w-full object-contain"
           />
           <Shield v-else class="h-8 w-8 text-white/80" />
         </div>
@@ -187,7 +230,7 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
             v-if="gameState.visitor.logoUrl"
             :src="gameState.visitor.logoUrl"
             :alt="gameState.visitor.name"
-            class="h-full w-full object-cover"
+            class="h-full w-full object-contain"
           />
           <Shield v-else class="h-8 w-8 text-white/80" />
         </div>
