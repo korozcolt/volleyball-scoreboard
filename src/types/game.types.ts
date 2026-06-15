@@ -3,9 +3,12 @@ import type { ComputedRef, Ref } from 'vue'
 export type TeamSide = 'local' | 'visitor'
 export type MatchStatus = 'idle' | 'live' | 'paused' | 'finished'
 export type GameStatus = MatchStatus | 'waiting' | 'playing'
-export type OverlayMode = 'scoreboard' | 'history'
+export type OverlayMode = 'scoreboard' | 'history' | 'stats'
 export type BackgroundStyle = 'classic-dark' | 'steel-blue' | 'custom'
 export type LowerThirdStyle = 'glass' | 'solid-dark' | 'high-contrast'
+export type ScoringReason = 'manual' | 'attack' | 'block' | 'ace' | 'opponent_error'
+export type StatErrorType = 'attack_error' | 'serve_error'
+export type StatSkillType = 'positive_reception' | 'negative_reception' | 'dig'
 
 export interface Player {
   id: number
@@ -130,6 +133,40 @@ export interface OverlayControlState {
   showHistory: boolean
   lowerThirdVisible: boolean
   lastCommand?: OverlayCommand
+}
+
+export interface TeamStatistics {
+  points: number
+  attackPoints: number
+  blockPoints: number
+  aces: number
+  opponentErrors: number
+  attackErrors: number
+  serveErrors: number
+  positiveReceptions: number
+  negativeReceptions: number
+  digs: number
+  currentRun: number
+  biggestRun: number
+}
+
+export interface StatisticEvent {
+  id: string
+  team: TeamSide
+  type: ScoringReason | StatErrorType | StatSkillType
+  set: number
+  score: {
+    local: number
+    visitor: number
+  }
+  timestamp: number
+}
+
+export interface StatisticsState {
+  local: TeamStatistics
+  visitor: TeamStatistics
+  events: StatisticEvent[]
+  lastScoringTeam?: TeamSide
 }
 
 export interface ScoreboardEvent {

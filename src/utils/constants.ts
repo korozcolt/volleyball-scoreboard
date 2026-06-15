@@ -35,6 +35,7 @@ export const STORAGE_KEYS = {
   MATCH_STATE: 'volleystream_match_state',
   BROADCAST_CONFIG: 'volleystream_broadcast_config',
   OVERLAY_CONTROL: 'volleystream_overlay_control',
+  STATISTICS: 'volleystream_statistics',
   GAME_STATE: 'volleystream_match_state',
   OVERLAY_CONFIG: 'volleystream_overlay_control',
   USER_PREFERENCES: 'volleystream_user_preferences',
@@ -45,12 +46,14 @@ export const SYNC_CHANNELS = {
   MATCH: 'volleystream:match',
   BROADCAST_CONFIG: 'volleystream:broadcast-config',
   OVERLAY_CONTROL: 'volleystream:overlay-control',
+  STATISTICS: 'volleystream:statistics',
 } as const
 
 export const ROUTES = {
   HOME: '/',
   CONTROLLER: '/controller',
   OVERLAY: '/overlay',
+  STATISTICS: '/statistics',
   SETTINGS: '/settings',
 } as const
 

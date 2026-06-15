@@ -6,6 +6,7 @@ const ControllerView = () => import('@/views/ControllerView.vue')
 const OverlayView = () => import('@/views/OverlayView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
+const StatisticsView = () => import('@/views/StatisticsView.vue')
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -36,6 +37,15 @@ const routes: Array<RouteRecordRaw> = [
       description: 'Salida limpia para OBS con marcador de volleyball sincronizado',
       requiresFullscreen: true,
       isOverlay: true,
+    },
+  },
+  {
+    path: ROUTES.STATISTICS,
+    name: 'Statistics',
+    component: StatisticsView,
+    meta: {
+      title: 'Estadisticas | VolleyStream',
+      description: 'Modulo de estadisticas en vivo para el partido',
     },
   },
   {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Minus, Plus, Timer } from 'lucide-vue-next'
+import { Minus, Plus, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import type { Team, TeamSide } from '@/types/game.types'
+import type { ScoringReason, StatErrorType, StatSkillType, Team, TeamSide } from '@/types/game.types'
 
 const props = defineProps<{
   team: Team
@@ -16,6 +16,9 @@ const emit = defineEmits<{
   manualScore: [team: TeamSide, score: number]
   manualSets: [team: TeamSide, sets: number]
   timeout: [team: TeamSide]
+  scoreReason: [team: TeamSide, reason: ScoringReason]
+  statError: [team: TeamSide, errorType: StatErrorType]
+  statSkill: [team: TeamSide, skill: StatSkillType]
 }>()
 
 const now = ref(Date.now())
@@ -40,6 +43,19 @@ const timeoutLimit = 2
 const canRequestTimeout = computed(
   () => props.matchStarted && !props.gameFinished && props.team.timeoutsUsed < timeoutLimit && timeoutRemaining.value === 0,
 )
+
+const scoringActions: Array<{ label: string; reason: ScoringReason }> = [
+  { label: 'Ataque', reason: 'attack' },
+  { label: 'Bloqueo', reason: 'block' },
+  { label: 'Ace', reason: 'ace' },
+  { label: 'Error rival', reason: 'opponent_error' },
+]
+
+const skillActions: Array<{ label: string; skill: StatSkillType }> = [
+  { label: 'Recep +', skill: 'positive_reception' },
+  { label: 'Recep -', skill: 'negative_reception' },
+  { label: 'Defensa', skill: 'dig' },
+]
 </script>
 
 <template>
@@ -88,6 +104,19 @@ const canRequestTimeout = computed(
       +1 Punto
     </button>
 
+    <div class="grid grid-cols-2 gap-2">
+      <button
+        v-for="action in scoringActions"
+        :key="action.reason"
+        class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-lowest px-2 text-xs font-black uppercase text-broadcast-text transition hover:border-broadcast-accent hover:text-broadcast-accent"
+        @click="emit('scoreReason', side, action.reason)"
+        :disabled="gameFinished"
+      >
+        <Target class="h-3.5 w-3.5" />
+        {{ action.label }}
+      </button>
+    </div>
+
     <div class="flex gap-2">
       <button
         class="flex h-14 flex-1 items-center justify-center rounded border border-broadcast-outline bg-broadcast-surface-lowest text-broadcast-muted transition hover:text-broadcast-danger"
@@ -106,6 +135,38 @@ const canRequestTimeout = computed(
         @change="emit('manualScore', side, Number(($event.target as HTMLInputElement).value))"
         :disabled="gameFinished"
       />
+    </div>
+
+    <div class="grid grid-cols-2 gap-2">
+      <button
+        class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
+        @click="emit('statError', side, 'attack_error')"
+        :disabled="gameFinished"
+      >
+        <ShieldCheck class="h-3.5 w-3.5" />
+        Error ataque
+      </button>
+      <button
+        class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
+        @click="emit('statError', side, 'serve_error')"
+        :disabled="gameFinished"
+      >
+        <ShieldCheck class="h-3.5 w-3.5" />
+        Error saque
+      </button>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2">
+      <button
+        v-for="action in skillActions"
+        :key="action.skill"
+        class="inline-flex h-9 items-center justify-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-high px-2 text-[11px] font-black uppercase text-broadcast-muted transition hover:text-broadcast-text"
+        @click="emit('statSkill', side, action.skill)"
+        :disabled="gameFinished"
+      >
+        <Waves class="h-3 w-3" />
+        {{ action.label }}
+      </button>
     </div>
 
     <div class="flex items-center justify-between border-t border-broadcast-outline pt-4">

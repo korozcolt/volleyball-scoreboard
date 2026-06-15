@@ -10,7 +10,7 @@ const overlay = useOverlayControlStore()
 
 const navItems = [
   { to: '/controller', label: 'Partido', icon: Trophy },
-  { to: '/controller?panel=stats', label: 'Estadísticas', icon: BarChart3, disabled: true },
+  { to: '/statistics', label: 'Estadísticas', icon: BarChart3 },
   { to: '/settings', label: 'Equipos', icon: Users },
   { to: '/settings', label: 'Configuración', icon: Settings },
 ]
@@ -93,12 +93,11 @@ const navItems = [
           :key="item.label"
           :to="item.to"
           class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition"
-          :class="[
-            route.path === item.to.split('?')[0] && !item.disabled
+          :class="
+            route.path === item.to
               ? 'translate-x-1 bg-broadcast-accent text-[#00354a]'
-              : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text',
-            item.disabled ? 'pointer-events-none opacity-45' : '',
-          ]"
+              : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text'
+          "
         >
           <component :is="item.icon" class="h-4 w-4" />
           {{ item.label }}

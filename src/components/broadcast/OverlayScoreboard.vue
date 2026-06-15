@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Radio, Shield } from 'lucide-vue-next'
-import type { GameState, OverlayMode, TeamSide } from '@/types/game.types'
+import OverlayStats from '@/components/overlay/OverlayStats.vue'
+import type { GameState, OverlayMode, StatisticsState, TeamSide } from '@/types/game.types'
 import { getSetTargetPoints, isMatchPoint, isSetPoint } from '@/utils/volleyballRules'
+import { useStatisticsStore } from '@/stores/statistics'
 
 const props = defineProps<{
   gameState: GameState
   mode?: OverlayMode
   compact?: boolean
+  statistics?: StatisticsState
 }>()
 
+const statisticsStore = useStatisticsStore()
 const mode = computed(() => props.mode ?? 'scoreboard')
+const statisticsState = computed(() => props.statistics ?? statisticsStore.state)
 const now = ref(Date.now())
 let clock: number | undefined
 
@@ -100,6 +105,13 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
         <div v-else class="text-2xl font-black text-white/35">-</div>
       </div>
     </div>
+
+    <OverlayStats
+      v-else-if="mode === 'stats'"
+      :game-state="gameState"
+      :statistics="statisticsState"
+      :efficiency="statisticsStore.teamEfficiency"
+    />
 
     <div
       v-else

@@ -4,14 +4,17 @@ import { History, RotateCcw, Shuffle, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
+import StatisticsPanel from '@/components/controller/StatisticsPanel.vue'
 import TeamControlPanel from '@/components/controller/TeamControlPanel.vue'
-import type { OverlayMode, TeamSide } from '@/types/game.types'
+import type { ScoringReason, StatErrorType, StatSkillType, OverlayMode, TeamSide } from '@/types/game.types'
 import { useMatchStore } from '@/stores/match'
 import { useOverlayControlStore } from '@/stores/overlayControl'
+import { useStatisticsStore } from '@/stores/statistics'
 import { KEYBOARD_SHORTCUTS } from '@/utils/constants'
 
 const match = useMatchStore()
 const overlay = useOverlayControlStore()
+const statistics = useStatisticsStore()
 
 const activeMode = computed<OverlayMode>(() => overlay.state.activeOverlay)
 
@@ -26,11 +29,21 @@ const resetSet = () => {
 const resetGame = () => {
   if (window.confirm('¿Reiniciar el partido? La configuración de equipos se conserva.')) {
     match.resetGame()
+    statistics.resetMatchStats()
   }
 }
 
 const setManualScore = (team: TeamSide, score: number) => match.setManualScore(team, score)
 const setManualSets = (team: TeamSide, sets: number) => match.setManualSets(team, sets)
+const scorePoint = (team: TeamSide) => statistics.scorePointWithReason(team, 'manual')
+const scorePointWithReason = (team: TeamSide, reason: ScoringReason) =>
+  statistics.scorePointWithReason(team, reason)
+const recordError = (team: TeamSide, errorType: StatErrorType) =>
+  statistics.recordErrorAndPoint(team, errorType)
+const recordSkill = (team: TeamSide, skill: StatSkillType) => statistics.recordSkill(team, skill)
+const resetStatistics = () => {
+  if (window.confirm('¿Reiniciar solo las estadísticas del partido?')) statistics.resetMatchStats()
+}
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return
@@ -42,8 +55,8 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 
   const handlers: Partial<Record<string, () => void>> = {
-    [KEYBOARD_SHORTCUTS.SCORE_LOCAL]: () => match.scorePoint('local'),
-    [KEYBOARD_SHORTCUTS.SCORE_VISITOR]: () => match.scorePoint('visitor'),
+    [KEYBOARD_SHORTCUTS.SCORE_LOCAL]: () => scorePoint('local'),
+    [KEYBOARD_SHORTCUTS.SCORE_VISITOR]: () => scorePoint('visitor'),
     [KEYBOARD_SHORTCUTS.REMOVE_LOCAL]: () => match.removePoint('local'),
     [KEYBOARD_SHORTCUTS.REMOVE_VISITOR]: () => match.removePoint('visitor'),
     [KEYBOARD_SHORTCUTS.TOGGLE_SERVE]: () => match.toggleServe(),
@@ -104,7 +117,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
 
       <div class="obs-preview flex items-end justify-center pb-[5%]">
-        <OverlayScoreboard :game-state="match.gameState" :mode="activeMode" compact />
+          <OverlayScoreboard :game-state="match.gameState" :mode="activeMode" compact />
       </div>
 
       <div class="mt-3 flex justify-end">
@@ -131,6 +144,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           >
             Historial
           </button>
+          <button
+            class="rounded px-3 py-1 text-xs font-bold transition"
+            :class="
+              activeMode === 'stats'
+                ? 'bg-broadcast-accent text-[#00354a]'
+                : 'text-broadcast-muted hover:text-broadcast-text'
+            "
+            @click="setOverlayMode('stats')"
+          >
+            Estadísticas
+          </button>
         </div>
       </div>
     </section>
@@ -152,11 +176,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           side="local"
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
-          @score="match.scorePoint"
+          @score="scorePoint"
           @remove="match.removePoint"
           @manual-score="setManualScore"
           @manual-sets="setManualSets"
           @timeout="match.startTimeout"
+          @score-reason="scorePointWithReason"
+          @stat-error="recordError"
+          @stat-skill="recordSkill"
         />
 
         <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 xl:flex-col xl:border-x xl:border-y-0 xl:py-0">
@@ -183,14 +210,24 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           side="visitor"
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
-          @score="match.scorePoint"
+          @score="scorePoint"
           @remove="match.removePoint"
           @manual-score="setManualScore"
           @manual-sets="setManualSets"
           @timeout="match.startTimeout"
+          @score-reason="scorePointWithReason"
+          @stat-error="recordError"
+          @stat-skill="recordSkill"
         />
       </div>
     </section>
+
+    <StatisticsPanel
+      :game-state="match.gameState"
+      :statistics="statistics.state"
+      :efficiency="statistics.teamEfficiency"
+      @reset="resetStatistics"
+    />
 
     <SetHistoryPanel :game-state="match.gameState" />
 
