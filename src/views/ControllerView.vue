@@ -117,7 +117,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
 
       <div class="obs-preview flex items-end justify-center pb-[5%]">
-          <OverlayScoreboard :game-state="match.gameState" :mode="activeMode" compact />
+        <OverlayScoreboard :game-state="match.gameState" :mode="activeMode" compact />
       </div>
 
       <div class="mt-3 flex justify-end">
@@ -159,8 +159,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
     </section>
 
-    <section class="admin-card mb-4 p-6">
-      <div class="mb-6 flex items-center justify-between border-b border-broadcast-outline pb-4">
+    <section class="admin-card mb-4 p-4 md:p-5 xl:p-6">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-broadcast-outline pb-4">
         <div>
           <h2 class="text-xl font-semibold text-broadcast-text">Control de marcador</h2>
           <p class="text-sm text-broadcast-muted">Atajos: Q/W suman, A/S restan, espacio cambia saque.</p>
@@ -170,7 +170,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
         </button>
       </div>
 
-      <div class="grid gap-4 xl:grid-cols-[1fr_80px_1fr]">
+      <div class="grid gap-4 md:grid-cols-[minmax(260px,1fr)_72px_minmax(260px,1fr)] xl:grid-cols-[1fr_80px_1fr]">
         <TeamControlPanel
           :team="match.gameState.local"
           side="local"
@@ -186,8 +186,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @stat-skill="recordSkill"
         />
 
-        <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 xl:flex-col xl:border-x xl:border-y-0 xl:py-0">
-          <span class="text-xs font-black uppercase tracking-widest text-broadcast-muted xl:[writing-mode:vertical-rl]">
+        <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 md:flex-col md:border-x md:border-y-0 md:py-0">
+          <span class="text-xs font-black uppercase tracking-widest text-broadcast-muted md:[writing-mode:vertical-rl]">
             Saque
           </span>
           <button
