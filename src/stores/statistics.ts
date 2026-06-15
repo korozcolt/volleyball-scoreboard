@@ -48,7 +48,7 @@ const scoringLabels: Record<ScoringReason, string> = {
   attack: 'Ataque',
   block: 'Bloqueo',
   ace: 'Ace',
-  opponent_error: 'Error rival',
+  opponent_error: 'Punto por error',
 }
 
 export const useStatisticsStore = defineStore('statistics', () => {
@@ -114,7 +114,16 @@ export const useStatisticsStore = defineStore('statistics', () => {
     match.addToHistory(`Estadística: ${scoringLabels[reason]} para ${match.gameState[team].shortCode}`, team)
   }
 
+  const rejectInvalidStat = (message: string) => {
+    match.addToHistory(message, 'warning')
+  }
+
   const scorePointWithReason = (team: TeamSide, reason: ScoringReason) => {
+    if (reason === 'ace' && !match.gameState[team].serving) {
+      rejectInvalidStat('El ace solo puede registrarlo el equipo que tiene el saque.')
+      return
+    }
+
     match.scorePoint(team)
     if (!match.gameState.gameFinished || reason !== 'manual') {
       recordScoredPoint(team, reason)
@@ -122,6 +131,11 @@ export const useStatisticsStore = defineStore('statistics', () => {
   }
 
   const recordErrorAndPoint = (team: TeamSide, errorType: StatErrorType) => {
+    if (errorType === 'serve_error' && !match.gameState[team].serving) {
+      rejectInvalidStat('El error de saque solo puede registrarlo el equipo que tiene el saque.')
+      return
+    }
+
     const opponent = getOpponent(team)
     state.value[team][errorType === 'attack_error' ? 'attackErrors' : 'serveErrors'] += 1
     match.scorePoint(opponent)
@@ -134,6 +148,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
   }
 
   const recordSkill = (team: TeamSide, skill: StatSkillType) => {
+    if (
+      (skill === 'positive_reception' || skill === 'negative_reception') &&
+      match.gameState[team].serving
+    ) {
+      rejectInvalidStat('La recepción solo puede registrarla el equipo que recibe el saque.')
+      return
+    }
+
     if (skill === 'positive_reception') state.value[team].positiveReceptions += 1
     if (skill === 'negative_reception') state.value[team].negativeReceptions += 1
     if (skill === 'dig') state.value[team].digs += 1

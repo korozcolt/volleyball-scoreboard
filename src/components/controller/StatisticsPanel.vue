@@ -18,7 +18,7 @@ const rows = [
   { label: 'Ataques punto', key: 'attackPoints' },
   { label: 'Bloqueos', key: 'blockPoints' },
   { label: 'Aces', key: 'aces' },
-  { label: 'Errores rivales', key: 'opponentErrors' },
+  { label: 'Puntos por error', key: 'opponentErrors' },
   { label: 'Errores ataque', key: 'attackErrors' },
   { label: 'Errores saque', key: 'serveErrors' },
   { label: 'Recepciones +', key: 'positiveReceptions' },
@@ -32,7 +32,7 @@ const eventLabel = (type: string) =>
     attack: 'Ataque',
     block: 'Bloqueo',
     ace: 'Ace',
-    opponent_error: 'Error rival',
+    opponent_error: 'Punto por error',
     attack_error: 'Error ataque',
     serve_error: 'Error saque',
     positive_reception: 'Recepción +',
@@ -102,7 +102,7 @@ const eventLabel = (type: string) =>
           </div>
         </div>
         <div class="text-center text-xs font-semibold text-broadcast-muted">
-          Los botones de ataque, bloqueo, ace y error rival suman punto y registran la causa.
+          Los botones de ataque, bloqueo, ace y punto por error suman marcador y registran la causa.
         </div>
       </div>
     </div>

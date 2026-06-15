@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Minus, Plus, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
+import { ChevronDown, Minus, Plus, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { ScoringReason, StatErrorType, StatSkillType, Team, TeamSide } from '@/types/game.types'
 
@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const now = ref(Date.now())
+const showAdvancedStats = ref(false)
 let clock: number | undefined
 
 onMounted(() => {
@@ -48,7 +49,7 @@ const scoringActions: Array<{ label: string; reason: ScoringReason }> = [
   { label: 'Ataque', reason: 'attack' },
   { label: 'Bloqueo', reason: 'block' },
   { label: 'Ace', reason: 'ace' },
-  { label: 'Error rival', reason: 'opponent_error' },
+  { label: 'Punto por error', reason: 'opponent_error' },
 ]
 
 const skillActions: Array<{ label: string; skill: StatSkillType }> = [
@@ -56,6 +57,43 @@ const skillActions: Array<{ label: string; skill: StatSkillType }> = [
   { label: 'Recep -', skill: 'negative_reception' },
   { label: 'Defensa', skill: 'dig' },
 ]
+
+const canUseScoringAction = (reason: ScoringReason) => {
+  if (props.gameFinished) return false
+  if (reason === 'ace') return props.team.serving
+  return true
+}
+
+const scoringActionTitle = (reason: ScoringReason) => {
+  if (reason === 'ace' && !props.team.serving) return 'El ace solo puede registrarlo el equipo que saca.'
+  return ''
+}
+
+const canUseErrorAction = (errorType: StatErrorType) => {
+  if (props.gameFinished) return false
+  if (errorType === 'serve_error') return props.team.serving
+  return true
+}
+
+const errorActionTitle = (errorType: StatErrorType) => {
+  if (errorType === 'serve_error' && !props.team.serving) {
+    return 'El error de saque solo aplica al equipo que tiene el saque.'
+  }
+  return ''
+}
+
+const canUseSkillAction = (skill: StatSkillType) => {
+  if (props.gameFinished) return false
+  if (skill === 'positive_reception' || skill === 'negative_reception') return !props.team.serving
+  return true
+}
+
+const skillActionTitle = (skill: StatSkillType) => {
+  if ((skill === 'positive_reception' || skill === 'negative_reception') && props.team.serving) {
+    return 'La recepción solo aplica al equipo que recibe el saque.'
+  }
+  return ''
+}
 </script>
 
 <template>
@@ -104,13 +142,14 @@ const skillActions: Array<{ label: string; skill: StatSkillType }> = [
       +1 Punto
     </button>
 
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid grid-cols-2 gap-2" aria-label="Causas principales del punto">
       <button
         v-for="action in scoringActions"
         :key="action.reason"
         class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-lowest px-2 text-xs font-black uppercase text-broadcast-text transition hover:border-broadcast-accent hover:text-broadcast-accent"
         @click="emit('scoreReason', side, action.reason)"
-        :disabled="gameFinished"
+        :disabled="!canUseScoringAction(action.reason)"
+        :title="scoringActionTitle(action.reason)"
       >
         <Target class="h-3.5 w-3.5" />
         {{ action.label }}
@@ -137,36 +176,53 @@ const skillActions: Array<{ label: string; skill: StatSkillType }> = [
       />
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
-      <button
-        class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
-        @click="emit('statError', side, 'attack_error')"
-        :disabled="gameFinished"
-      >
-        <ShieldCheck class="h-3.5 w-3.5" />
-        Error ataque
-      </button>
-      <button
-        class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
-        @click="emit('statError', side, 'serve_error')"
-        :disabled="gameFinished"
-      >
-        <ShieldCheck class="h-3.5 w-3.5" />
-        Error saque
-      </button>
-    </div>
+    <button
+      class="flex h-10 items-center justify-between rounded border border-broadcast-outline bg-broadcast-surface-high px-3 text-xs font-black uppercase text-broadcast-muted transition hover:text-broadcast-text"
+      type="button"
+      @click="showAdvancedStats = !showAdvancedStats"
+    >
+      Estadística avanzada
+      <ChevronDown
+        class="h-4 w-4 transition"
+        :class="{ 'rotate-180': showAdvancedStats }"
+      />
+    </button>
 
-    <div class="grid grid-cols-3 gap-2">
+    <div v-if="showAdvancedStats" class="grid gap-2 rounded border border-broadcast-outline bg-broadcast-surface-lowest p-3">
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
+          @click="emit('statError', side, 'attack_error')"
+          :disabled="!canUseErrorAction('attack_error')"
+          :title="errorActionTitle('attack_error')"
+        >
+          <ShieldCheck class="h-3.5 w-3.5" />
+          Error ataque
+        </button>
+        <button
+          class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
+          @click="emit('statError', side, 'serve_error')"
+          :disabled="!canUseErrorAction('serve_error')"
+          :title="errorActionTitle('serve_error')"
+        >
+          <ShieldCheck class="h-3.5 w-3.5" />
+          Error saque
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2">
       <button
         v-for="action in skillActions"
         :key="action.skill"
         class="inline-flex h-9 items-center justify-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-high px-2 text-[11px] font-black uppercase text-broadcast-muted transition hover:text-broadcast-text"
         @click="emit('statSkill', side, action.skill)"
-        :disabled="gameFinished"
+        :disabled="!canUseSkillAction(action.skill)"
+        :title="skillActionTitle(action.skill)"
       >
         <Waves class="h-3 w-3" />
         {{ action.label }}
       </button>
+      </div>
     </div>
 
     <div class="flex items-center justify-between border-t border-broadcast-outline pt-4">

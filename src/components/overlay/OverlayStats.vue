@@ -12,7 +12,7 @@ const metricRows = [
   { label: 'ATQ', key: 'attackPoints' },
   { label: 'BLK', key: 'blockPoints' },
   { label: 'ACE', key: 'aces' },
-  { label: 'ERR', key: 'attackErrors' },
+  { label: 'ERR', key: 'opponentErrors' },
 ] as const
 </script>
 
