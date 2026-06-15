@@ -1,6 +1,5 @@
-import type { GameSettings, OverlayConfig } from '@/types/game.types'
+import type { BroadcastConfig, GameSettings } from '@/types/game.types'
 
-// Configuración por defecto del juego
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   maxSets: 5,
   pointsToWin: 25,
@@ -8,26 +7,46 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   decidingSetPoints: 15,
   enableRotation: true,
   enablePlayerNames: false,
+  timeoutSeconds: 30,
+  timeoutsPerSet: 2,
 }
 
-// Configuración por defecto del overlay
-export const DEFAULT_OVERLAY_CONFIG: OverlayConfig = {
-  theme: 'default',
-  showPlayerNames: false,
-  showServeIndicator: true,
-  showHistory: false,
-  animationsEnabled: true,
+export const DEFAULT_BROADCAST_CONFIG: BroadcastConfig = {
+  teams: {
+    local: {
+      name: 'Milano Volley',
+      shortCode: 'MIL',
+      primaryColor: '#00a6e0',
+    },
+    visitor: {
+      name: 'Trentino Itas',
+      shortCode: 'TRN',
+      primaryColor: '#ee3a5a',
+    },
+  },
+  tournament: 'Finales ProVolley',
+  phase: 'Semifinal, Partido 3',
+  court: 'Cancha 1',
+  backgroundStyle: 'classic-dark',
+  lowerThirdStyle: 'glass',
 }
 
-// Claves para localStorage
 export const STORAGE_KEYS = {
-  GAME_STATE: 'volleyball_scoreboard_state',
-  OVERLAY_CONFIG: 'volleyball_overlay_config',
-  USER_PREFERENCES: 'volleyball_user_preferences',
-  TEAM_LOGOS: 'volleyball_team_logos',
+  MATCH_STATE: 'volleystream_match_state',
+  BROADCAST_CONFIG: 'volleystream_broadcast_config',
+  OVERLAY_CONTROL: 'volleystream_overlay_control',
+  GAME_STATE: 'volleystream_match_state',
+  OVERLAY_CONFIG: 'volleystream_overlay_control',
+  USER_PREFERENCES: 'volleystream_user_preferences',
+  TEAM_LOGOS: 'volleystream_team_logos',
 } as const
 
-// Rutas de la aplicación
+export const SYNC_CHANNELS = {
+  MATCH: 'volleystream:match',
+  BROADCAST_CONFIG: 'volleystream:broadcast-config',
+  OVERLAY_CONTROL: 'volleystream:overlay-control',
+} as const
+
 export const ROUTES = {
   HOME: '/',
   CONTROLLER: '/controller',
@@ -35,114 +54,70 @@ export const ROUTES = {
   SETTINGS: '/settings',
 } as const
 
-// Configuración de la comunicación
 export const COMMUNICATION_CONFIG = {
-  POLLING_INTERVAL: 500, // ms
-  DEBOUNCE_DELAY: 100, // ms
-  STORAGE_VERSION: '1.0.0',
-  MAX_HISTORY_ITEMS: 50,
+  POLLING_INTERVAL: 500,
+  DEBOUNCE_DELAY: 100,
+  STORAGE_VERSION: '2.1.0',
+  MAX_HISTORY_ITEMS: 60,
 } as const
 
-// Colores del tema por defecto
-export const THEME_COLORS = {
-  default: {
-    primary: '#2563eb', // blue-600
-    secondary: '#dc2626', // red-600
-    accent: '#f59e0b', // amber-500
-    background: '#1f2937', // gray-800
-    surface: '#374151', // gray-700
-    text: '#ffffff',
-    textSecondary: '#d1d5db', // gray-300
-  },
-  dark: {
-    primary: '#3b82f6', // blue-500
-    secondary: '#ef4444', // red-500
-    accent: '#fbbf24', // amber-400
-    background: '#111827', // gray-900
-    surface: '#1f2937', // gray-800
-    text: '#ffffff',
-    textSecondary: '#9ca3af', // gray-400
-  },
-  light: {
-    primary: '#1d4ed8', // blue-700
-    secondary: '#b91c1c', // red-700
-    accent: '#d97706', // amber-600
-    background: '#ffffff',
-    surface: '#f9fafb', // gray-50
-    text: '#111827', // gray-900
-    textSecondary: '#6b7280', // gray-500
-  },
-} as const
-
-// Configuración de animaciones
-export const ANIMATIONS = {
-  SCORE_BOUNCE: {
-    duration: 600,
-    easing: 'ease-in-out',
-  },
-  SET_WIN: {
-    duration: 1000,
-    easing: 'ease-in-out',
-  },
-  SERVE_PULSE: {
-    duration: 2000,
-    easing: 'infinite',
-  },
-  SLIDE_IN: {
-    duration: 500,
-    easing: 'ease-out',
-  },
-  FADE_IN: {
-    duration: 300,
-    easing: 'ease-in',
-  },
-  NOTIFICATION: {
-    duration: 3000,
-    easing: 'ease-in-out',
-  },
-} as const
-
-// Atajos de teclado
 export const KEYBOARD_SHORTCUTS = {
   SCORE_LOCAL: 'KeyQ',
   SCORE_VISITOR: 'KeyW',
   REMOVE_LOCAL: 'KeyA',
   REMOVE_VISITOR: 'KeyS',
-  ROTATE_LOCAL: 'KeyZ',
-  ROTATE_VISITOR: 'KeyX',
   NEXT_SET: 'KeyN',
-  RESET_GAME: 'KeyR', // Con Ctrl
+  RESET_GAME: 'KeyR',
   TOGGLE_SERVE: 'Space',
+  SHOW_HISTORY: 'KeyH',
 } as const
 
-// Mensajes por defecto
+export const BROADCAST_THEME = {
+  background: '#031427',
+  surface: '#031427',
+  surfaceLowest: '#000f21',
+  surfaceLow: '#0b1c30',
+  surfaceContainer: '#102034',
+  surfaceHigh: '#1b2b3f',
+  surfaceHighest: '#26364a',
+  outline: '#45464d',
+  text: '#d3e4fe',
+  muted: '#c6c6cd',
+  accent: '#7bd0ff',
+  accentStrong: '#00a6e0',
+  alert: '#ffb2b7',
+  danger: '#ee3a5a',
+} as const
+
 export const DEFAULT_MESSAGES = {
-  GAME_START: '🏐 ¡Inicio del partido!',
-  SET_START: (setNumber: number) => `📢 Inicio del Set ${setNumber}`,
-  SET_WIN: (teamName: string, setNumber: number) =>
-    `🎉 ${teamName} gana el set ${setNumber}!`,
-  GAME_WIN: (teamName: string) => `🏆 ¡${teamName} GANA EL PARTIDO!`,
-  POINT_SCORED: (teamName: string, score: string) =>
-    `⚡ Punto para ${teamName} (${score})`,
-  POINT_REMOVED: (teamName: string) => `↩️ Punto removido de ${teamName}`,
-  ROTATION: (teamName: string, player: number) =>
-    `🔄 Rotación ${teamName} - Jugador en saque: #${player}`,
-  GAME_RESET: '🔄 Juego reiniciado',
-  TEAM_NAME_UPDATED: '📝 Nombres de equipos actualizados',
-  LOGO_UPDATED: '🖼️ Logo actualizado',
+  GAME_START: 'Inicio del partido',
+  SET_START: (setNumber: number) => `Inicio del set ${setNumber}`,
+  SET_WIN: (teamName: string, setNumber: number) => `${teamName} gana el set ${setNumber}`,
+  GAME_WIN: (teamName: string) => `${teamName} gana el partido`,
+  POINT_SCORED: (teamName: string, score: string) => `Punto para ${teamName} (${score})`,
+  POINT_REMOVED: (teamName: string) => `Punto removido de ${teamName}`,
+  GAME_RESET: 'Partido reiniciado',
+  SET_RESET: 'Set reiniciado',
+  TEAM_NAME_UPDATED: 'Equipo actualizado',
+  LOGO_UPDATED: 'Logo actualizado',
+  TIMEOUT: (teamName: string) => `Timeout solicitado por ${teamName}`,
 } as const
 
-// Configuración de validación
 export const VALIDATION_RULES = {
   TEAM_NAME: {
     minLength: 1,
-    maxLength: 30,
-    pattern: /^[a-zA-Z0-9\s\-_áéíóúñüÁÉÍÓÚÑÜ]+$/,
+    maxLength: 40,
+    pattern: /^[a-zA-Z0-9\s\-_áéíóúñüÁÉÍÓÚÑÜ.]+$/,
   },
   PLAYER_NAME: {
     minLength: 1,
     maxLength: 20,
     pattern: /^[a-zA-Z\s\-áéíóúñüÁÉÍÓÚÑÜ]+$/,
+  },
+  SHORT_CODE: {
+    minLength: 2,
+    maxLength: 4,
+    pattern: /^[A-Z0-9]+$/,
   },
   SCORE: {
     min: 0,
@@ -158,59 +133,11 @@ export const VALIDATION_RULES = {
   },
 } as const
 
-// Configuración del overlay para OBS
 export const OBS_CONFIG = {
   RECOMMENDED_WIDTH: 1920,
   RECOMMENDED_HEIGHT: 200,
-  SAFE_AREA: {
-    top: 20,
-    bottom: 20,
-    left: 40,
-    right: 40,
-  },
+  PREVIEW_ASPECT_RATIO: '16 / 9',
+  SAFE_AREA_PERCENT: 5,
   TRANSPARENCY: true,
   BACKGROUND_COLOR: 'transparent',
-} as const
-
-// URLs de logos por defecto
-export const DEFAULT_LOGOS = {
-  LOCAL: '/logos/default-local.png',
-  VISITOR: '/logos/default-visitor.png',
-  LEAGUE: '/logos/league-logo.png',
-  VOLLEYBALL: '🏐',
-} as const
-
-// Configuración de red y comunicación
-export const NETWORK_CONFIG = {
-  WEBSOCKET_RECONNECT_INTERVAL: 5000,
-  MAX_RECONNECT_ATTEMPTS: 10,
-  HEARTBEAT_INTERVAL: 30000,
-  CONNECTION_TIMEOUT: 10000,
-} as const
-
-// Tipos de eventos para el historial
-export const EVENT_TYPES = {
-  INFO: 'info',
-  SUCCESS: 'success',
-  WARNING: 'warning',
-  ERROR: 'error',
-  LOCAL: 'local',
-  VISITOR: 'visitor',
-  WINNER: 'winner',
-} as const
-
-// Configuración de responsive breakpoints
-export const BREAKPOINTS = {
-  SM: 640,
-  MD: 768,
-  LG: 1024,
-  XL: 1280,
-  '2XL': 1536,
-} as const
-
-// Configuración de desarrollo
-export const DEV_CONFIG = {
-  MOCK_DATA: import.meta.env.DEV,
-  DEBUG_MODE: import.meta.env.DEV,
-  LOG_LEVEL: import.meta.env.DEV ? 'debug' : 'info',
 } as const

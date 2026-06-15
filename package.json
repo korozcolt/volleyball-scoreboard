@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:obs": "concurrently \"npm run sync\" \"npm run dev -- --host 0.0.0.0\"",
+    "sync": "node scripts/sync-server.mjs",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
@@ -40,7 +42,8 @@
     "lucide-vue-next": "^0.540.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.18",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@prettier/plugin-oxc": "^0.0.4",

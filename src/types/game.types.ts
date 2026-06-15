@@ -1,4 +1,11 @@
-// Tipos principales del juego de volleyball
+import type { ComputedRef, Ref } from 'vue'
+
+export type TeamSide = 'local' | 'visitor'
+export type MatchStatus = 'idle' | 'live' | 'paused' | 'finished'
+export type GameStatus = MatchStatus | 'waiting' | 'playing'
+export type OverlayMode = 'scoreboard' | 'history'
+export type BackgroundStyle = 'classic-dark' | 'steel-blue' | 'custom'
+export type LowerThirdStyle = 'glass' | 'solid-dark' | 'high-contrast'
 
 export interface Player {
   id: number
@@ -7,8 +14,10 @@ export interface Player {
 }
 
 export interface Team {
-  id: string
+  id: TeamSide
   name: string
+  shortCode: string
+  logoUrl?: string
   logo?: string
   score: number
   sets: number
@@ -16,7 +25,10 @@ export interface Team {
   currentPlayer: number
   rotation: number[]
   players?: Player[]
+  primaryColor: string
   color?: string
+  timeoutsUsed: number
+  timeoutActiveUntil?: number
 }
 
 export interface GameSettings {
@@ -26,13 +38,34 @@ export interface GameSettings {
   decidingSetPoints: number
   enableRotation: boolean
   enablePlayerNames: boolean
+  timeoutSeconds: number
+  timeoutsPerSet: number
 }
+
+export interface CompletedSet {
+  setNumber: number
+  local: number
+  visitor: number
+  winner: TeamSide
+  finishedAt: number
+}
+
+export interface MatchMetadata {
+  court: string
+  tournament: string
+  phase: string
+  venue?: string
+  referee?: string
+  date?: string
+}
+
+export type HistoryType = 'info' | 'success' | 'warning' | 'error' | 'local' | 'visitor' | 'winner'
 
 export interface GameHistory {
   id: string
   message: string
   type: HistoryType
-  timestamp: Date
+  timestamp: number | Date
   set: number
   score?: {
     local: number
@@ -40,37 +73,79 @@ export interface GameHistory {
   }
 }
 
-export type HistoryType = 'info' | 'success' | 'warning' | 'error' | 'local' | 'visitor' | 'winner'
-
 export interface GameState {
   local: Team
   visitor: Team
   currentSet: number
+  completedSets: CompletedSet[]
   history: GameHistory[]
   gameFinished: boolean
-  startTime: Date
+  status: MatchStatus
+  startTime: number | Date
+  currentSetStartedAt: number | Date
   settings: GameSettings
+  metadata: MatchMetadata
   leagueLogo?: string
-  metadata?: {
-    tournament?: string
-    venue?: string
-    date?: Date
-    referee?: string
-  }
+}
+
+export interface BroadcastTeamConfig {
+  name: string
+  shortCode: string
+  primaryColor: string
+  logoUrl?: string
+}
+
+export interface BroadcastConfig {
+  teams: Record<TeamSide, BroadcastTeamConfig>
+  tournament: string
+  phase: string
+  court: string
+  sponsorLogoUrl?: string
+  leagueLogoUrl?: string
+  backgroundStyle: BackgroundStyle
+  lowerThirdStyle: LowerThirdStyle
+}
+
+export type OverlayCommandType =
+  | 'show_history'
+  | 'hide_history'
+  | 'show_timeout'
+  | 'switch_overlay'
+  | 'show_lower_third'
+  | 'go_live'
+
+export interface OverlayCommand {
+  id: string
+  type: OverlayCommandType
+  team?: TeamSide
+  overlayMode?: OverlayMode
+  message?: string
+  createdAt: number
+  durationMs?: number
+}
+
+export interface OverlayControlState {
+  activeOverlay: OverlayMode
+  isLive: boolean
+  showHistory: boolean
+  lowerThirdVisible: boolean
+  lastCommand?: OverlayCommand
 }
 
 export interface ScoreboardEvent {
   type: EventType
-  team?: 'local' | 'visitor'
+  team?: TeamSide
   data?: Record<string, unknown>
-  timestamp: Date
+  timestamp: number
 }
 
 export type EventType =
   | 'score_point'
   | 'remove_point'
+  | 'manual_score'
   | 'rotate_team'
   | 'next_set'
+  | 'reset_set'
   | 'reset_game'
   | 'update_team_name'
   | 'update_team_logo'
@@ -80,145 +155,18 @@ export type EventType =
   | 'game_start'
   | 'game_finished'
   | 'set_finished'
+  | 'timeout_started'
 
 export interface CommunicationState extends GameState {
   timestamp: number
   version?: string
 }
 
-// Constantes del juego
-export const VOLLEYBALL_CONSTANTS = {
-  STANDARD_SET_POINTS: 25,
-  DECIDING_SET_POINTS: 15,
-  MIN_ADVANTAGE: 2,
-  MAX_SETS: 5,
-  PLAYERS_PER_TEAM: 6,
-  ROTATION_POSITIONS: [1, 2, 3, 4, 5, 6] as const,
-} as const
-
-export type RotationPosition = (typeof VOLLEYBALL_CONSTANTS.ROTATION_POSITIONS)[number]
-
-// Interfaces adicionales para el estado del juego
-export interface GameProgress {
-  setsPlayed: number
-  totalSets: number
-  currentSetProgress: number
-  estimatedTimeRemaining?: number
-}
-
-export interface GameStats {
-  totalPoints: { local: number; visitor: number }
-  averageSetDuration: number
-  longestRally?: number
-  serviceAces?: { local: number; visitor: number }
-  errors?: { local: number; visitor: number }
-}
-
-export interface CurrentSetInfo {
-  setNumber: number
-  startTime: Date
-  duration: number
-  isDecidingSet: boolean
-  pointsToWin: number
-}
-
-export interface ServeInfo {
-  currentServer: 'local' | 'visitor'
-  serverPosition: number
-  consecutiveServes: number
-  lastServeChange: Date
-}
-
-export interface ScoreboardStore {
-  gameState: GameState
-  scorePoint: (team: 'local' | 'visitor') => void
-  removePoint: (team: 'local' | 'visitor') => void
-  rotateTeam: (team: 'local' | 'visitor') => void
-  nextSet: () => void
-  resetGame: () => void
-  updateTeamName: (team: 'local' | 'visitor', name: string) => void
-  updateTeamLogo: (team: 'local' | 'visitor', logo: string) => void
-  updateTeamColor: (team: 'local' | 'visitor', color: string) => void
-  toggleServe: () => void
-}
-
-// Estados del juego
-export type GameStatus = 'waiting' | 'playing' | 'finished' | 'paused'
-
-// Tipos para las animaciones
-export interface AnimationConfig {
-  duration: number
-  easing: string
-  delay?: number
-}
-
-export interface ScoreAnimationEvent {
-  team: 'local' | 'visitor'
-  oldScore: number
-  newScore: number
-  animationType: 'score' | 'set' | 'game'
-}
-
-// Configuración del overlay
-export interface OverlayConfig {
-  theme: 'default' | 'dark' | 'light' | 'custom'
-  showPlayerNames: boolean
-  showServeIndicator: boolean
-  showHistory: boolean
-  animationsEnabled: boolean
-  customColors?: {
-    primary: string
-    secondary: string
-    accent: string
-    background: string
-  }
-}
-
-// Tipos para los composables
-export interface UseGameStateReturn {
-  // Estado principal
-  gameState: Readonly<Ref<GameState>>
-  store: ScoreboardStore
-
-  // Estados computados
-  isGameFinished: ComputedRef<boolean>
-  currentSet: ComputedRef<number>
-  gameStatus: ComputedRef<GameStatus>
-  winnerTeam: ComputedRef<Team | null>
-  gameProgress: ComputedRef<GameProgress>
-  currentTeamServing: ComputedRef<'local' | 'visitor' | null>
-
-  // Equipos
-  localTeam: ComputedRef<Team>
-  visitorTeam: ComputedRef<Team>
-
-  // Información detallada
-  gameStats: ComputedRef<GameStats>
-  currentSetInfo: ComputedRef<CurrentSetInfo>
-  serveInfo: ComputedRef<ServeInfo>
-  recentHistory: ComputedRef<GameHistory[]>
-  currentSetHistory: ComputedRef<GameHistory[]>
-
-  // Acciones principales
-  scorePoint: (team: 'local' | 'visitor') => void
-  removePoint: (team: 'local' | 'visitor') => void
-  rotateTeam: (team: 'local' | 'visitor') => void
-  nextSet: () => void
-  resetGame: () => void
-  updateTeamName: (team: 'local' | 'visitor', name: string) => void
-  updateTeamLogo: (team: 'local' | 'visitor', logo: string) => void
-  updateTeamColor: (team: 'local' | 'visitor', color: string) => void
-  toggleServe: () => void
-
-  // Validaciones
-  canScorePoint: (team: 'local' | 'visitor') => boolean
-  canRemovePoint: (team: 'local' | 'visitor') => boolean
-  canRotate: (team: 'local' | 'visitor') => boolean
-  canStartNextSet: () => boolean
-
-  // Análisis
-  getTeamMomentum: (team: 'local' | 'visitor') => number
-  getSetMVP: (setNumber: number) => Player | null
+export interface SyncEnvelope<T> {
+  channel: string
+  version: string
+  timestamp: number
+  payload: T
 }
 
 export interface UseCommunicationReturn {
@@ -239,5 +187,86 @@ export interface UseCommunicationReturn {
   }
 }
 
-// Importaciones de Vue para los tipos
-import type { ComputedRef, Ref } from 'vue'
+export interface ScoreboardStore {
+  gameState: GameState
+  scorePoint: (team: TeamSide) => void
+  removePoint: (team: TeamSide) => void
+  rotateTeam: (team: TeamSide) => void
+  nextSet: () => void
+  resetGame: () => void
+  updateTeamName: (team: TeamSide, name: string) => void
+  updateTeamLogo: (team: TeamSide, logo: string) => void
+  updateTeamColor: (team: TeamSide, color: string) => void
+  toggleServe: () => void
+}
+
+export interface GameProgress {
+  setsPlayed: number
+  totalSets: number
+  currentSetProgress: number
+  estimatedTimeRemaining?: number
+}
+
+export interface GameStats {
+  totalPoints: { local: number; visitor: number }
+  averageSetDuration: number
+}
+
+export interface CurrentSetInfo {
+  setNumber: number
+  startTime: number | Date
+  duration: number
+  isDecidingSet: boolean
+  pointsToWin: number
+}
+
+export interface ServeInfo {
+  currentServer: TeamSide
+  serverPosition: number
+  consecutiveServes: number
+  lastServeChange: number | Date
+}
+
+export interface UseGameStateReturn {
+  gameState: Readonly<Ref<GameState>>
+  store: ScoreboardStore
+  isGameFinished: ComputedRef<boolean>
+  currentSet: ComputedRef<number>
+  gameStatus: ComputedRef<GameStatus>
+  winnerTeam: ComputedRef<Team | null>
+  gameProgress: ComputedRef<GameProgress>
+  currentTeamServing: ComputedRef<TeamSide | null>
+  localTeam: ComputedRef<Team>
+  visitorTeam: ComputedRef<Team>
+  gameStats: ComputedRef<GameStats>
+  currentSetInfo: ComputedRef<CurrentSetInfo>
+  serveInfo: ComputedRef<ServeInfo>
+  recentHistory: ComputedRef<GameHistory[]>
+  currentSetHistory: ComputedRef<GameHistory[]>
+  scorePoint: (team: TeamSide) => void
+  removePoint: (team: TeamSide) => void
+  rotateTeam: (team: TeamSide) => void
+  nextSet: () => void
+  resetGame: () => void
+  updateTeamName: (team: TeamSide, name: string) => void
+  updateTeamLogo: (team: TeamSide, logo: string) => void
+  updateTeamColor: (team: TeamSide, color: string) => void
+  toggleServe: () => void
+  canScorePoint: (team: TeamSide) => boolean
+  canRemovePoint: (team: TeamSide) => boolean
+  canRotate: (team: TeamSide) => boolean
+  canStartNextSet: () => boolean
+  getTeamMomentum: (team: TeamSide) => number
+  getSetMVP: (setNumber: number) => Player | null
+}
+
+export const VOLLEYBALL_CONSTANTS = {
+  STANDARD_SET_POINTS: 25,
+  DECIDING_SET_POINTS: 15,
+  MIN_ADVANTAGE: 2,
+  MAX_SETS: 5,
+  PLAYERS_PER_TEAM: 6,
+  ROTATION_POSITIONS: [1, 2, 3, 4, 5, 6] as const,
+} as const
+
+export type RotationPosition = (typeof VOLLEYBALL_CONSTANTS.ROTATION_POSITIONS)[number]

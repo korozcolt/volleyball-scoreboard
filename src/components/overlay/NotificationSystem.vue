@@ -95,7 +95,7 @@ const getNotificationIcon = (type: HistoryType): string => {
   }
 }
 
-const formatTime = (timestamp: Date): string => {
+const formatTime = (timestamp: Date | number): string => {
   return new Date(timestamp).toLocaleTimeString('es-ES', {
     hour: '2-digit',
     minute: '2-digit',

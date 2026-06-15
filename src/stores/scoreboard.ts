@@ -1,417 +1,102 @@
-import {
-  DEFAULT_GAME_SETTINGS,
-  DEFAULT_MESSAGES,
-} from '@utils/constants'
-import type {
-  GameHistory,
-  GameState,
-  GameStatus,
-  HistoryType,
-  ScoreboardEvent,
-} from '../types/game.types'
-import { checkSetWin, generateId, validateScore } from '@utils/validators'
-import { computed, ref } from 'vue'
-import { useSettings } from '@/composables/useSettings'
-
+import { computed } from 'vue'
 import { defineStore } from 'pinia'
+import { useBroadcastConfigStore } from './broadcastConfig'
+import { useMatchStore } from './match'
 
 export const useScoreboardStore = defineStore('scoreboard', () => {
-  // Configuración persistente
-  const settingsManager = useSettings()
+  const match = useMatchStore()
+  const broadcastConfig = useBroadcastConfigStore()
 
-  // Estado principal del juego
-  const gameState = ref<GameState>({
-    local: {
-      id: 'local',
-      name: 'EQUIPO LOCAL',
-      logo: '🔵',
-      score: 0,
-      sets: 0,
-      serving: true,
-      currentPlayer: 1,
-      rotation: [1, 2, 3, 4, 5, 6],
-      color: '#2563eb',
-    },
-    visitor: {
-      id: 'visitor',
-      name: 'EQUIPO VISITANTE',
-      logo: '🔴',
-      score: 0,
-      sets: 0,
-      serving: false,
-      currentPlayer: 1,
-      rotation: [1, 2, 3, 4, 5, 6],
-      color: '#dc2626',
-    },
-    currentSet: 1,
-    history: [],
-    gameFinished: false,
-    startTime: new Date(),
-    settings: { ...DEFAULT_GAME_SETTINGS },
-  })
+  const scoreHistory = computed(() =>
+    match.gameState.history
+      .filter((item) => item.score)
+      .slice(0, 6)
+      .map((item) => ({
+        local: item.score?.local ?? 0,
+        visitor: item.score?.visitor ?? 0,
+        timestamp: new Date(item.timestamp),
+      })),
+  )
 
-  // Estado de eventos para comunicación
-  const events = ref<ScoreboardEvent[]>([])
-  const lastEventId = ref<string>('')
+  const updateTeamName = (team: 'local' | 'visitor', name: string) => {
+    broadcastConfig.updateTeam(team, { name })
+  }
 
-  // Estado del historial de puntos (últimos 6 puntos)
-  const scoreHistory = ref<Array<{ local: number; visitor: number; timestamp: Date }>>([])
+  const updateTeamLogo = (team: 'local' | 'visitor', logo: string) => {
+    broadcastConfig.updateTeam(team, { logoUrl: logo })
+  }
 
-  // Getters computados
-  const currentTeamServing = computed(() => {
-    return gameState.value.local.serving ? 'local' : 'visitor'
-  })
+  const updateTeamColor = (team: 'local' | 'visitor', color: string) => {
+    broadcastConfig.updateTeam(team, { primaryColor: color })
+  }
 
-  const gameStatus = computed((): GameStatus => {
-    if (gameState.value.gameFinished) return 'finished'
-    if (gameState.value.history.length === 0) return 'waiting'
-    return 'playing'
-  })
+  const updateLeagueLogo = (logo: string) => {
+    broadcastConfig.updateConfig({ leagueLogoUrl: logo })
+  }
 
-  const isGameFinished = computed(() => gameState.value.gameFinished)
+  const initializeGame = () => {
+    match.hydrate()
+    broadcastConfig.hydrate()
+  }
 
-  const currentSet = computed(() => gameState.value.currentSet)
-
-  const winnerTeam = computed(() => {
-    if (!gameState.value.gameFinished) return null
-    return gameState.value.local.sets > gameState.value.visitor.sets
-      ? gameState.value.local
-      : gameState.value.visitor
-  })
+  const loadSavedSettings = initializeGame
 
   const gameProgress = computed(() => {
-    const maxSets = gameState.value.settings.maxSets
-    const setsToWin = Math.ceil(maxSets / 2)
-    const localProgress = (gameState.value.local.sets / setsToWin) * 100
-    const visitorProgress = (gameState.value.visitor.sets / setsToWin) * 100
+    const setsToWin = Math.ceil(match.gameState.settings.maxSets / 2)
 
     return {
-      local: Math.min(localProgress, 100),
-      visitor: Math.min(visitorProgress, 100),
+      local: Math.min((match.gameState.local.sets / setsToWin) * 100, 100),
+      visitor: Math.min((match.gameState.visitor.sets / setsToWin) * 100, 100),
       setsToWin,
     }
   })
 
-  // Funciones de utilidad
-  const addToHistory = (message: string, type: HistoryType = 'info', _score?: { local: number; visitor: number }) => {
-    const historyItem: GameHistory = {
-      id: generateId(),
-      message,
-      type,
-      timestamp: new Date(),
-      set: gameState.value.currentSet,
-      score: {
-        local: gameState.value.local.score,
-        visitor: gameState.value.visitor.score,
-      },
-    }
-
-    gameState.value.history.unshift(historyItem)
-
-    // Mantener solo los últimos 50 elementos
-    if (gameState.value.history.length > 50) {
-      gameState.value.history = gameState.value.history.slice(0, 50)
-    }
-  }
-
-  // Función para agregar al historial de puntos
-  const addToScoreHistory = () => {
-    const scoreEntry = {
-      local: gameState.value.local.score,
-      visitor: gameState.value.visitor.score,
-      timestamp: new Date()
-    }
-
-    scoreHistory.value.unshift(scoreEntry)
-
-    // Mantener solo los últimos 6 puntos
-    if (scoreHistory.value.length > 6) {
-      scoreHistory.value = scoreHistory.value.slice(0, 6)
-    }
-  }
-
-  const emitEvent = (type: ScoreboardEvent['type'], team?: 'local' | 'visitor', data?: Record<string, unknown>) => {
-    const event: ScoreboardEvent = {
-      type,
-      team,
-      data,
-      timestamp: new Date(),
-    }
-
-    events.value.push(event)
-    lastEventId.value = generateId()
-  }
-
-  const getOppositeTeam = (team: 'local' | 'visitor'): 'local' | 'visitor' => {
-    return team === 'local' ? 'visitor' : 'local'
-  }
-
-  // Acciones principales
-  const scorePoint = (team: 'local' | 'visitor') => {
-    if (gameState.value.gameFinished) return
-
-    const teamData = gameState.value[team]
-    const oppositeTeam = getOppositeTeam(team)
-    const oppositeData = gameState.value[oppositeTeam]
-
-    // Validar puntuación
-    if (!validateScore(teamData.score + 1)) return
-
-    // Incrementar puntuación
-    teamData.score++
-
-    // Agregar al historial de puntos
-    addToScoreHistory()
-
-    // Cambiar saque al equipo que anotó
-    teamData.serving = true
-    oppositeData.serving = false
-
-    // Crear mensaje del historial
-    const scoreMessage = `${teamData.score}-${oppositeData.score}`
-    const message = DEFAULT_MESSAGES.POINT_SCORED(teamData.name, scoreMessage)
-    addToHistory(message, team)
-
-    // Emitir evento
-    emitEvent('score_point', team, { score: teamData.score })
-
-    // Verificar fin de set
-    const currentSetPoints = gameState.value.currentSet === 5
-      ? gameState.value.settings.decidingSetPoints
-      : gameState.value.settings.pointsToWin
-
-    if (checkSetWin(teamData.score, oppositeData.score, currentSetPoints, gameState.value.settings.minAdvantage)) {
-      teamData.sets++
-
-      const setMessage = DEFAULT_MESSAGES.SET_WIN(teamData.name, gameState.value.currentSet)
-      addToHistory(setMessage, 'success')
-      emitEvent('set_finished', team, { sets: teamData.sets })
-
-      // Verificar fin de partido
-      const setsToWin = Math.ceil(gameState.value.settings.maxSets / 2)
-      if (teamData.sets >= setsToWin) {
-        gameState.value.gameFinished = true
-        const gameMessage = DEFAULT_MESSAGES.GAME_WIN(teamData.name)
-        addToHistory(gameMessage, 'winner')
-        emitEvent('game_finished', team, { winner: teamData.name })
-      } else {
-        // Próximo set automáticamente
-        setTimeout(() => nextSet(), 2000)
-      }
-    }
-  }
-
-  const removePoint = (team: 'local' | 'visitor') => {
-    const teamData = gameState.value[team]
-
-    if (teamData.score > 0) {
-      teamData.score--
-      const message = DEFAULT_MESSAGES.POINT_REMOVED(teamData.name)
-      addToHistory(message, 'warning')
-      emitEvent('remove_point', team, { score: teamData.score })
-    }
-  }
-
-  const rotateTeam = (team: 'local' | 'visitor') => {
-    const teamData = gameState.value[team]
-
-    // Rotación en sentido horario
-    const firstPlayer = teamData.rotation.shift()
-    if (firstPlayer) {
-      teamData.rotation.push(firstPlayer)
-      teamData.currentPlayer = teamData.rotation[0]
-    }
-
-    const message = DEFAULT_MESSAGES.ROTATION(teamData.name, teamData.currentPlayer)
-    addToHistory(message, team)
-    emitEvent('rotate_team', team, { currentPlayer: teamData.currentPlayer })
-  }
-
-  const nextSet = () => {
-    if (gameState.value.currentSet < gameState.value.settings.maxSets && !gameState.value.gameFinished) {
-      gameState.value.currentSet++
-      gameState.value.local.score = 0
-      gameState.value.visitor.score = 0
-
-      // Alternar saque inicial del set
-      gameState.value.local.serving = gameState.value.currentSet % 2 === 1
-      gameState.value.visitor.serving = gameState.value.currentSet % 2 === 0
-
-      const message = DEFAULT_MESSAGES.SET_START(gameState.value.currentSet)
-      addToHistory(message, 'info')
-      emitEvent('next_set', undefined, { set: gameState.value.currentSet })
-    }
-  }
-
-  const resetGame = () => {
-    const localName = gameState.value.local.name
-    const visitorName = gameState.value.visitor.name
-    const localLogo = gameState.value.local.logo
-    const visitorLogo = gameState.value.visitor.logo
-    const localColor = gameState.value.local.color
-    const visitorColor = gameState.value.visitor.color
-
-    gameState.value = {
-      local: {
-        id: 'local',
-        name: localName,
-        logo: localLogo,
-        score: 0,
-        sets: 0,
-        serving: true,
-        currentPlayer: 1,
-        rotation: [1, 2, 3, 4, 5, 6],
-        color: localColor,
-      },
-      visitor: {
-        id: 'visitor',
-        name: visitorName,
-        logo: visitorLogo,
-        score: 0,
-        sets: 0,
-        serving: false,
-        currentPlayer: 1,
-        rotation: [1, 2, 3, 4, 5, 6],
-        color: visitorColor,
-      },
-      currentSet: 1,
-      history: [],
-      gameFinished: false,
-      startTime: new Date(),
-      settings: { ...gameState.value.settings },
-    }
-
-    addToHistory(DEFAULT_MESSAGES.GAME_RESET, 'info')
-    emitEvent('reset_game')
-  }
-
-  const updateTeamName = (team: 'local' | 'visitor', name: string) => {
-    if (name.trim()) {
-      gameState.value[team].name = name.trim()
-      settingsManager.updateTeamName(team, name.trim())
-      addToHistory(DEFAULT_MESSAGES.TEAM_NAME_UPDATED, 'info')
-      emitEvent('update_team_name', team, { name: name.trim() })
-    }
-  }
-
-  const updateTeamLogo = (team: 'local' | 'visitor', logo: string) => {
-    gameState.value[team].logo = logo
-    settingsManager.updateTeamLogo(team, logo)
-    addToHistory(DEFAULT_MESSAGES.LOGO_UPDATED, 'info')
-    emitEvent('update_team_logo', team, { logo })
-  }
-
-  const updateTeamColor = (team: 'local' | 'visitor', color: string) => {
-    gameState.value[team].color = color
-    settingsManager.updateTeamColor(team, color)
-    emitEvent('update_team_color', team, { color })
-  }
-
-  const updateLeagueLogo = (logo: string) => {
-    gameState.value.leagueLogo = logo
-    settingsManager.updateLeagueLogo(logo)
-    addToHistory('🏆 Logo de liga actualizado', 'info')
-    emitEvent('update_league_logo', undefined, { logo })
-  }
-
-  const toggleServe = () => {
-    gameState.value.local.serving = !gameState.value.local.serving
-    gameState.value.visitor.serving = !gameState.value.visitor.serving
-
-    const servingTeam = gameState.value.local.serving ? gameState.value.local.name : gameState.value.visitor.name
-    addToHistory(`🔄 Cambio de saque: ${servingTeam}`, 'info')
-    emitEvent('toggle_serve')
-  }
-
-  const updateGameSettings = (newSettings: Partial<typeof gameState.value.settings>) => {
-    gameState.value.settings = { ...gameState.value.settings, ...newSettings }
-    addToHistory('⚙️ Configuración actualizada', 'info')
-  }
-
-  // Función para obtener el estado actual (para comunicación)
-  const getGameState = () => {
-    return JSON.parse(JSON.stringify(gameState.value)) as GameState
-  }
-
-  // Función para restaurar estado (para comunicación)
-  const restoreGameState = (state: GameState) => {
-    gameState.value = state
-  }
-
-  // Cargar configuración guardada
-  const loadSavedSettings = () => {
-    settingsManager.initializeSettings()
-    const settings = settingsManager.settings.value
-
-    // Aplicar configuración guardada al estado del juego
-    gameState.value.local.name = settings.teamNames.local
-    gameState.value.visitor.name = settings.teamNames.visitor
-    gameState.value.local.color = settings.teamColors.local
-    gameState.value.visitor.color = settings.teamColors.visitor
-
-    // Aplicar logos si existen
-    if (settings.teamLogos.local) {
-      gameState.value.local.logo = settings.teamLogos.local
-    }
-    if (settings.teamLogos.visitor) {
-      gameState.value.visitor.logo = settings.teamLogos.visitor
-    }
-    if (settings.leagueLogo) {
-      gameState.value.leagueLogo = settings.leagueLogo
-    }
-
-    // Aplicar configuración del juego
-    gameState.value.settings = { ...settings.gameSettings }
-  }
-
-  // Inicialización
-  const initializeGame = () => {
-    loadSavedSettings()
-    addToHistory(DEFAULT_MESSAGES.GAME_START, 'info')
-    emitEvent('game_start')
-  }
-
   return {
-    // Estado
-    gameState,
-    events,
-    lastEventId,
+    gameState: match.gameState,
+    events: [],
+    lastEventId: '',
     scoreHistory,
-
-    // Getters
-    currentTeamServing,
-    gameStatus,
-    isGameFinished,
-    currentSet,
-    winnerTeam,
+    currentTeamServing: match.currentTeamServing,
+    gameStatus: match.gameStatus,
+    isGameFinished: match.isGameFinished,
+    currentSet: match.currentSet,
+    winnerTeam: match.winnerTeam,
     gameProgress,
-
-    // Acciones principales
-    scorePoint,
-    removePoint,
-    rotateTeam,
-    nextSet,
-    resetGame,
-    toggleServe,
-
-    // Configuración
+    scorePoint: match.scorePoint,
+    removePoint: match.removePoint,
+    rotateTeam: match.rotateTeam,
+    nextSet: match.nextSet,
+    resetGame: match.resetGame,
+    toggleServe: match.toggleServe,
     updateTeamName,
     updateTeamLogo,
     updateTeamColor,
     updateLeagueLogo,
-    updateGameSettings,
-
-    // Utilidades
-    addToHistory,
-    getGameState,
-    restoreGameState,
+    updateGameSettings: match.updateGameSettings,
+    addToHistory: match.addToHistory,
+    getGameState: match.getGameState,
+    restoreGameState: match.restoreGameState,
     initializeGame,
     loadSavedSettings,
-
-    // Configuración persistente
-    settingsManager,
+    settingsManager: {
+      settings: computed(() => ({
+        gameSettings: match.gameState.settings,
+        teamLogos: {
+          local: broadcastConfig.config.teams.local.logoUrl,
+          visitor: broadcastConfig.config.teams.visitor.logoUrl,
+        },
+        teamNames: {
+          local: broadcastConfig.config.teams.local.name,
+          visitor: broadcastConfig.config.teams.visitor.name,
+        },
+        teamColors: {
+          local: broadcastConfig.config.teams.local.primaryColor,
+          visitor: broadcastConfig.config.teams.visitor.primaryColor,
+        },
+        leagueLogo: broadcastConfig.config.leagueLogoUrl,
+      })),
+    },
   }
 })
 
-// Tipo para exportar el store
 export type ScoreboardStore = ReturnType<typeof useScoreboardStore>

@@ -1,44 +1,29 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       fontFamily: {
-        'display': ['Orbitron', 'monospace'],
-        'scoreboard': ['Orbitron', 'monospace'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
-        'scoreboard': {
-          'primary': '#1e40af',
-          'secondary': '#dc2626',
-          'accent': '#facc15',
-        },
-      },
-      animation: {
-        'servingPulse': 'servingPulse 2s infinite',
-        'scoreChange': 'scoreChange 0.5s ease-out',
-        'teamWin': 'teamWin 1s ease-in-out infinite',
-      },
-      keyframes: {
-        servingPulse: {
-          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%': { opacity: '0.7', transform: 'scale(1.05)' },
-        },
-        scoreChange: {
-          '0%': { transform: 'scale(1)' },
-          '50%': { transform: 'scale(1.2)' },
-          '100%': { transform: 'scale(1)' },
-        },
-        teamWin: {
-          '0%, 100%': { transform: 'scale(1)' },
-          '50%': { transform: 'scale(1.1)' },
+        broadcast: {
+          background: '#031427',
+          surface: '#031427',
+          'surface-lowest': '#000f21',
+          'surface-low': '#0b1c30',
+          'surface-container': '#102034',
+          'surface-high': '#1b2b3f',
+          'surface-highest': '#26364a',
+          outline: '#45464d',
+          text: '#d3e4fe',
+          muted: '#c6c6cd',
+          accent: '#7bd0ff',
+          alert: '#ffb2b7',
+          danger: '#ee3a5a',
         },
       },
     },
   },
   plugins: [],
 }
-

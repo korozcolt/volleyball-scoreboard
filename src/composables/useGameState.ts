@@ -76,7 +76,8 @@ export function useGameState(): UseGameStateReturn {
     const state = store.gameState
     const totalPointsLocal = state.local.score
     const totalPointsVisitor = state.visitor.score
-    const duration = new Date().getTime() - state.startTime.getTime()
+    const startTime = typeof state.startTime === 'number' ? state.startTime : state.startTime.getTime()
+    const duration = Date.now() - startTime
 
     return {
       totalPoints: { local: totalPointsLocal, visitor: totalPointsVisitor },
@@ -95,7 +96,7 @@ export function useGameState(): UseGameStateReturn {
     return {
       setNumber: state.currentSet,
       startTime: state.startTime,
-      duration: new Date().getTime() - state.startTime.getTime(),
+      duration: Date.now() - (typeof state.startTime === 'number' ? state.startTime : state.startTime.getTime()),
       isDecidingSet: state.currentSet === 5,
       pointsToWin,
     }

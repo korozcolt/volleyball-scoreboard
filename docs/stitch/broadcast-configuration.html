@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ProVolley Live - Broadcast Config</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#7bd0ff",
+                    "error-container": "#93000a",
+                    "on-tertiary-fixed": "#40000d",
+                    "on-secondary-container": "#00374d",
+                    "on-primary-fixed": "#131b2e",
+                    "background": "#031427",
+                    "surface-tint": "#bec6e0",
+                    "inverse-on-surface": "#213145",
+                    "on-secondary-fixed": "#001e2c",
+                    "surface-dim": "#031427",
+                    "primary-container": "#0f172a",
+                    "on-primary": "#283044",
+                    "tertiary": "#ffb2b7",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "surface-container-high": "#1b2b3f",
+                    "surface-variant": "#26364a",
+                    "on-tertiary": "#67001b",
+                    "tertiary-fixed-dim": "#ffb2b7",
+                    "surface-bright": "#2a3a4f",
+                    "on-tertiary-container": "#ee3a5a",
+                    "surface-container-low": "#0b1c30",
+                    "surface-container-lowest": "#000f21",
+                    "primary-fixed-dim": "#bec6e0",
+                    "tertiary-container": "#39000b",
+                    "on-primary-container": "#798098",
+                    "on-error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#7bd0ff",
+                    "on-secondary": "#00354a",
+                    "tertiary-fixed": "#ffdadb",
+                    "on-secondary-fixed-variant": "#004c69",
+                    "error": "#ffb4ab",
+                    "on-tertiary-fixed-variant": "#92002a",
+                    "surface": "#031427",
+                    "on-error": "#690005",
+                    "on-background": "#d3e4fe",
+                    "on-surface": "#d3e4fe",
+                    "surface-container-highest": "#26364a",
+                    "outline": "#909097",
+                    "inverse-surface": "#d3e4fe",
+                    "secondary-fixed": "#c4e7ff",
+                    "inverse-primary": "#565e74",
+                    "secondary-container": "#00a6e0",
+                    "surface-container": "#102034",
+                    "primary-fixed": "#dae2fd",
+                    "primary": "#bec6e0",
+                    "on-surface-variant": "#c6c6cd",
+                    "outline-variant": "#45464d"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "margin-tablet": "32px",
+                    "margin-desktop": "48px",
+                    "container-max": "1440px",
+                    "margin-mobile": "16px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "label-bold": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "display-score": [
+                            "Inter"
+                    ],
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "headline-lg-mobile": [
+                            "Inter"
+                    ],
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "label-bold": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "display-score": [
+                            "72px",
+                            {
+                                    "lineHeight": "1",
+                                    "letterSpacing": "-0.04em",
+                                    "fontWeight": "800"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        .glass-panel {
+            background: rgba(3, 20, 39, 0.6);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .admin-card {
+            background-color: theme('colors.surface-container');
+            border: 1px solid theme('colors.outline-variant');
+        }
+        
+        .admin-input {
+            background-color: theme('colors.surface-container-high');
+            border: 1px solid theme('colors.outline-variant');
+            color: theme('colors.on-surface');
+            transition: border-color 0.2s ease;
+        }
+        
+        .admin-input:focus {
+            outline: none;
+            border-color: theme('colors.secondary');
+        }
+        
+        .color-picker-btn {
+            border: 1px solid theme('colors.outline-variant');
+        }
+        
+        /* Custom scrollbar for better dark mode appearance */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-low');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.surface-variant');
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline-variant');
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<nav class="docked left-0 h-full w-[280px] bg-surface-container-low border-r border-outline-variant flex flex-col p-4 gap-2 shrink-0 z-20">
+<!-- Header -->
+<div class="mb-8 flex flex-col gap-2 p-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden shrink-0">
+<img alt="Production Studio Logo" class="w-full h-full object-cover" data-alt="A clean, modern corporate logo featuring an abstract geometric lens aperture design in shades of electric blue and stark white, set against a dark navy background. The design is sleek, professional, and evocative of high-end broadcasting equipment, perfectly suited for a premium sports production suite." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxiGyOidz5bBFG1uc302t-cI02C1A31_7S2Nkf2Hjv5dzz4w9FNRlM47oCcQYgx2uzau1_WFS0RIcJ6xYRjBySzKivxF5ZRt0AgmoDcivu1ovvrX785RgJ4Es_akR4egW-6KkBGIOgX7jUTxY4yyQFgysYyIWZnLPR9EwmN5yiFlrFg_gKeXRzy7QBhjixG7rTNp0X_vGeLdRBas44WEYbOfTnGO0n-ChxdzyhpJdbiqT6xONWWUre7F7wowgQqjmGb7W6vrSr19A"/>
+</div>
+<div>
+<h1 class="text-headline-md font-headline-md text-on-surface">Court 1</h1>
+<p class="text-label-sm font-label-sm text-tertiary flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse inline-block"></span>
+                        Live Broadcast
+                    </p>
+</div>
+</div>
+<button class="mt-4 w-full bg-secondary text-on-secondary py-2 rounded-lg font-label-bold text-label-bold flex items-center justify-center gap-2 hover:bg-secondary-fixed transition-colors shadow-[0_0_15px_rgba(123,208,255,0.3)]">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">sensors</span>
+                Go Live
+            </button>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-1 flex-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant transition-all text-body-md font-body-md group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">scoreboard</span>
+                Live Match
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant transition-all text-body-md font-body-md group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">analytics</span>
+                Statistics
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant transition-all text-body-md font-body-md group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">groups</span>
+                Team Manager
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary-container text-on-secondary-container font-bold text-body-md font-body-md translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">settings_input_component</span>
+                Broadcast Config
+            </a>
+</div>
+<!-- Footer Links -->
+<div class="flex flex-col gap-1 mt-auto pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-4 py-2 rounded-xl text-on-surface-variant hover:bg-surface-variant transition-all text-body-md font-body-md group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">help</span>
+                Help
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 rounded-xl text-on-surface-variant hover:bg-surface-variant transition-all text-body-md font-body-md group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">logout</span>
+                Logout
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-y-auto relative z-10">
+<!-- TopNavBar (Simulated for contextual header, though actual nav is sidebar) -->
+<header class="w-full h-16 bg-surface border-b border-outline-variant flex items-center justify-between px-margin-desktop sticky top-0 z-30 shrink-0">
+<div class="flex items-center gap-4">
+<h2 class="text-headline-md font-headline-md font-bold text-secondary">ProVolley Live</h2>
+<div class="h-6 w-[1px] bg-outline-variant hidden md:block"></div>
+<span class="text-body-lg font-body-lg text-on-surface hidden md:block">Broadcast Configuration</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="p-margin-desktop max-w-container-max mx-auto w-full flex flex-col gap-8 pb-32">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Match Setup</h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-1">Configure team identities, colors, and global broadcast assets.</p>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-label-bold text-label-bold hover:bg-primary-fixed-dim transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">save</span>
+                    Save Configuration
+                </button>
+</div>
+<!-- Team Configuration Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-gutter">
+<!-- Team A Config -->
+<div class="admin-card rounded-xl p-6 flex flex-col gap-6 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#00a6e0]"></div> <!-- Team Color Indicator -->
+<div class="flex items-center justify-between border-b border-outline-variant pb-4">
+<h3 class="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">sports_volleyball</span>
+                            Home Team
+                        </h3>
+<span class="px-3 py-1 rounded-full bg-surface-variant text-label-sm font-label-sm text-on-surface-variant border border-outline-variant">Team A</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="grid grid-cols-3 gap-4">
+<div class="col-span-2">
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Team Name</label>
+<input class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md" placeholder="Enter full team name" type="text" value="Milano Volley"/>
+</div>
+<div class="col-span-1">
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Short Code</label>
+<input class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md text-center uppercase tracking-widest font-bold" maxlength="3" placeholder="ABC" type="text" value="MIL"/>
+</div>
+</div>
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Primary Color</label>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-lg color-picker-btn bg-[#00a6e0] shrink-0 relative overflow-hidden group">
+<div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px]">edit</span>
+</div>
+</button>
+<input class="flex-1 admin-input rounded-lg px-4 py-2 text-body-md font-body-md font-mono" placeholder="#HEXCODE" type="text" value="#00A6E0"/>
+</div>
+</div>
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Team Logo / Flag</label>
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-6 flex flex-col items-center justify-center text-center bg-surface-container-high hover:bg-surface-variant transition-colors cursor-pointer group">
+<div class="w-16 h-16 mb-3 rounded-lg overflow-hidden bg-surface flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-[32px] text-on-surface-variant group-hover:text-secondary transition-colors">upload_file</span>
+</div>
+<span class="text-label-bold font-label-bold text-on-surface">Upload PNG or SVG</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant mt-1">Recommended size: 512x512px. Transparent background.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Team B Config -->
+<div class="admin-card rounded-xl p-6 flex flex-col gap-6 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-1 h-full bg-[#ee3a5a]"></div> <!-- Team Color Indicator -->
+<div class="flex items-center justify-between border-b border-outline-variant pb-4">
+<h3 class="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container">flight</span>
+                            Away Team
+                        </h3>
+<span class="px-3 py-1 rounded-full bg-surface-variant text-label-sm font-label-sm text-on-surface-variant border border-outline-variant">Team B</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="grid grid-cols-3 gap-4">
+<div class="col-span-2">
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Team Name</label>
+<input class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md" placeholder="Enter full team name" type="text" value="Trentino Itas"/>
+</div>
+<div class="col-span-1">
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Short Code</label>
+<input class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md text-center uppercase tracking-widest font-bold" maxlength="3" placeholder="ABC" type="text" value="TRN"/>
+</div>
+</div>
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Primary Color</label>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-lg color-picker-btn bg-[#ee3a5a] shrink-0 relative overflow-hidden group">
+<div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px]">edit</span>
+</div>
+</button>
+<input class="flex-1 admin-input rounded-lg px-4 py-2 text-body-md font-body-md font-mono" placeholder="#HEXCODE" type="text" value="#EE3A5A"/>
+</div>
+</div>
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Team Logo / Flag</label>
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-6 flex flex-col items-center justify-center text-center bg-surface-container-high hover:bg-surface-variant transition-colors cursor-pointer group">
+<div class="w-16 h-16 mb-3 rounded-lg overflow-hidden bg-surface flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-[32px] text-on-surface-variant group-hover:text-secondary transition-colors">upload_file</span>
+</div>
+<span class="text-label-bold font-label-bold text-on-surface">Upload PNG or SVG</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant mt-1">Recommended size: 512x512px. Transparent background.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tournament & Assets Configuration -->
+<div class="admin-card rounded-xl p-6 flex flex-col gap-6">
+<div class="flex items-center justify-between border-b border-outline-variant pb-4">
+<h3 class="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">emoji_events</span>
+                        Tournament &amp; Global Assets
+                    </h3>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Tournament Info -->
+<div class="flex flex-col gap-4">
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Tournament Name</label>
+<input class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md" placeholder="Enter tournament name" type="text" value="SuperLega 2024 Finals"/>
+</div>
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Phase / Round</label>
+<input class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md" placeholder="e.g. Quarter Finals" type="text" value="Semi-Final, Match 3"/>
+</div>
+<div class="mt-4 border border-outline-variant rounded-lg p-4 bg-surface-container-low">
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">imagesmode</span>
+                                Broadcast Background Style
+                            </label>
+<div class="grid grid-cols-3 gap-3">
+<button class="h-20 rounded-lg border-2 border-secondary overflow-hidden relative group">
+<div class="absolute inset-0 bg-gradient-to-br from-[#0f172a] to-[#031427]"></div>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="text-label-sm font-label-bold text-white">Classic Dark</span>
+</div>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-secondary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-on-secondary" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</button>
+<button class="h-20 rounded-lg border border-outline-variant overflow-hidden relative group hover:border-primary transition-colors">
+<div class="absolute inset-0 bg-gradient-to-br from-[#1b2b3f] to-[#26364a]"></div>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="text-label-sm font-label-bold text-white">Steel Blue</span>
+</div>
+</button>
+<button class="h-20 rounded-lg border border-outline-variant overflow-hidden relative group hover:border-primary transition-colors flex items-center justify-center bg-surface-container-high">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">add_photo_alternate</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Sponsor / Overlay Logos -->
+<div class="flex flex-col gap-4">
+<div>
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Sponsor Logo (Top Right Bug)</label>
+<div class="flex items-center gap-4">
+<div class="w-24 h-16 bg-surface-container-high border border-outline-variant rounded-lg flex items-center justify-center shrink-0">
+<span class="text-label-sm text-on-surface-variant">No Logo</span>
+</div>
+<button class="bg-surface-variant text-on-surface px-4 py-2 rounded-lg font-label-bold text-label-bold hover:bg-surface-container-highest transition-colors border border-outline-variant">
+                                    Browse...
+                                </button>
+</div>
+</div>
+<div class="mt-2">
+<label class="block text-label-bold font-label-bold text-on-surface-variant mb-2">Lower Thirds Style</label>
+<select class="w-full admin-input rounded-lg px-4 py-2 text-body-md font-body-md appearance-none">
+<option>Glassmorphism (Default)</option>
+<option>Solid Dark</option>
+<option>High Contrast Solid</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
