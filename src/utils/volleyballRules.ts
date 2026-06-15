@@ -1,6 +1,8 @@
 import type { GameState, TeamSide } from '@/types/game.types'
 
 export const getSetTargetPoints = (state: GameState): number => {
+  if (state.settings.maxSets === 1) return state.settings.pointsToWin
+
   return state.currentSet === state.settings.maxSets
     ? state.settings.decidingSetPoints
     : state.settings.pointsToWin

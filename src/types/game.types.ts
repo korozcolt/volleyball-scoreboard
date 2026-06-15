@@ -98,6 +98,12 @@ export interface BroadcastTeamConfig {
   logoUrl?: string
 }
 
+export interface TeamProfile extends BroadcastTeamConfig {
+  id: string
+  createdAt: number
+  updatedAt: number
+}
+
 export interface BroadcastConfig {
   teams: Record<TeamSide, BroadcastTeamConfig>
   tournament: string
