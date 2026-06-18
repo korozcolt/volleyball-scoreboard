@@ -173,7 +173,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
       <div class="flex flex-wrap gap-2">
         <a
-          :href="`/overlay/${matchId}`"
+          :href="`/overlay/${scope.matchId.value}`"
           target="_blank"
           rel="noopener"
           class="admin-button"
@@ -183,17 +183,27 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <ExternalLink class="h-3 w-3 opacity-60" />
         </a>
         <a
-          :href="`/lineup/${matchId}`"
+          :href="`/lineup/${scope.matchId.value}`"
           target="_blank"
           rel="noopener"
           class="admin-button"
         >
           <Users class="h-4 w-4" />
-          Lineup / Formación
+          Lineup & Cancha
           <ExternalLink class="h-3 w-3 opacity-60" />
         </a>
         <a
-          :href="`/statistics/${matchId}`"
+          :href="`/settings/${scope.matchId.value}`"
+          target="_blank"
+          rel="noopener"
+          class="admin-button"
+        >
+          <Settings class="h-4 w-4" />
+          Configuración
+          <ExternalLink class="h-3 w-3 opacity-60" />
+        </a>
+        <a
+          :href="`/statistics/${scope.matchId.value}`"
           target="_blank"
           rel="noopener"
           class="admin-button"
@@ -213,7 +223,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <div>
             <div class="text-sm font-semibold text-broadcast-text">Overlay de Lineup</div>
             <div class="text-xs text-broadcast-muted">
-              Muestra roster y posicionamiento en cancha · /lineup/{{ matchId }}
+              Muestra roster y posicionamiento en cancha · /lineup/{{ scope.matchId.value }}
             </div>
           </div>
         </div>

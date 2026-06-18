@@ -7,6 +7,7 @@ defineProps<{
   side: TeamSide
   label: string
   teamLibrary?: TeamProfile[]
+  activeProfileId?: string
   isUploading?: boolean
   isSaving?: boolean
 }>()
@@ -53,6 +54,7 @@ const onFileChange = (side: TeamSide, event: Event) => {
       </span>
       <select
         class="admin-input"
+        :value="activeProfileId"
         @change="emit('selectProfile', side, ($event.target as HTMLSelectElement).value)"
       >
         <option value="">Seleccionar equipo guardado...</option>

@@ -100,21 +100,24 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
+  const flushSessionState = () => {
+    if (!activeMatchId.value || !persistTimer) return
+    window.clearTimeout(persistTimer)
+    persistTimer = undefined
+    libraryApi.updateMatchSession(activeMatchId.value, {
+      state: cloneState(gameState.value),
+      status: gameState.value.gameFinished ? 'finished' : (gameState.value.status === 'live' ? 'live' : 'draft'),
+    }).catch(() => undefined)
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', flushSessionState)
+  }
+
   const persistSessionState = () => {
     if (!activeMatchId.value || typeof window === 'undefined') return
     if (persistTimer) window.clearTimeout(persistTimer)
-    persistTimer = window.setTimeout(() => {
-      libraryApi
-        .updateMatchSession(activeMatchId.value!, {
-          state: cloneState(gameState.value),
-          status: gameState.value.gameFinished
-            ? 'finished'
-            : gameState.value.status === 'live'
-              ? 'live'
-              : 'draft',
-        })
-        .catch(() => undefined)
-    }, 450)
+    persistTimer = window.setTimeout(flushSessionState, 450)
   }
 
   const subscribe = () => {

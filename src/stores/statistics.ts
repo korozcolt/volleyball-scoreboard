@@ -75,12 +75,21 @@ export const useStatisticsStore = defineStore('statistics', () => {
     }
   }
 
+  const flushSessionStatistics = () => {
+    if (!activeMatchId.value || !persistTimer) return
+    window.clearTimeout(persistTimer)
+    persistTimer = undefined
+    libraryApi.updateMatchSession(activeMatchId.value, { statistics: cloneState(state.value) }).catch(() => undefined)
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', flushSessionStatistics)
+  }
+
   const persistSessionStatistics = () => {
     if (!activeMatchId.value || typeof window === 'undefined') return
     if (persistTimer) window.clearTimeout(persistTimer)
-    persistTimer = window.setTimeout(() => {
-      libraryApi.updateMatchSession(activeMatchId.value!, { statistics: cloneState(state.value) }).catch(() => undefined)
-    }, 450)
+    persistTimer = window.setTimeout(flushSessionStatistics, 450)
   }
 
   const subscribe = () => {

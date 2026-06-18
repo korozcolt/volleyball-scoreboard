@@ -124,7 +124,7 @@ const savePlayer = async (team: TeamSide, existing?: TeamPlayer) => {
     try {
       await libraryApi.savePlayer(profileId, {
         id: existing?.id,
-        number: Math.max(1, Math.min(99, Number(draft.number) || 1)),
+        number: Math.max(0, Math.min(99, Number(draft.number) || 0)),
         name: draft.name.trim() || `Jugador ${draft.number}`,
         active: draft.active !== undefined ? draft.active : true,
         isLibero: draft.isLibero || false,
@@ -220,7 +220,18 @@ const setDecidingSetPoints = (decidingSetPoints: number) => {
   })
 }
 
-onMounted(() => loadTeamLibrary(false))
+onMounted(async () => {
+  await loadTeamLibrary(false)
+  const setProfileIfMatch = (team: TeamSide) => {
+    const configTeam = broadcast.config.teams[team]
+    const profile = teamLibrary.value.find(
+      p => p.shortCode === configTeam.shortCode && p.name === configTeam.name
+    )
+    if (profile) activeProfileIds.value[team] = profile.id
+  }
+  setProfileIfMatch('local')
+  setProfileIfMatch('visitor')
+})
 </script>
 
 <template>
@@ -272,6 +283,7 @@ onMounted(() => loadTeamLibrary(false))
         side="local"
         label="Equipo local"
         :team-library="teamLibrary"
+        :active-profile-id="activeProfileIds.local || ''"
         :is-uploading="uploadingTeam === 'local'"
         :is-saving="savingTeam === 'local'"
         @update="updateTeam"
@@ -284,6 +296,7 @@ onMounted(() => loadTeamLibrary(false))
         side="visitor"
         label="Equipo visitante"
         :team-library="teamLibrary"
+        :active-profile-id="activeProfileIds.visitor || ''"
         :is-uploading="uploadingTeam === 'visitor'"
         :is-saving="savingTeam === 'visitor'"
         @update="updateTeam"

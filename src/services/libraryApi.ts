@@ -111,6 +111,7 @@ export const libraryApi = {
       method: 'PATCH',
       headers: jsonHeaders,
       body: JSON.stringify(payload),
+      keepalive: true,
     })
     const body = await readJson<{ session: MatchSession }>(response)
     return body.session
