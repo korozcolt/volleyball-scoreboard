@@ -21,9 +21,9 @@ const uploadingTeam = ref<TeamSide | null>(null)
 const savingTeam = ref<TeamSide | null>(null)
 const isArchiving = ref(false)
 const activeProfileIds = ref<Record<TeamSide, string>>({ local: '', visitor: '' })
-const playerDrafts = ref<Record<TeamSide, { number: number; name: string; isLibero: boolean; role?: string; active?: boolean }>>({
-  local: { number: 1, name: '', isLibero: false, role: '' },
-  visitor: { number: 1, name: '', isLibero: false, role: '' },
+const playerDrafts = ref<Record<TeamSide, { number: string | number; name: string; isLibero: boolean; role?: string; active?: boolean }>>({
+  local: { number: '1', name: '', isLibero: false, role: '' },
+  visitor: { number: '1', name: '', isLibero: false, role: '' },
 })
 const saveNotice = ref<{
   type: 'success' | 'warning' | 'error' | 'info'
@@ -131,14 +131,14 @@ const savePlayer = async (team: TeamSide, existing?: TeamPlayer) => {
     try {
       await libraryApi.savePlayer(profileId, {
         id: existing?.id,
-        number: Math.max(0, Math.min(99, Number(draft.number) || 0)),
+        number: String(draft.number).trim() || '1',
         name: draft.name.trim() || `Jugador ${draft.number}`,
         active: draft.active !== undefined ? draft.active : true,
         isLibero: draft.isLibero || false,
         role: draft.role || undefined,
       })
       
-      if (!existing) playerDrafts.value[team] = { number: Math.min(99, playerDrafts.value[team].number + 1), name: '', isLibero: false, role: '' }
+      if (!existing) playerDrafts.value[team] = { number: String(Math.min(99, Number(playerDrafts.value[team].number) + 1 || 1)), name: '', isLibero: false, role: '' }
       await loadTeamLibrary(false)
     notify('Jugador guardado en el roster.', 'success')
   } catch (error) {
@@ -344,11 +344,10 @@ onMounted(async () => {
 
         <div class="mb-4 grid grid-cols-[90px_1fr_auto] gap-2">
           <input
-            v-model.number="playerDrafts[side].number"
+            v-model="playerDrafts[side].number"
             class="admin-input text-center font-black"
-            type="number"
-            min="1"
-            max="99"
+            type="text"
+            maxlength="2"
             placeholder="#"
             :disabled="!activeProfileIds[side]"
           />
@@ -396,11 +395,10 @@ onMounted(async () => {
           >
             <input
               class="admin-input text-center font-black"
-              type="number"
-              min="1"
-              max="99"
+              type="text"
+              maxlength="2"
               :value="player.number"
-              @change="savePlayer(side, { ...player, number: Number(($event.target as HTMLInputElement).value) })"
+              @change="savePlayer(side, { ...player, number: ($event.target as HTMLInputElement).value })"
             />
             <input
               v-model="player.name"

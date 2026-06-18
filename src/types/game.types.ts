@@ -14,7 +14,7 @@ export interface Player {
   id: number
   name?: string
   position: number
-  number?: number
+  number?: string | number
   active?: boolean
   isLibero?: boolean
   role?: string
@@ -23,7 +23,7 @@ export interface Player {
 export interface TeamPlayer {
   id: string
   teamId: string
-  number: number
+  number: string | number
   name: string
   active: boolean
   isLibero?: boolean
@@ -35,7 +35,7 @@ export interface TeamPlayer {
 export interface MatchTeamPlayer {
   id: string
   teamPlayerId?: string
-  number: number
+  number: string | number
   name: string
   position: number
   active: boolean
@@ -44,13 +44,13 @@ export interface MatchTeamPlayer {
 }
 
 export interface RotationState {
-  positions: Array<number | null>
-  currentPlayerNumber?: number
+  positions: Array<string | number | null>
+  currentPlayerNumber?: string | number
   history?: Array<{
     team: TeamSide
     timestamp: number
     reason: 'regained_serve' | 'manual'
-    rotation: number[]
+    rotation: (string | number)[]
   }>
 }
 
@@ -63,8 +63,8 @@ export interface Team {
   score: number
   sets: number
   serving: boolean
-  currentPlayer: number
-  rotation: number[]
+  currentPlayer: string | number
+  rotation: (string | number)[]
   players?: Player[]
   roster?: MatchTeamPlayer[]
   rotationState?: RotationState
@@ -327,7 +327,7 @@ export interface CurrentSetInfo {
 
 export interface ServeInfo {
   currentServer: TeamSide
-  serverPosition: number
+  serverPosition: string | number
   consecutiveServes: number
   lastServeChange: number | Date
 }

@@ -48,7 +48,7 @@ export const libraryApi = {
     return payload.players
   },
 
-  async savePlayer(teamId: string, player: Partial<TeamPlayer> & { number: number; name: string }) {
+  async savePlayer(teamId: string, player: Partial<TeamPlayer> & { number: string | number; name: string }) {
     const response = player.id
       ? await fetch(`/api/teams/${teamId}/players/${player.id}`, {
           method: 'PATCH',

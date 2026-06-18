@@ -178,7 +178,7 @@ export const useMatchStore = defineStore('match', () => {
     )
   }
 
-  const syncTeamsFromConfig = (force = false) => {
+  function syncTeamsFromConfig(force = false) {
     if (!force && hasMatchProgress()) return false
 
     ;(['local', 'visitor'] as TeamSide[]).forEach((team) => {
@@ -190,7 +190,7 @@ export const useMatchStore = defineStore('match', () => {
       gameState.value[team].logoUrl = configTeam.logoUrl
       gameState.value[team].logo = configTeam.logoUrl
       if (configTeam.roster) {
-        gameState.value[team].roster = configTeam.roster.map((p, idx) => ({
+        setTeamRoster(team, configTeam.roster.map((p, idx) => ({
           id: p.id || `p-${Date.now()}-${idx}`,
           number: p.number,
           name: p.name || `Jugador ${p.number}`,
@@ -198,7 +198,7 @@ export const useMatchStore = defineStore('match', () => {
           active: p.active !== false,
           isLibero: p.isLibero,
           role: p.role,
-        }))
+        })))
       }
     })
 
@@ -408,24 +408,28 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  const setTeamRoster = (team: TeamSide, players: Team['roster'] = []) => {
+  function setTeamRoster(team: TeamSide, players: Team['roster'] = []) {
     const activePlayers = players.filter((player) => player.active !== false)
-    const selected = activePlayers.slice(0, 6)
     const fallback = [1, 2, 3, 4, 5, 6].map((number) => ({
       id: `${team}-${number}`,
-      number,
+      number: String(number),
       name: `Jugador ${number}`,
       position: number,
       active: true,
     }))
-    const roster = (selected.length >= 6 ? selected : fallback).map((player, index) => ({
+    
+    // We keep ALL active players in the roster.
+    const roster = (activePlayers.length > 0 ? activePlayers : fallback).map((player, index) => ({
       ...player,
       position: index + 1,
     }))
-    const rotation = roster.map((player) => player.number)
+
+    const initialStarters = roster.slice(0, 6)
+    const rotation = initialStarters.map((player) => player.number)
+
     gameState.value[team].roster = roster
-    gameState.value[team].players = roster.map((player) => ({
-      id: player.number,
+    gameState.value[team].players = initialStarters.map((player) => ({
+      id: Number(player.id) || 0,
       number: player.number,
       name: player.name,
       position: player.position,
@@ -446,14 +450,14 @@ export const useMatchStore = defineStore('match', () => {
    * Position 1 = server (back right), Position 2 = front right, 3 = front center,
    * 4 = front left, 5 = back left, 6 = back center
    */
-  const setCourtPositions = (team: TeamSide, jerseyByPosition: number[]) => {
+  const setCourtPositions = (team: TeamSide, jerseyByPosition: (string | number)[]) => {
     const slots = jerseyByPosition.slice(0, 6)
-    while (slots.length < 6) slots.push(slots.length + 1)
+    while (slots.length < 6) slots.push(String(slots.length + 1))
     gameState.value[team].rotation = slots
-    gameState.value[team].currentPlayer = slots[0] ?? 1
+    gameState.value[team].currentPlayer = slots[0] ?? '1'
     gameState.value[team].rotationState = {
       positions: [...slots],
-      currentPlayerNumber: slots[0] ?? 1,
+      currentPlayerNumber: slots[0] ?? '1',
       history: [
         {
           team,

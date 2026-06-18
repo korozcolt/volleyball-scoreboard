@@ -50,7 +50,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS team_players (
     id TEXT PRIMARY KEY,
     team_id TEXT NOT NULL,
-    number INTEGER NOT NULL,
+    number TEXT NOT NULL,
     name TEXT NOT NULL,
     active INTEGER NOT NULL DEFAULT 1,
     is_libero INTEGER NOT NULL DEFAULT 0,
@@ -60,7 +60,39 @@ db.exec(`
     UNIQUE(team_id, number),
     FOREIGN KEY(team_id) REFERENCES team_profiles(id) ON DELETE CASCADE
   );
+`)
 
+// Run migrations
+try {
+  const tableInfo = db.prepare("PRAGMA table_info(team_players)").all()
+  const numberColumn = tableInfo.find(c => c.name === 'number')
+  if (numberColumn && numberColumn.type === 'INTEGER') {
+    console.log('Migrating team_players number column to TEXT...')
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS new_team_players (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        number TEXT NOT NULL,
+        name TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        is_libero INTEGER NOT NULL DEFAULT 0,
+        role TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(team_id, number),
+        FOREIGN KEY(team_id) REFERENCES team_profiles(id) ON DELETE CASCADE
+      );
+      INSERT OR IGNORE INTO new_team_players SELECT id, team_id, CAST(number AS TEXT), name, active, is_libero, role, created_at, updated_at FROM team_players;
+      DROP TABLE team_players;
+      ALTER TABLE new_team_players RENAME TO team_players;
+    `)
+    console.log('Migration completed.')
+  }
+} catch (e) {
+  console.error('Migration failed:', e)
+}
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS match_sessions (
     id TEXT PRIMARY KEY,
     status TEXT NOT NULL,

@@ -56,15 +56,15 @@ const setsLabel = computed(() => {
 /** Roster list sorted by jersey number */
 const sortedRoster = (side: 'local' | 'visitor') => {
   const roster = match.gameState[side].roster ?? []
-  return [...roster].sort((a, b) => a.number - b.number)
+  return [...roster].sort((a, b) => Number(a.number) - Number(b.number))
 }
 
 const localRoster = computed(() => sortedRoster('local'))
 const visitorRoster = computed(() => sortedRoster('visitor'))
 
 /** True when the team's jersey number is currently on the court */
-const isOnCourt = (side: 'local' | 'visitor', number: number) =>
-  match.gameState[side].rotation.includes(number)
+const isOnCourt = (side: 'local' | 'visitor', number: string | number) =>
+  match.gameState[side].rotation.some(n => String(n) === String(number))
 
 
 

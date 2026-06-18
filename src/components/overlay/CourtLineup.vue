@@ -34,9 +34,10 @@ const ZONE_CELLS = [
 ] as const
 
 const rosterByNumber = computed(() => {
-  const map = new Map<number, MatchTeamPlayer>()
+  const map = new Map<string | number, MatchTeamPlayer>()
   for (const player of props.team.roster ?? []) {
     map.set(player.number, player)
+    map.set(String(player.number), player)
   }
   return map
 })

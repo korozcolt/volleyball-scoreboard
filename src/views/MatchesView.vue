@@ -86,7 +86,7 @@ const createTeam = (side: TeamSide, config: BroadcastConfig, profile?: TeamProfi
   
   // Fill with dummy numbers if roster has fewer than 6 players
   while (rotation.length < 6) {
-    rotation.push(rotation.length + 1)
+    rotation.push(String(rotation.length + 1))
   }
 
   return {
@@ -98,11 +98,11 @@ const createTeam = (side: TeamSide, config: BroadcastConfig, profile?: TeamProfi
     score: 0,
     sets: 0,
     serving: side === 'local',
-    currentPlayer: rotation[0] ?? 1,
+    currentPlayer: rotation[0] ?? '1',
     rotation,
     roster,
     players: roster.map((player) => ({
-      id: player.number,
+      id: Number(player.id) || 0,
       number: player.number,
       name: player.name,
       position: player.position,

@@ -31,23 +31,23 @@ const ZONE_LAYOUT = [
 ]
 
 // ─── Draft state (one per team) ──────────────────────────────────────────────
-const makeDraft = (side: TeamSide): number[] => {
+const makeDraft = (side: TeamSide): (string | number)[] => {
   const r = match.gameState[side].rotation
   return r.length === 6 ? [...r] : [1, 2, 3, 4, 5, 6]
 }
 
-const draftLocal = ref<number[]>(makeDraft('local'))
-const draftVisitor = ref<number[]>(makeDraft('visitor'))
+const draftLocal = ref<(string | number)[]>(makeDraft('local'))
+const draftVisitor = ref<(string | number)[]>(makeDraft('visitor'))
 
 watch(() => match.gameState.local.rotation, (r) => { if (r.length === 6) draftLocal.value = [...r] }, { deep: true })
 watch(() => match.gameState.visitor.rotation, (r) => { if (r.length === 6) draftVisitor.value = [...r] }, { deep: true })
 
 const getDraft = (side: TeamSide) => side === 'local' ? draftLocal.value : draftVisitor.value
 
-const setPosition = (side: TeamSide, rotIdx: number, jersey: number) => {
+const setPosition = (side: TeamSide, rotIdx: number, jersey: string | number) => {
   const draft = getDraft(side)
   // Swap: if the selected jersey is already in another position, swap them
-  const currentIdx = draft.indexOf(jersey)
+  const currentIdx = draft.findIndex(j => String(j) === String(jersey))
   if (currentIdx !== -1 && currentIdx !== rotIdx) {
     const displaced = draft[rotIdx]
     draft[currentIdx] = displaced
@@ -56,7 +56,7 @@ const setPosition = (side: TeamSide, rotIdx: number, jersey: number) => {
 }
 
 const applyFormation = (side: TeamSide) => {
-  match.setCourtPositions(side, getDraft(side))
+  match.setCourtPositions(side, getDraft(side) as any)
 }
 
 const resetDraft = (side: TeamSide) => {
@@ -67,12 +67,12 @@ const resetDraft = (side: TeamSide) => {
 
 // ─── Player lookup helpers ────────────────────────────────────────────────────
 const rosterFor = (side: TeamSide): MatchTeamPlayer[] =>
-  (match.gameState[side].roster ?? []).sort((a, b) => a.number - b.number)
+  (match.gameState[side].roster ?? []).sort((a, b) => Number(a.number) - Number(b.number))
 
-const playerByNumber = (side: TeamSide, jersey: number): MatchTeamPlayer | undefined =>
-  rosterFor(side).find((p) => p.number === jersey)
+const playerByNumber = (side: TeamSide, jersey: string | number): MatchTeamPlayer | undefined =>
+  rosterFor(side).find((p) => String(p.number) === String(jersey))
 
-const playerLabel = (side: TeamSide, jersey: number): string => {
+const playerLabel = (side: TeamSide, jersey: string | number): string => {
   const p = playerByNumber(side, jersey)
   return p ? `#${p.number} ${p.name}` : `#${jersey}`
 }
