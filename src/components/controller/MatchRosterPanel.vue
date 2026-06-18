@@ -204,7 +204,7 @@ const isDirty = computed(() => {
                 <select
                   class="court-edit-select"
                   :value="getDraft(side)[cell.rotIdx]"
-                  @change="setPosition(side, cell.rotIdx, Number(($event.target as HTMLSelectElement).value))"
+                  @change="setPosition(side, cell.rotIdx, ($event.target as HTMLSelectElement).value)"
                 >
                   <option
                     v-for="player in rosterFor(side)"

@@ -195,7 +195,11 @@ const toApiSession = (row) => ({
 
 const upsertTeam = (team) => {
   const now = Date.now()
-  const id = team.id || createId('team')
+  let id = team.id
+  if (!id) {
+    const existing = db.prepare('SELECT id FROM team_profiles WHERE LOWER(name) = LOWER(?) AND LOWER(short_code) = LOWER(?)').get(String(team.name ?? '').trim(), String(team.shortCode ?? 'TBD').trim())
+    id = existing ? existing.id : createId('team')
+  }
   const payload = {
     id,
     name: String(team.name ?? '').trim() || 'Equipo sin nombre',
