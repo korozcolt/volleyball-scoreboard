@@ -189,6 +189,17 @@ export const useMatchStore = defineStore('match', () => {
       gameState.value[team].color = configTeam.primaryColor
       gameState.value[team].logoUrl = configTeam.logoUrl
       gameState.value[team].logo = configTeam.logoUrl
+      if (configTeam.roster) {
+        gameState.value[team].roster = configTeam.roster.map((p, idx) => ({
+          id: p.id || `p-${Date.now()}-${idx}`,
+          number: p.number,
+          name: p.name || `Jugador ${p.number}`,
+          position: 0,
+          active: p.active !== false,
+          isLibero: p.isLibero,
+          role: p.role,
+        }))
+      }
     })
 
     gameState.value.metadata.court = broadcastConfig.config.court

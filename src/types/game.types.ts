@@ -136,6 +136,8 @@ export interface BroadcastTeamConfig {
   shortCode: string
   primaryColor: string
   logoUrl?: string
+  roster?: TeamPlayer[]
+  profileId?: string
 }
 
 export interface TeamProfile extends BroadcastTeamConfig {

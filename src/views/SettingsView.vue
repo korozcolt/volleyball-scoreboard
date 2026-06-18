@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'SettingsView' })
 import { computed, onMounted, ref } from 'vue'
-import { AlertTriangle, CheckCircle2, Info } from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, Info, Eye, EyeOff, Trash2 } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import TeamConfigCard from '@/components/broadcast/TeamConfigCard.vue'
 import { useMatchScope } from '@/composables/useMatchScope'
@@ -92,6 +92,8 @@ const selectTeamProfile = (team: TeamSide, profileId: string) => {
     shortCode: profile.shortCode,
     primaryColor: profile.primaryColor,
     logoUrl: profile.logoUrl,
+    roster: profile.players.map(p => ({ ...p })),
+    profileId: profile.id,
   })
   notify(`${profile.shortCode} cargado en ${team === 'local' ? 'equipo local' : 'equipo visitante'}.`, 'success')
 }
@@ -101,6 +103,7 @@ const saveTeamProfile = async (team: TeamSide) => {
   try {
     const saved = await libraryApi.saveTeam(broadcast.config.teams[team])
     activeProfileIds.value[team] = saved.id
+    updateTeam(team, { profileId: saved.id })
     await loadTeamLibrary(false)
     notify(`Equipo guardado: ${saved.shortCode} · ${saved.name}`, 'success')
   } catch (error) {
@@ -224,6 +227,10 @@ onMounted(async () => {
   await loadTeamLibrary(false)
   const setProfileIfMatch = (team: TeamSide) => {
     const configTeam = broadcast.config.teams[team]
+    if (configTeam.profileId && teamLibrary.value.some(p => p.id === configTeam.profileId)) {
+      activeProfileIds.value[team] = configTeam.profileId
+      return
+    }
     const profile = teamLibrary.value.find(
       p => p.shortCode === configTeam.shortCode && p.name === configTeam.name
     )
@@ -381,7 +388,7 @@ onMounted(async () => {
           <div
             v-for="player in rosterBySide[side]"
             :key="player.id"
-            class="grid grid-cols-[76px_1fr_120px_auto_auto_auto] items-center gap-2 rounded border border-broadcast-outline bg-broadcast-surface-high p-2"
+            class="grid grid-cols-[50px_1fr_90px_32px_32px_32px] items-center gap-2 rounded border border-broadcast-outline bg-broadcast-surface-high p-2"
           >
             <input
               class="admin-input text-center font-black"
@@ -400,7 +407,7 @@ onMounted(async () => {
             />
             
             <select
-              class="admin-input h-8 text-[10px] uppercase font-bold"
+              class="admin-input h-8 text-[10px] uppercase font-bold px-1"
               :value="player.role ?? ''"
               @change="savePlayer(side, { ...player, role: ($event.target as HTMLSelectElement).value })"
             >
@@ -414,21 +421,25 @@ onMounted(async () => {
             </select>
 
             <button
-              class="flex items-center justify-center rounded px-2 py-1 text-[10px] font-black uppercase tracking-wider transition-colors"
+              class="flex h-8 w-8 items-center justify-center rounded transition-colors font-black"
+              title="Alternar Líbero"
               :class="player.isLibero ? 'bg-[#ffcf4a]/20 text-[#ffcf4a]' : 'bg-broadcast-surface text-broadcast-muted hover:bg-broadcast-surface-low hover:text-white'"
               @click="player.isLibero = !player.isLibero; savePlayer(side, player)"
             >
-              Líbero
+              L
             </button>
 
             <button
               class="flex h-8 w-8 items-center justify-center rounded transition-colors"
+              title="Alternar Activo/Inactivo"
+              :class="player.active ? 'text-broadcast-accent' : 'text-broadcast-muted opacity-50'"
               @click="savePlayer(side, { ...player, active: !player.active })"
             >
-              {{ player.active ? 'Activo' : 'Inactivo' }}
+              <Eye v-if="player.active" class="h-4 w-4" />
+              <EyeOff v-else class="h-4 w-4" />
             </button>
-            <button class="admin-button-danger" @click="deletePlayer(side, player)">
-              Borrar
+            <button class="flex h-8 w-8 items-center justify-center rounded bg-broadcast-alert/10 text-broadcast-alert hover:bg-broadcast-alert hover:text-white transition-colors" title="Eliminar" @click="deletePlayer(side, player)">
+              <Trash2 class="h-4 w-4" />
             </button>
           </div>
           <div
