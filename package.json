@@ -5,14 +5,14 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "vite",
     "dev:obs": "concurrently \"npm run sync\" \"npm run dev -- --host 0.0.0.0\"",
     "sync": "node scripts/sync-server.mjs",
     "start": "node scripts/production-server.mjs",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "vite build",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
