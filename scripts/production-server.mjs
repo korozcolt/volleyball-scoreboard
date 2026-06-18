@@ -396,6 +396,8 @@ const handleApi = async (request, response, url) => {
         number: body.number ?? current.number,
         name: body.name ?? current.name,
         active: body.active ?? Boolean(current.active),
+        isLibero: body.isLibero ?? Boolean(current.is_libero),
+        role: body.role !== undefined ? body.role : current.role,
       })
       sendJson(response, 200, { player })
       return true
