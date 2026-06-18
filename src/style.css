@@ -560,3 +560,479 @@
     box-shadow: 0 0 0 0 rgba(255, 178, 183, 0);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LINEUP OVERLAY — 1920 × 1080  (transparent for OBS Browser Source)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@layer components {
+
+  /* Outer transparent stage (fills the browser window) */
+  .lineup-stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  /* Scale viewport — same technique as the main overlay */
+  .lineup-scale-viewport {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1920px;
+    height: 1080px;
+    transform-origin: center center;
+  }
+
+  /* Fade transition */
+  .lineup-fade-enter-active,
+  .lineup-fade-leave-active {
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .lineup-fade-enter-from,
+  .lineup-fade-leave-to {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  /* ── Main glassmorphic panel ───────────────────────────────────────────── */
+  .lineup-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background:
+      linear-gradient(160deg, rgba(3, 14, 40, 0.96) 0%, rgba(6, 12, 36, 0.98) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+
+  /* subtle top glow line */
+  .lineup-panel::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(123, 208, 255, 0.5), transparent);
+  }
+
+  /* ── Top bar (tournament + sponsor) ───────────────────────────────────── */
+  .lineup-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 2.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(0, 0, 0, 0.28);
+    flex-shrink: 0;
+  }
+
+  .lineup-topbar__spacer {
+    width: 80px;
+  }
+
+  .lineup-topbar__center {
+    text-align: center;
+  }
+
+  .lineup-topbar__tournament {
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--broadcast-accent);
+  }
+
+  .lineup-topbar__phase {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.15rem;
+  }
+
+  /* ── Score bar ──────────────────────────────────────────────────────────── */
+  .lineup-scorebar {
+    display: grid;
+    grid-template-columns: 1fr 260px 1fr;
+    align-items: center;
+    padding: 0.75rem 2.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.18));
+    flex-shrink: 0;
+    gap: 1rem;
+  }
+
+  .lineup-scorebar__team {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+  }
+
+  .lineup-scorebar__team--visitor {
+    justify-content: flex-end;
+  }
+
+  .lineup-scorebar__code {
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .lineup-scorebar__name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.04em;
+  }
+
+  .lineup-scorebar__serve-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ffcf4a;
+    box-shadow: 0 0 8px #ffcf4a;
+    flex-shrink: 0;
+  }
+
+  .lineup-scorebar__score {
+    text-align: center;
+  }
+
+  .lineup-scorebar__points {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: white;
+    line-height: 1;
+  }
+
+  .lineup-scorebar__sets {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 0.2rem;
+  }
+
+  /* ── Main content area ──────────────────────────────────────────────────── */
+  .lineup-content {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    flex: 1;
+    overflow: hidden;
+    padding: 1.5rem 1.5rem 1.5rem;
+    gap: 0;
+  }
+
+  /* ── Team panel ─────────────────────────────────────────────────────────── */
+  .lineup-team-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.5rem;
+    background:
+      radial-gradient(ellipse at 30% 0%, color-mix(in srgb, var(--tc) 12%, transparent) 0%, transparent 55%),
+      rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  .lineup-team-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .lineup-team-panel__header--rtl {
+    flex-direction: row-reverse;
+  }
+
+  .lineup-team-panel__logo {
+    height: 56px;
+    width: 56px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    flex-shrink: 0;
+  }
+
+  .lineup-team-panel__name {
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+
+  .lineup-team-panel__meta {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: color-mix(in srgb, var(--tc) 80%, white);
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+  }
+
+  /* ── Court wrapper ──────────────────────────────────────────────────────── */
+  .lineup-court-wrapper {
+    flex-shrink: 0;
+  }
+
+  .lineup-court-label {
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Court diagram ──────────────────────────────────────────────────────── */
+  .court-diagram {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.375rem;
+    background:
+      linear-gradient(180deg, rgba(0, 60, 20, 0.35) 0%, rgba(0, 30, 10, 0.5) 100%);
+    overflow: hidden;
+    padding: 0.5rem 0.625rem 0.625rem;
+  }
+
+  /* Net line */
+  .court-net-label {
+    text-align: center;
+    font-size: 0.52rem;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.18);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+  }
+
+  /* 3-column grid */
+  .court-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  /* Attack line (3m line) — between row 1 and row 2 */
+  .court-attack-line {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.14);
+    margin-top: 0.4rem;
+  }
+
+  /* ── Player chip ────────────────────────────────────────────────────────── */
+  .player-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.25rem;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    transition: background 0.2s ease, border-color 0.2s ease;
+    min-height: 54px;
+  }
+
+  .player-chip--front {
+    border-color: color-mix(in srgb, var(--team-color) 40%, rgba(255,255,255,0.12));
+    background: color-mix(in srgb, var(--team-color) 10%, rgba(255,255,255,0.04));
+  }
+
+  .player-chip--server {
+    border-color: #ffcf4a !important;
+    background: rgba(255, 207, 74, 0.12) !important;
+    box-shadow: 0 0 10px rgba(255, 207, 74, 0.18);
+  }
+
+  .player-chip__number {
+    font-size: 1rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .player-chip--server .player-chip__number {
+    color: #ffcf4a;
+  }
+
+  .player-chip__name {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  /* ── Roster list ────────────────────────────────────────────────────────── */
+  .lineup-roster {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .lineup-roster--rtl .lineup-roster__row {
+    flex-direction: row-reverse;
+  }
+
+  .lineup-roster__header {
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 0.25rem;
+  }
+
+  .lineup-roster__row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .lineup-roster__row--oncourt {
+    background: color-mix(in srgb, var(--tc) 10%, rgba(255,255,255,0.04));
+    border-color: color-mix(in srgb, var(--tc) 30%, rgba(255,255,255,0.06));
+  }
+
+  .lineup-roster__number {
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: color-mix(in srgb, var(--tc) 90%, white);
+    min-width: 32px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lineup-roster__name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lineup-roster__name--right {
+    text-align: right;
+  }
+
+  .lineup-roster__indicator {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .lineup-roster__indicator--active {
+    background: color-mix(in srgb, var(--tc) 90%, white);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--tc) 60%, transparent);
+  }
+
+  .lineup-roster__empty {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    padding: 1rem 0;
+    font-style: italic;
+  }
+
+  /* ── Center divider ─────────────────────────────────────────────────────── */
+  .lineup-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 0.25rem;
+  }
+
+  .lineup-divider__line {
+    flex: 1;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .lineup-divider__badge {
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.2);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     LINEUP TOGGLE BUTTON — in the controller
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .lineup-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    border-radius: 9999px;
+    border: 1px solid var(--broadcast-outline);
+    background: var(--broadcast-surface-high);
+    padding: 0.45rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--broadcast-muted);
+    cursor: pointer;
+    transition:
+      background 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .lineup-toggle-btn:hover {
+    background: var(--broadcast-surface-highest);
+    color: var(--broadcast-text);
+  }
+
+  .lineup-toggle-btn--active {
+    border-color: var(--broadcast-accent);
+    background: color-mix(in srgb, var(--broadcast-accent) 12%, var(--broadcast-surface-high));
+    color: var(--broadcast-accent);
+    box-shadow: 0 0 0 1px var(--broadcast-accent);
+  }
+
+  .lineup-toggle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: background 180ms ease, box-shadow 180ms ease;
+    flex-shrink: 0;
+  }
+
+  .lineup-toggle-dot--active {
+    background: var(--broadcast-accent);
+    box-shadow: 0 0 6px var(--broadcast-accent);
+  }
+}
+

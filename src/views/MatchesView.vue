@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ExternalLink, MonitorCog, Plus, Radio, RefreshCw, Settings } from 'lucide-vue-next'
+import { ExternalLink, MonitorCog, Plus, Radio, RefreshCw, Settings, Users } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import { libraryApi } from '@/services/libraryApi'
 import type {
@@ -271,6 +271,11 @@ onMounted(loadData)
             <RouterLink class="admin-button" :to="`/overlay/${session.id}`" target="_blank">
               <Radio class="h-4 w-4" />
               Overlay
+              <ExternalLink class="h-3 w-3" />
+            </RouterLink>
+            <RouterLink class="admin-button" :to="`/lineup/${session.id}`" target="_blank">
+              <Users class="h-4 w-4" />
+              Lineup
               <ExternalLink class="h-3 w-3" />
             </RouterLink>
           </div>

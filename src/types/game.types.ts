@@ -190,6 +190,7 @@ export interface OverlayControlState {
   isLive: boolean
   showHistory: boolean
   lowerThirdVisible: boolean
+  lineupVisible: boolean
   lastCommand?: OverlayCommand
 }
 

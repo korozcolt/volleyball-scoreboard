@@ -10,6 +10,7 @@ const defaultState: OverlayControlState = {
   isLive: false,
   showHistory: false,
   lowerThirdVisible: false,
+  lineupVisible: false,
 }
 
 const createCommandId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -106,6 +107,10 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
     sendCommand({ type: 'show_timeout', team, durationMs: 30000 })
   }
 
+  const toggleLineup = (visible?: boolean) => {
+    state.value.lineupVisible = visible !== undefined ? visible : !state.value.lineupVisible
+  }
+
   const publish = () => {
     if (isLoaded.value && !isApplyingRemoteState) {
       sync.publish(cloneState(state.value))
@@ -127,6 +132,7 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
     setActiveOverlay,
     setLive,
     showTimeout,
+    toggleLineup,
     unsubscribe: () => unsubscribeSync?.(),
   }
 })

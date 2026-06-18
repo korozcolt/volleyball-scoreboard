@@ -61,6 +61,7 @@ export const ROUTES = {
   HOME: '/',
   CONTROLLER: '/controller',
   OVERLAY: '/overlay',
+  LINEUP: '/lineup',
   STATISTICS: '/statistics',
   SETTINGS: '/settings',
   MATCHES: '/matches',

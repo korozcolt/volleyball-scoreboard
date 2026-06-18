@@ -4,6 +4,7 @@ import { ROUTES, STORAGE_KEYS } from '@utils/constants'
 // Importaciones lazy de las vistas para code splitting
 const ControllerView = () => import('@/views/ControllerView.vue')
 const OverlayView = () => import('@/views/OverlayView.vue')
+const LineupOverlayView = () => import('@/views/LineupOverlayView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
 const MatchesView = () => import('@/views/MatchesView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
@@ -56,6 +57,17 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: `${ROUTES.LINEUP}/:matchId`,
+    name: 'Lineup',
+    component: LineupOverlayView,
+    meta: {
+      title: 'Lineup Overlay OBS | VolleyStream',
+      description: 'Overlay de roster y posicionamiento en cancha para OBS',
+      requiresFullscreen: true,
+      isOverlay: true,
+    },
+  },
+  {
     path: `${ROUTES.STATISTICS}/:matchId`,
     name: 'Statistics',
     component: StatisticsView,
@@ -75,6 +87,7 @@ const routes: Array<RouteRecordRaw> = [
   },
   { path: ROUTES.CONTROLLER, redirect: () => legacyMatchRedirect(ROUTES.CONTROLLER) },
   { path: ROUTES.OVERLAY, redirect: () => legacyMatchRedirect(ROUTES.OVERLAY) },
+  { path: ROUTES.LINEUP, redirect: () => legacyMatchRedirect(ROUTES.LINEUP) },
   { path: ROUTES.STATISTICS, redirect: () => legacyMatchRedirect(ROUTES.STATISTICS) },
   { path: ROUTES.SETTINGS, redirect: () => legacyMatchRedirect(ROUTES.SETTINGS) },
   // Rutas de redirección para compatibilidad

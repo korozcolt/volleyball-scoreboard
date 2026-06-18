@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
-import { History, RotateCcw, Shuffle, Volleyball } from 'lucide-vue-next'
+import { History, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
@@ -159,6 +159,32 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
             Estadísticas
           </button>
         </div>
+      </div>
+    </section>
+
+    <!-- ─── Lineup overlay control ─────────────────────────────────────── -->
+    <section class="admin-card mb-4 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <Users class="h-5 w-5 text-broadcast-accent" />
+          <div>
+            <div class="text-sm font-semibold text-broadcast-text">Overlay de Lineup</div>
+            <div class="text-xs text-broadcast-muted">
+              Muestra roster y posicionamiento en cancha · /lineup/{{ scope.matchId }}
+            </div>
+          </div>
+        </div>
+        <button
+          class="lineup-toggle-btn"
+          :class="overlay.state.lineupVisible ? 'lineup-toggle-btn--active' : ''"
+          @click="overlay.toggleLineup()"
+        >
+          <span
+            class="lineup-toggle-dot"
+            :class="overlay.state.lineupVisible ? 'lineup-toggle-dot--active' : ''"
+          />
+          {{ overlay.state.lineupVisible ? 'Visible en OBS' : 'Oculto' }}
+        </button>
       </div>
     </section>
 
