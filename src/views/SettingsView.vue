@@ -92,7 +92,7 @@ const selectTeamProfile = (team: TeamSide, profileId: string) => {
     shortCode: profile.shortCode,
     primaryColor: profile.primaryColor,
     logoUrl: profile.logoUrl,
-    roster: profile.players.map(p => ({ ...p })),
+    roster: profile.players?.map(p => ({ ...p })) ?? [],
     profileId: profile.id,
   })
   notify(`${profile.shortCode} cargado en ${team === 'local' ? 'equipo local' : 'equipo visitante'}.`, 'success')

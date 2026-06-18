@@ -20,6 +20,7 @@ const emit = defineEmits<{
   statError: [team: TeamSide, errorType: StatErrorType]
   statSkill: [team: TeamSide, skill: StatSkillType]
   rotate: [team: TeamSide]
+  rotationFault: [team: TeamSide]
 }>()
 
 const now = ref(Date.now())
@@ -220,7 +221,7 @@ const skillActionTitle = (skill: StatSkillType) => {
     </button>
 
     <div v-if="showAdvancedStats" class="grid gap-2 rounded border border-broadcast-outline bg-broadcast-surface-lowest p-3">
-      <div class="grid grid-cols-2 gap-2">
+      <div class="grid grid-cols-3 gap-2">
         <button
           class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
           @click="emit('statError', side, 'attack_error')"
@@ -228,7 +229,7 @@ const skillActionTitle = (skill: StatSkillType) => {
           :title="errorActionTitle('attack_error')"
         >
           <ShieldCheck class="h-3.5 w-3.5" />
-          Error ataque
+          Ataque
         </button>
         <button
           class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
@@ -237,7 +238,16 @@ const skillActionTitle = (skill: StatSkillType) => {
           :title="errorActionTitle('serve_error')"
         >
           <ShieldCheck class="h-3.5 w-3.5" />
-          Error saque
+          Saque
+        </button>
+        <button
+          class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
+          @click="emit('rotationFault', side)"
+          :disabled="gameFinished"
+          title="Falta de rotación (punto para el rival)"
+        >
+          <RotateCw class="h-3.5 w-3.5" />
+          Rotación
         </button>
       </div>
 

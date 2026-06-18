@@ -269,6 +269,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @stat-error="recordError"
           @stat-skill="recordSkill"
           @rotate="match.rotateTeam"
+          @rotation-fault="match.rotationFault"
         />
 
         <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 md:flex-col md:border-x md:border-y-0 md:py-0">
@@ -304,6 +305,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @stat-error="recordError"
           @stat-skill="recordSkill"
           @rotate="match.rotateTeam"
+          @rotation-fault="match.rotationFault"
         />
       </div>
     </section>

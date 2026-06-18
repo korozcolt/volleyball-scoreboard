@@ -242,6 +242,22 @@ export const useMatchStore = defineStore('match', () => {
     resolveSetIfWon()
   }
 
+  const rotationFault = (offendingTeam: TeamSide) => {
+    if (gameState.value.gameFinished) return
+    
+    const opponent = getOpponent(offendingTeam)
+    
+    // Add point to the opposing team.
+    // scorePoint already handles giving them the serve and rotating if necessary.
+    scorePoint(opponent)
+    
+    // Add a specific history message for the fault
+    addToHistory(
+      `Falta de rotación: ${gameState.value[offendingTeam].name}. Punto para ${gameState.value[opponent].shortCode}.`,
+      'warning'
+    )
+  }
+
   const removePoint = (team: TeamSide) => {
     if (gameState.value[team].score <= 0 || gameState.value.gameFinished) return
     gameState.value[team].score -= 1
@@ -538,6 +554,7 @@ export const useMatchStore = defineStore('match', () => {
     setMatchScope,
     startMatch,
     scorePoint,
+    rotationFault,
     removePoint,
     setManualScore,
     setManualSets,
