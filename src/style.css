@@ -1036,3 +1036,330 @@
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VOLLEYBALL COURT — perspective design (CourtLineup.vue)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@layer components {
+
+  .vb-court {
+    --team-color: #7bd0ff;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+  }
+
+  .vb-net {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .vb-net__line {
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    border-radius: 2px;
+  }
+
+  .vb-net__label {
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.25em;
+    color: rgba(255,255,255,0.5);
+    flex-shrink: 0;
+  }
+
+  .vb-court-perspective {
+    perspective: 700px;
+    perspective-origin: 50% -20%;
+  }
+
+  .vb-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+
+  .vb-row--front {
+    transform: perspective(600px) rotateX(12deg) scale(0.88);
+    transform-origin: bottom center;
+  }
+
+  .vb-row--back {
+    transform: perspective(600px) rotateX(-4deg) scale(1);
+    transform-origin: top center;
+    margin-top: 2px;
+  }
+
+  .vb-attack-line {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 3px 0;
+  }
+
+  .vb-attack-line__dash {
+    flex: 1;
+    height: 0;
+    border-top: 2px dashed rgba(255,255,255,0.25);
+  }
+
+  .vb-attack-line__label {
+    font-size: 0.48rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .vb-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem;
+    padding: 0.4rem 0.25rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,60,20,0.25);
+    min-height: 58px;
+    position: relative;
+  }
+
+  .vb-cell--front {
+    background: color-mix(in srgb, var(--team-color) 8%, rgba(0,50,18,0.3));
+    border-color: color-mix(in srgb, var(--team-color) 25%, rgba(255,255,255,0.08));
+  }
+
+  .vb-cell--server {
+    border-color: rgba(255,207,74,0.6) !important;
+    background: rgba(255,207,74,0.1) !important;
+    box-shadow: 0 0 14px rgba(255,207,74,0.15);
+  }
+
+  .vb-cell__zone {
+    font-size: 0.48rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .vb-cell__zone--server { color: rgba(255,207,74,0.7); }
+
+  .vb-cell__jersey {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vb-cell__jersey--server { color: #ffcf4a; }
+
+  .vb-cell__name {
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .vb-cell__serve-icon {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-size: 0.55rem;
+    line-height: 1;
+  }
+
+  .vb-rotation-strip {
+    display: flex;
+    gap: 3px;
+    margin-top: 0.4rem;
+    justify-content: center;
+  }
+
+  .vb-rotation-strip__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    font-size: 0.62rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.6);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vb-rotation-strip__item--server {
+    border-color: rgba(255,207,74,0.5);
+    background: rgba(255,207,74,0.12);
+    color: #ffcf4a;
+  }
+
+  /* Formation Panel — MatchRosterPanel.vue */
+
+  .formation-panel {
+    --tc: #7bd0ff;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255,255,255,0.07);
+    background:
+      radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--tc) 8%, transparent) 0%, transparent 60%),
+      var(--broadcast-surface-low);
+  }
+
+  .court-edit-wrapper {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.4rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(0,40,15,0.6) 0%, rgba(0,25,10,0.7) 100%);
+    padding: 0.75rem;
+  }
+
+  .court-edit-net {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .court-edit-net-line {
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    border-radius: 2px;
+  }
+
+  .court-edit-net span {
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.45);
+    white-space: nowrap;
+  }
+
+  .court-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .court-edit-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.5rem 0.375rem;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .court-edit-cell--front {
+    border-color: color-mix(in srgb, var(--tc) 25%, rgba(255,255,255,0.08));
+    background: color-mix(in srgb, var(--tc) 6%, rgba(255,255,255,0.02));
+  }
+
+  .court-edit-cell--server {
+    border-color: rgba(255,207,74,0.45) !important;
+    background: rgba(255,207,74,0.06) !important;
+  }
+
+  .court-edit-zone-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.7);
+    flex-shrink: 0;
+  }
+
+  .court-edit-cell--server .court-edit-zone-badge {
+    border-color: rgba(255,207,74,0.5);
+    color: #ffcf4a;
+  }
+
+  .court-edit-zone-desc {
+    font-size: 0.52rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    text-align: center;
+    line-height: 1.2;
+    min-height: 1.4em;
+  }
+
+  .court-edit-select {
+    width: 100%;
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 0.25rem;
+    background: rgba(0,0,0,0.35);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.25rem 1.4rem 0.25rem 0.4rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .court-edit-select:focus {
+    border-color: var(--tc, var(--broadcast-accent));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tc, var(--broadcast-accent)) 20%, transparent);
+  }
+
+  .court-edit-select option {
+    background: var(--broadcast-surface-low);
+    color: white;
+  }
+
+  .court-edit-serve-badge {
+    font-size: 0.52rem;
+    font-weight: 900;
+    color: rgba(255,207,74,0.85);
+    background: rgba(255,207,74,0.1);
+    border-radius: 0.2rem;
+    padding: 0.1rem 0.3rem;
+    margin-top: 0.1rem;
+  }
+
+  .court-edit-attack-line {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.5rem 0;
+  }
+
+  .court-edit-attack-line::before,
+  .court-edit-attack-line::after {
+    content: '';
+    flex: 1;
+    border-top: 2px dashed rgba(255,255,255,0.18);
+  }
+
+  .court-edit-attack-line-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.25);
+    white-space: nowrap;
+  }
+}

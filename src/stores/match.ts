@@ -410,6 +410,33 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
+  /**
+   * Assigns players to specific court positions by jersey number.
+   * @param jerseyByPosition Array of 6 jersey numbers indexed by position [pos1, pos2, pos3, pos4, pos5, pos6]
+   * Position 1 = server (back right), Position 2 = front right, 3 = front center,
+   * 4 = front left, 5 = back left, 6 = back center
+   */
+  const setCourtPositions = (team: TeamSide, jerseyByPosition: number[]) => {
+    const slots = jerseyByPosition.slice(0, 6)
+    while (slots.length < 6) slots.push(slots.length + 1)
+    gameState.value[team].rotation = slots
+    gameState.value[team].currentPlayer = slots[0] ?? 1
+    gameState.value[team].rotationState = {
+      positions: [...slots],
+      currentPlayerNumber: slots[0] ?? 1,
+      history: [
+        {
+          team,
+          timestamp: Date.now(),
+          reason: 'manual' as const,
+          rotation: [...slots],
+        },
+        ...(gameState.value[team].rotationState?.history ?? []),
+      ].slice(0, 30),
+    }
+    addToHistory(`Formación de ${gameState.value[team].shortCode} actualizada`, 'info')
+  }
+
   const startTimeout = (team: TeamSide) => {
     if (gameState.value.gameFinished || gameState.value.status === 'idle') return
     if (gameState.value[team].timeoutsUsed >= gameState.value.settings.timeoutsPerSet) return
@@ -507,6 +534,7 @@ export const useMatchStore = defineStore('match', () => {
     setServingTeam,
     rotateTeam,
     setTeamRoster,
+    setCourtPositions,
     startTimeout,
     updateGameSettings,
     addToHistory,

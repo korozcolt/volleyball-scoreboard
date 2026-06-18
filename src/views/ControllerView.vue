@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
-import { History, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
+import { BarChart2, ExternalLink, History, Radio, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
 import StatisticsPanel from '@/components/controller/StatisticsPanel.vue'
 import TeamControlPanel from '@/components/controller/TeamControlPanel.vue'
+import MatchRosterPanel from '@/components/controller/MatchRosterPanel.vue'
 import type { ScoringReason, StatErrorType, StatSkillType, OverlayMode, TeamSide } from '@/types/game.types'
 import { useMatchScope } from '@/composables/useMatchScope'
 import { useMatchStore } from '@/stores/match'
@@ -162,6 +163,46 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
     </section>
 
+    <!-- ─── Accesos directos a overlays OBS ────────────────────────── -->
+    <section class="admin-card mb-4 p-4">
+      <div class="mb-3 flex items-center gap-2">
+        <ExternalLink class="h-4 w-4 text-broadcast-accent" />
+        <h3 class="text-sm font-semibold text-broadcast-text">Accesos directos — Overlays OBS</h3>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a
+          :href="`/overlay/${scope.matchId}`"
+          target="_blank"
+          rel="noopener"
+          class="admin-button"
+        >
+          <Radio class="h-4 w-4" />
+          Overlay Principal
+          <ExternalLink class="h-3 w-3 opacity-60" />
+        </a>
+        <a
+          :href="`/lineup/${scope.matchId}`"
+          target="_blank"
+          rel="noopener"
+          class="admin-button"
+        >
+          <Users class="h-4 w-4" />
+          Lineup / Formación
+          <ExternalLink class="h-3 w-3 opacity-60" />
+        </a>
+        <a
+          :href="`/statistics/${scope.matchId}`"
+          target="_blank"
+          rel="noopener"
+          class="admin-button"
+        >
+          <BarChart2 class="h-4 w-4" />
+          Estadísticas
+          <ExternalLink class="h-3 w-3 opacity-60" />
+        </a>
+      </div>
+    </section>
+
     <!-- ─── Lineup overlay control ─────────────────────────────────────── -->
     <section class="admin-card mb-4 p-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -187,6 +228,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
         </button>
       </div>
     </section>
+
+    <!-- ─── Asignación de posiciones en cancha ────────────────────── -->
+    <MatchRosterPanel />
 
     <section class="admin-card mb-4 p-4 md:p-5 xl:p-6">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-broadcast-outline pb-4">

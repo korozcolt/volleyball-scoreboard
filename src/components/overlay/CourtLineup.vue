@@ -9,23 +9,29 @@ const props = defineProps<{
 }>()
 
 /**
- * Volleyball court positions visual layout (from viewer's perspective):
+ * Volleyball court zone layout (coach view, front of court at top):
  *
- * Net →  [ 4 | 3 | 2 ]   (front row, left to right)
- *        [ 5 | 6 | 1 ]   (back row, left to right)
+ *   NET ──────────────────
+ *  [Zone 4] [Zone 3] [Zone 2]   ← front row
+ *  ── LÍNEA DE ATAQUE (3m) ───
+ *  [Zone 5] [Zone 6] [Zone 1]   ← back row  (Zone 1 = server)
  *
- * rotation[0] = position 1 (server, back right)
- * rotation[1] = position 2 (front right)
- * rotation[2] = position 3 (front center)
- * rotation[3] = position 4 (front left)
- * rotation[4] = position 5 (back left)
- * rotation[5] = position 6 (back center)
+ * rotation array → rotation[i] = jersey number at position (i+1)
+ * rotation[0] = Zone 1 (server), rotation[1] = Zone 2, ..., rotation[5] = Zone 6
  *
- * Visual grid index mapping:
- * grid[0] = pos 4 = rotation[3]   grid[1] = pos 3 = rotation[2]   grid[2] = pos 2 = rotation[1]
- * grid[3] = pos 5 = rotation[4]   grid[4] = pos 6 = rotation[5]   grid[5] = pos 1 = rotation[0]
+ * DISPLAY ORDER for the 3×2 grid:
+ *  grid col:   0        1        2
+ *  row 0 (front): rotIdx 3 | rotIdx 2 | rotIdx 1   (zones 4, 3, 2)
+ *  row 1 (back):  rotIdx 4 | rotIdx 5 | rotIdx 0   (zones 5, 6, 1)
  */
-const GRID_TO_ROTATION_INDEX = [3, 2, 1, 4, 5, 0] as const
+const ZONE_CELLS = [
+  { zone: 4, rotIdx: 3, row: 0, col: 0 },
+  { zone: 3, rotIdx: 2, row: 0, col: 1 },
+  { zone: 2, rotIdx: 1, row: 0, col: 2 },
+  { zone: 5, rotIdx: 4, row: 1, col: 0 },
+  { zone: 6, rotIdx: 5, row: 1, col: 1 },
+  { zone: 1, rotIdx: 0, row: 1, col: 2 },
+] as const
 
 const rosterByNumber = computed(() => {
   const map = new Map<number, MatchTeamPlayer>()
@@ -35,51 +41,83 @@ const rosterByNumber = computed(() => {
   return map
 })
 
-const courtPlayers = computed(() => {
-  return GRID_TO_ROTATION_INDEX.map((rotIdx, gridIdx) => {
-    const jerseyNumber = props.team.rotation[rotIdx]
+const courtPlayers = computed(() =>
+  ZONE_CELLS.map((cell) => {
+    const jerseyNumber = props.team.rotation[cell.rotIdx]
     const player = rosterByNumber.value.get(jerseyNumber)
-    const isServer = rotIdx === 0
     return {
-      gridIdx,
-      jerseyNumber: jerseyNumber ?? rotIdx + 1,
-      name: player?.name ?? `J${jerseyNumber ?? rotIdx + 1}`,
-      isServer,
-      // grid row/col for CSS grid
-      row: gridIdx < 3 ? 0 : 1,
-      col: gridIdx % 3,
+      ...cell,
+      jerseyNumber: jerseyNumber ?? cell.zone,
+      name: player?.name ?? '',
+      firstName: player?.name?.split(' ')[0] ?? '',
+      isServer: cell.zone === 1,
     }
-  })
-})
+  }),
+)
 
 const teamColor = computed(() => props.team.primaryColor || '#7bd0ff')
 </script>
 
 <template>
-  <div class="court-diagram" :style="{ '--team-color': teamColor }">
-    <!-- Net indicator -->
-    <div class="court-net-label">RED</div>
+  <div class="vb-court" :style="{ '--team-color': teamColor }">
 
-    <!-- Court grid: 2 rows × 3 cols -->
-    <div class="court-grid">
-      <div
-        v-for="player in courtPlayers"
-        :key="player.gridIdx"
-        class="player-chip"
-        :class="{
-          'player-chip--server': player.isServer,
-          'player-chip--front': player.row === 0,
-          'player-chip--back': player.row === 1,
-        }"
-      >
-        <div class="player-chip__number">#{{ player.jerseyNumber }}</div>
-        <div v-if="showNames" class="player-chip__name">
-          {{ player.name.split(' ')[0] }}
+    <!-- NET label -->
+    <div class="vb-net">
+      <div class="vb-net__line" />
+      <span class="vb-net__label">RED</span>
+      <div class="vb-net__line" />
+    </div>
+
+    <!-- Perspective court wrapper -->
+    <div class="vb-court-perspective">
+      <!-- Front row (zones 4, 3, 2) -->
+      <div class="vb-row vb-row--front">
+        <div
+          v-for="cell in courtPlayers.filter(p => p.row === 0)"
+          :key="cell.zone"
+          class="vb-cell vb-cell--front"
+        >
+          <div class="vb-cell__zone">Z{{ cell.zone }}</div>
+          <div class="vb-cell__jersey">#{{ cell.jerseyNumber }}</div>
+          <div v-if="showNames && cell.firstName" class="vb-cell__name">{{ cell.firstName }}</div>
+        </div>
+      </div>
+
+      <!-- Attack line -->
+      <div class="vb-attack-line">
+        <div class="vb-attack-line__dash" />
+        <span class="vb-attack-line__label">Línea de ataque</span>
+        <div class="vb-attack-line__dash" />
+      </div>
+
+      <!-- Back row (zones 5, 6, 1) -->
+      <div class="vb-row vb-row--back">
+        <div
+          v-for="cell in courtPlayers.filter(p => p.row === 1)"
+          :key="cell.zone"
+          class="vb-cell vb-cell--back"
+          :class="{ 'vb-cell--server': cell.isServer }"
+        >
+          <div class="vb-cell__zone" :class="{ 'vb-cell__zone--server': cell.isServer }">Z{{ cell.zone }}</div>
+          <div class="vb-cell__jersey" :class="{ 'vb-cell__jersey--server': cell.isServer }">
+            #{{ cell.jerseyNumber }}
+          </div>
+          <div v-if="showNames && cell.firstName" class="vb-cell__name">{{ cell.firstName }}</div>
+          <div v-if="cell.isServer" class="vb-cell__serve-icon">⚡</div>
         </div>
       </div>
     </div>
 
-    <!-- Attack line indicator -->
-    <div class="court-attack-line" />
+    <!-- Rotation order strip -->
+    <div class="vb-rotation-strip">
+      <span
+        v-for="(p, i) in courtPlayers.sort((a, b) => a.rotIdx - b.rotIdx)"
+        :key="i"
+        class="vb-rotation-strip__item"
+        :class="{ 'vb-rotation-strip__item--server': p.isServer }"
+      >
+        {{ p.jerseyNumber }}
+      </span>
+    </div>
   </div>
 </template>

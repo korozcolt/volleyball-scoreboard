@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BarChart3, CircleHelp, LogOut, Menu, Radio, Settings, Trophy, Users, X } from 'lucide-vue-next'
+import { BarChart3, CircleHelp, ExternalLink, LogOut, Menu, MonitorCog, Radio, Settings, Trophy, Users, X } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
 import { computed, ref } from 'vue'
 import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
@@ -19,11 +19,12 @@ const isActive = (to: string) =>
   to === '/matches' ? route.path === '/matches' : route.path.startsWith(to.split('/').slice(0, 2).join('/'))
 
 const navItems = computed(() => [
-  { to: '/matches', label: 'Partidos', icon: Trophy },
-  { to: scopedPath('/controller'), label: 'Partido', icon: Trophy },
-  { to: scopedPath('/statistics'), label: 'Estadísticas', icon: BarChart3 },
-  { to: scopedPath('/settings'), label: 'Equipos', icon: Users },
-  { to: scopedPath('/settings'), label: 'Configuración', icon: Settings },
+  { to: '/matches', label: 'Partidos', icon: Trophy, external: false },
+  { to: scopedPath('/controller'), label: 'Partido', icon: MonitorCog, external: false },
+  { to: scopedPath('/statistics'), label: 'Estadísticas', icon: BarChart3, external: false },
+  { to: scopedPath('/settings'), label: 'Configuración', icon: Settings, external: false },
+  { to: scopedPath('/overlay'), label: 'Overlay OBS', icon: Radio, external: true },
+  { to: scopedPath('/lineup'), label: 'Lineup OBS', icon: Users, external: true },
 ])
 </script>
 
@@ -121,24 +122,42 @@ const navItems = computed(() => [
           </div>
         </div>
 
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.label"
-          :to="item.to"
-          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition"
-          :title="sidebarCollapsed ? item.label : undefined"
-          :class="
-            [
-              isActive(item.to)
-                ? 'bg-broadcast-accent text-[#00354a]'
-                : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text',
-              sidebarCollapsed ? 'justify-center px-0' : 'translate-x-1',
-            ]
-          "
-        >
-          <component :is="item.icon" class="h-4 w-4" />
-          <span v-if="!sidebarCollapsed">{{ item.label }}</span>
-        </RouterLink>
+        <template v-for="item in navItems" :key="item.label">
+          <!-- External link (overlays open in new tab) -->
+          <a
+            v-if="item.external"
+            :href="item.to"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-broadcast-muted transition hover:bg-broadcast-surface-high hover:text-broadcast-text"
+            :title="sidebarCollapsed ? item.label : undefined"
+            :class="sidebarCollapsed ? 'justify-center px-0' : 'translate-x-1'"
+          >
+            <component :is="item.icon" class="h-4 w-4" />
+            <span v-if="!sidebarCollapsed" class="flex items-center gap-1.5">
+              {{ item.label }}
+              <ExternalLink class="h-3 w-3 opacity-50" />
+            </span>
+          </a>
+          <!-- Internal navigation -->
+          <RouterLink
+            v-else
+            :to="item.to"
+            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition"
+            :title="sidebarCollapsed ? item.label : undefined"
+            :class="
+              [
+                isActive(item.to)
+                  ? 'bg-broadcast-accent text-[#00354a]'
+                  : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text',
+                sidebarCollapsed ? 'justify-center px-0' : 'translate-x-1',
+              ]
+            "
+          >
+            <component :is="item.icon" class="h-4 w-4" />
+            <span v-if="!sidebarCollapsed">{{ item.label }}</span>
+          </RouterLink>
+        </template>
 
         <div class="mt-auto border-t border-broadcast-outline pt-4">
           <a
@@ -185,21 +204,33 @@ const navItems = computed(() => [
           </button>
         </div>
 
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.label"
-          :to="item.to"
-          class="mb-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition"
-          :class="
-            isActive(item.to)
-              ? 'bg-broadcast-accent text-[#00354a]'
-              : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text'
-          "
-          @click="mobileMenuOpen = false"
-        >
-          <component :is="item.icon" class="h-4 w-4" />
-          {{ item.label }}
-        </RouterLink>
+        <template v-for="item in navItems" :key="item.label">
+          <a
+            v-if="item.external"
+            :href="item.to"
+            target="_blank"
+            rel="noopener"
+            class="mb-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-broadcast-muted transition hover:bg-broadcast-surface-high hover:text-broadcast-text"
+            @click="mobileMenuOpen = false"
+          >
+            <component :is="item.icon" class="h-4 w-4" />
+            <span class="flex items-center gap-1.5">{{ item.label }} <ExternalLink class="h-3 w-3 opacity-50" /></span>
+          </a>
+          <RouterLink
+            v-else
+            :to="item.to"
+            class="mb-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition"
+            :class="
+              isActive(item.to)
+                ? 'bg-broadcast-accent text-[#00354a]'
+                : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text'
+            "
+            @click="mobileMenuOpen = false"
+          >
+            <component :is="item.icon" class="h-4 w-4" />
+            {{ item.label }}
+          </RouterLink>
+        </template>
       </aside>
     </div>
   </div>
