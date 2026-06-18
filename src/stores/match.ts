@@ -100,10 +100,14 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  const flushSessionState = () => {
-    if (!activeMatchId.value || !persistTimer) return
-    window.clearTimeout(persistTimer)
-    persistTimer = undefined
+  const flushSessionState = (force = false) => {
+    if (!activeMatchId.value) return
+    if (!persistTimer && !force) return
+    if (persistTimer) {
+      window.clearTimeout(persistTimer)
+      persistTimer = undefined
+    }
+    
     libraryApi.updateMatchSession(activeMatchId.value, {
       state: cloneState(gameState.value),
       status: gameState.value.gameFinished ? 'finished' : (gameState.value.status === 'live' ? 'live' : 'draft'),
@@ -111,7 +115,7 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', flushSessionState)
+    window.addEventListener('beforeunload', () => flushSessionState(true))
   }
 
   const persistSessionState = () => {
@@ -365,12 +369,16 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value.visitor.timeoutActiveUntil = undefined
     gameState.value.currentSetStartedAt = Date.now()
     addToHistory(DEFAULT_MESSAGES.SET_RESET, 'warning')
+    publish()
+    flushSessionState(true)
   }
 
   const resetGame = () => {
-    gameState.value = createInitialState(broadcastConfig.config)
+    Object.assign(gameState.value, createInitialState(broadcastConfig.config))
     syncTeamsFromConfig(true)
     addToHistory(DEFAULT_MESSAGES.GAME_RESET, 'warning')
+    publish()
+    flushSessionState(true)
   }
 
   const toggleServe = () => {
