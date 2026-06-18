@@ -5,7 +5,7 @@ import { useMatchScope } from '@/composables/useMatchScope'
 import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
 import { useMatchStore } from '@/stores/match'
 import { useOverlayControlStore } from '@/stores/overlayControl'
-import { useStatisticsStore } from '@/stores/statistics'
+
 
 // ─── Design canvas ───────────────────────────────────────────────────────────
 const DESIGN_WIDTH = 1920
@@ -15,7 +15,7 @@ const DESIGN_HEIGHT = 1080
 const match = useMatchStore()
 const broadcast = useBroadcastConfigStore()
 const overlay = useOverlayControlStore()
-const statistics = useStatisticsStore()
+
 useMatchScope()
 
 // ─── Scale ───────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ const visitorRoster = computed(() => sortedRoster('visitor'))
 const isOnCourt = (side: 'local' | 'visitor', number: number) =>
   match.gameState[side].rotation.includes(number)
 
-const efficiency = (side: 'local' | 'visitor') => statistics.teamEfficiency(side)
+
 
 // Visibility — driven by the overlay store so the controller can toggle it
 const isVisible = computed(() => overlay.state.lineupVisible)

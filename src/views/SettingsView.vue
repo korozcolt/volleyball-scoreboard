@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'SettingsView' })
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import TeamConfigCard from '@/components/broadcast/TeamConfigCard.vue'
