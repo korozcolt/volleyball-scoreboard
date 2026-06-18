@@ -56,7 +56,7 @@ const setPosition = (side: TeamSide, rotIdx: number, jersey: string | number) =>
 }
 
 const applyFormation = (side: TeamSide) => {
-  match.setCourtPositions(side, getDraft(side) as any)
+  match.setCourtPositions(side, getDraft(side))
 }
 
 const resetDraft = (side: TeamSide) => {
