@@ -19,7 +19,6 @@ const match = useMatchStore()
 const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
 const scope = useMatchScope()
-const { matchId } = scope  // desestructurar para que Vue auto-unwrappee en templates
 
 const activeMode = computed<OverlayMode>(() => overlay.state.activeOverlay)
 
