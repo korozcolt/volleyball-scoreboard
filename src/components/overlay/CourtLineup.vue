@@ -75,7 +75,16 @@ const teamColor = computed(() => props.team.primaryColor || '#7bd0ff')
         v-for="cell in courtPlayers"
         :key="cell.zone"
         class="vb-player-token"
-        :class="[`vb-player-token--z${cell.zone}`, { 'vb-player-token--server': cell.isServer, 'vb-player-token--libero': cell.isLibero }]"
+        :class="[{
+          'vb-player-token--z1': cell.zone === 1,
+          'vb-player-token--z2': cell.zone === 2,
+          'vb-player-token--z3': cell.zone === 3,
+          'vb-player-token--z4': cell.zone === 4,
+          'vb-player-token--z5': cell.zone === 5,
+          'vb-player-token--z6': cell.zone === 6,
+          'vb-player-token--server': cell.isServer,
+          'vb-player-token--libero': cell.isLibero
+        }]"
       >
         <div class="vb-player-token__body">
           <!-- Server icon indicator -->
