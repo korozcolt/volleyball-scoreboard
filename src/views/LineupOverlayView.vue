@@ -70,6 +70,13 @@ const efficiency = (side: 'local' | 'visitor') => statistics.teamEfficiency(side
 
 // Visibility — driven by the overlay store so the controller can toggle it
 const isVisible = computed(() => overlay.state.lineupVisible)
+const lineupMode = computed(() => overlay.state.lineupMode || 'court')
+
+const displayRole = (role?: string) => {
+  if (!role) return ''
+  const map: Record<string, string> = { S: 'ARMADOR', OH: 'PUNTA', MB: 'CENTRAL', OPP: 'OPUESTO', L: 'LÍBERO', DS: 'DEFENSA' }
+  return map[role] || role
+}
 </script>
 
 <template>
@@ -83,197 +90,128 @@ const isVisible = computed(() => overlay.state.lineupVisible)
       <transition name="lineup-fade">
         <div v-if="isVisible" class="lineup-panel">
 
-          <!-- ══════════════ TOP BAR ══════════════ -->
-          <header class="lineup-topbar">
-            <!-- League logo -->
-            <img
-              v-if="leagueLogo"
-              :src="leagueLogo"
-              alt="League"
-              class="h-10 w-auto object-contain opacity-90"
-            />
-            <div v-else class="lineup-topbar__spacer" />
-
-            <!-- Tournament info -->
-            <div class="lineup-topbar__center">
-              <div class="lineup-topbar__tournament">
-                {{ match.gameState.metadata.tournament }}
+          <!-- ══════════════ LIST VIEW ══════════════ -->
+          <div v-if="lineupMode === 'list'" class="lineup-list-view">
+            <!-- Header -->
+            <div class="lineup-list-header">
+              <div class="lineup-list-header__team" :style="{ '--tc': localColor }">
+                <img v-if="match.gameState.local.logoUrl" :src="match.gameState.local.logoUrl" />
+                <span v-else class="text-3xl font-black" :style="{ color: localColor }">{{ match.gameState.local.shortCode }}</span>
+                <h2>{{ match.gameState.local.name }}</h2>
               </div>
-              <div class="lineup-topbar__phase">
-                {{ match.gameState.metadata.phase }} · Set {{ match.gameState.currentSet }}
+              <div class="lineup-list-header__center">
+                <h3>LINEUP</h3>
+                <img v-if="leagueLogo" :src="leagueLogo" alt="League" class="h-12 w-auto object-contain opacity-90 mx-auto mt-2" />
+              </div>
+              <div class="lineup-list-header__team flex-row-reverse text-right" :style="{ '--tc': visitorColor }">
+                <img v-if="match.gameState.visitor.logoUrl" :src="match.gameState.visitor.logoUrl" />
+                <span v-else class="text-3xl font-black" :style="{ color: visitorColor }">{{ match.gameState.visitor.shortCode }}</span>
+                <h2>{{ match.gameState.visitor.name }}</h2>
               </div>
             </div>
 
-            <!-- Sponsor logo -->
-            <img
-              v-if="sponsorLogo"
-              :src="sponsorLogo"
-              alt="Sponsor"
-              class="h-10 w-auto object-contain opacity-80"
-            />
-            <div v-else class="lineup-topbar__spacer" />
-          </header>
-
-          <!-- ══════════════ SCOREBOARD BAR ══════════════ -->
-          <div class="lineup-scorebar">
-            <!-- Local team identity -->
-            <div class="lineup-scorebar__team lineup-scorebar__team--local" :style="{ '--tc': localColor }">
-              <img
-                v-if="match.gameState.local.logoUrl"
-                :src="match.gameState.local.logoUrl"
-                :alt="match.gameState.local.name"
-                class="h-12 w-12 object-contain"
-              />
-              <div v-else class="lineup-scorebar__code" :style="{ color: localColor }">
-                {{ match.gameState.local.shortCode }}
-              </div>
-              <div class="lineup-scorebar__name">{{ match.gameState.local.name }}</div>
-              <div v-if="match.gameState.local.serving" class="lineup-scorebar__serve-dot" />
-            </div>
-
-            <!-- Score center -->
-            <div class="lineup-scorebar__score">
-              <div class="lineup-scorebar__points">{{ scoreLabel }}</div>
-              <div class="lineup-scorebar__sets">{{ setsLabel }}</div>
-            </div>
-
-            <!-- Visitor team identity -->
-            <div class="lineup-scorebar__team lineup-scorebar__team--visitor" :style="{ '--tc': visitorColor }">
-              <div v-if="match.gameState.visitor.serving" class="lineup-scorebar__serve-dot" />
-              <div class="lineup-scorebar__name">{{ match.gameState.visitor.name }}</div>
-              <div v-if="!match.gameState.visitor.logoUrl" class="lineup-scorebar__code" :style="{ color: visitorColor }">
-                {{ match.gameState.visitor.shortCode }}
-              </div>
-              <img
-                v-if="match.gameState.visitor.logoUrl"
-                :src="match.gameState.visitor.logoUrl"
-                :alt="match.gameState.visitor.name"
-                class="h-12 w-12 object-contain"
-              />
-            </div>
-          </div>
-
-          <!-- ══════════════ MAIN CONTENT ══════════════ -->
-          <div class="lineup-content">
-
-            <!-- ── LOCAL TEAM ── -->
-            <section class="lineup-team-panel" :style="{ '--tc': localColor }">
-              <div class="lineup-team-panel__header">
-                <img
-                  v-if="match.gameState.local.logoUrl"
-                  :src="match.gameState.local.logoUrl"
-                  :alt="match.gameState.local.name"
-                  class="lineup-team-panel__logo"
-                />
-                <div>
-                  <div class="lineup-team-panel__name">{{ match.gameState.local.name }}</div>
-                  <div class="lineup-team-panel__meta">
-                    EFI {{ efficiency('local') }}% ·
-                    {{ statistics.state.local.attackPoints }} ATQ ·
-                    {{ statistics.state.local.aces }} ACE ·
-                    {{ statistics.state.local.blockPoints }} BLK
-                  </div>
-                </div>
-              </div>
-
-              <!-- Court diagram -->
-              <div class="lineup-court-wrapper">
-                <div class="lineup-court-label">CANCHA — ROTACIÓN ACTUAL</div>
-                <CourtLineup
-                  :team="match.gameState.local"
-                  side="local"
-                  :show-names="showNames"
-                />
-              </div>
-
-              <!-- Roster table -->
-              <div class="lineup-roster">
-                <div class="lineup-roster__header">ROSTER</div>
+            <!-- Roster Lists -->
+            <div class="lineup-list-grid">
+              <!-- Local Roster -->
+              <div class="lineup-list-roster" :style="{ '--tc': localColor }">
                 <div
                   v-for="player in localRoster"
                   :key="player.id"
-                  class="lineup-roster__row"
-                  :class="{ 'lineup-roster__row--oncourt': isOnCourt('local', player.number) }"
+                  class="lineup-list-player"
+                  :class="{ 'lineup-list-player--titular': isOnCourt('local', player.number) }"
                 >
-                  <span class="lineup-roster__number">#{{ player.number }}</span>
-                  <span class="lineup-roster__name">{{ player.name }}</span>
-                  <span
-                    class="lineup-roster__indicator"
-                    :class="isOnCourt('local', player.number) ? 'lineup-roster__indicator--active' : ''"
-                  />
-                </div>
-                <div
-                  v-if="!localRoster.length"
-                  class="lineup-roster__empty"
-                >
-                  Sin roster cargado
-                </div>
-              </div>
-            </section>
-
-            <!-- ── DIVIDER ── -->
-            <div class="lineup-divider">
-              <div class="lineup-divider__line" />
-              <div class="lineup-divider__badge">VS</div>
-              <div class="lineup-divider__line" />
-            </div>
-
-            <!-- ── VISITOR TEAM ── -->
-            <section class="lineup-team-panel lineup-team-panel--visitor" :style="{ '--tc': visitorColor }">
-              <div class="lineup-team-panel__header lineup-team-panel__header--rtl">
-                <div class="text-right">
-                  <div class="lineup-team-panel__name">{{ match.gameState.visitor.name }}</div>
-                  <div class="lineup-team-panel__meta">
-                    EFI {{ efficiency('visitor') }}% ·
-                    {{ statistics.state.visitor.attackPoints }} ATQ ·
-                    {{ statistics.state.visitor.aces }} ACE ·
-                    {{ statistics.state.visitor.blockPoints }} BLK
+                  <div class="lineup-list-player__number">{{ player.number }}</div>
+                  <div class="lineup-list-player__info">
+                    <div class="lineup-list-player__name">{{ player.name }}</div>
+                    <div v-if="player.role" class="lineup-list-player__role">{{ displayRole(player.role) }}</div>
                   </div>
+                  <div v-if="player.isLibero" class="lineup-list-player__libero-badge">L</div>
                 </div>
-                <img
-                  v-if="match.gameState.visitor.logoUrl"
-                  :src="match.gameState.visitor.logoUrl"
-                  :alt="match.gameState.visitor.name"
-                  class="lineup-team-panel__logo"
-                />
               </div>
 
-              <!-- Court diagram -->
-              <div class="lineup-court-wrapper">
-                <div class="lineup-court-label">CANCHA — ROTACIÓN ACTUAL</div>
-                <CourtLineup
-                  :team="match.gameState.visitor"
-                  side="visitor"
-                  :show-names="showNames"
-                />
-              </div>
-
-              <!-- Roster table -->
-              <div class="lineup-roster lineup-roster--rtl">
-                <div class="lineup-roster__header">ROSTER</div>
+              <!-- Visitor Roster -->
+              <div class="lineup-list-roster lineup-list-roster--rtl" :style="{ '--tc': visitorColor }">
                 <div
                   v-for="player in visitorRoster"
                   :key="player.id"
-                  class="lineup-roster__row"
-                  :class="{ 'lineup-roster__row--oncourt': isOnCourt('visitor', player.number) }"
+                  class="lineup-list-player lineup-list-player--rtl"
+                  :class="{ 'lineup-list-player--titular': isOnCourt('visitor', player.number) }"
                 >
-                  <span
-                    class="lineup-roster__indicator"
-                    :class="isOnCourt('visitor', player.number) ? 'lineup-roster__indicator--active' : ''"
-                  />
-                  <span class="lineup-roster__name lineup-roster__name--right">{{ player.name }}</span>
-                  <span class="lineup-roster__number">#{{ player.number }}</span>
-                </div>
-                <div
-                  v-if="!visitorRoster.length"
-                  class="lineup-roster__empty"
-                >
-                  Sin roster cargado
+                  <div v-if="player.isLibero" class="lineup-list-player__libero-badge">L</div>
+                  <div class="lineup-list-player__info text-right">
+                    <div class="lineup-list-player__name">{{ player.name }}</div>
+                    <div v-if="player.role" class="lineup-list-player__role">{{ displayRole(player.role) }}</div>
+                  </div>
+                  <div class="lineup-list-player__number">{{ player.number }}</div>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
 
+          <!-- ══════════════ COURT VIEW ══════════════ -->
+          <div v-else class="lineup-court-view">
+            <!-- TOP BAR -->
+            <header class="lineup-topbar">
+              <img v-if="leagueLogo" :src="leagueLogo" alt="League" class="h-10 w-auto object-contain opacity-90" />
+              <div v-else class="lineup-topbar__spacer" />
+
+              <div class="lineup-topbar__center">
+                <div class="lineup-topbar__tournament">{{ match.gameState.metadata.tournament }}</div>
+                <div class="lineup-topbar__phase">{{ match.gameState.metadata.phase }} · Set {{ match.gameState.currentSet }}</div>
+              </div>
+
+              <img v-if="sponsorLogo" :src="sponsorLogo" alt="Sponsor" class="h-10 w-auto object-contain opacity-80" />
+              <div v-else class="lineup-topbar__spacer" />
+            </header>
+
+            <!-- SCOREBOARD BAR -->
+            <div class="lineup-scorebar">
+              <div class="lineup-scorebar__team lineup-scorebar__team--local" :style="{ '--tc': localColor }">
+                <img v-if="match.gameState.local.logoUrl" :src="match.gameState.local.logoUrl" class="h-12 w-12 object-contain" />
+                <div v-else class="lineup-scorebar__code" :style="{ color: localColor }">{{ match.gameState.local.shortCode }}</div>
+                <div class="lineup-scorebar__name">{{ match.gameState.local.name }}</div>
+                <div v-if="match.gameState.local.serving" class="lineup-scorebar__serve-dot" />
+              </div>
+
+              <div class="lineup-scorebar__score">
+                <div class="lineup-scorebar__points">{{ scoreLabel }}</div>
+                <div class="lineup-scorebar__sets">{{ setsLabel }}</div>
+              </div>
+
+              <div class="lineup-scorebar__team lineup-scorebar__team--visitor" :style="{ '--tc': visitorColor }">
+                <div v-if="match.gameState.visitor.serving" class="lineup-scorebar__serve-dot" />
+                <div class="lineup-scorebar__name">{{ match.gameState.visitor.name }}</div>
+                <div v-if="!match.gameState.visitor.logoUrl" class="lineup-scorebar__code" :style="{ color: visitorColor }">{{ match.gameState.visitor.shortCode }}</div>
+                <img v-if="match.gameState.visitor.logoUrl" :src="match.gameState.visitor.logoUrl" class="h-12 w-12 object-contain" />
+              </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="lineup-content">
+              <!-- LOCAL TEAM -->
+              <section class="lineup-team-panel" :style="{ '--tc': localColor }">
+                <div class="lineup-court-wrapper">
+                  <div class="lineup-court-label">TITULARES</div>
+                  <CourtLineup :team="match.gameState.local" side="local" :show-names="showNames" />
+                </div>
+              </section>
+
+              <!-- DIVIDER -->
+              <div class="lineup-divider">
+                <div class="lineup-divider__line" />
+                <div class="lineup-divider__badge">VS</div>
+                <div class="lineup-divider__line" />
+              </div>
+
+              <!-- VISITOR TEAM -->
+              <section class="lineup-team-panel lineup-team-panel--visitor" :style="{ '--tc': visitorColor }">
+                <div class="lineup-court-wrapper">
+                  <div class="lineup-court-label">TITULARES</div>
+                  <CourtLineup :team="match.gameState.visitor" side="visitor" :show-names="showNames" />
+                </div>
+              </section>
+            </div>
+          </div>
         </div>
       </transition>
     </div>

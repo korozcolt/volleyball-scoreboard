@@ -11,6 +11,7 @@ const defaultState: OverlayControlState = {
   showHistory: false,
   lowerThirdVisible: false,
   lineupVisible: false,
+  lineupMode: 'court',
 }
 
 const createCommandId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -111,6 +112,10 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
     state.value.lineupVisible = visible !== undefined ? visible : !state.value.lineupVisible
   }
 
+  const setLineupMode = (mode: 'court' | 'list') => {
+    state.value.lineupMode = mode
+  }
+
   const publish = () => {
     if (isLoaded.value && !isApplyingRemoteState) {
       sync.publish(cloneState(state.value))
@@ -133,6 +138,7 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
     setLive,
     showTimeout,
     toggleLineup,
+    setLineupMode,
     unsubscribe: () => unsubscribeSync?.(),
   }
 })

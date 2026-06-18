@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+defineOptions({ name: 'SettingsView' })
+import { computed, onMounted, ref, watch } from 'vue'
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import TeamConfigCard from '@/components/broadcast/TeamConfigCard.vue'
@@ -20,9 +21,9 @@ const uploadingTeam = ref<TeamSide | null>(null)
 const savingTeam = ref<TeamSide | null>(null)
 const isArchiving = ref(false)
 const activeProfileIds = ref<Record<TeamSide, string>>({ local: '', visitor: '' })
-const playerDrafts = ref<Record<TeamSide, { number: number; name: string }>>({
-  local: { number: 1, name: '' },
-  visitor: { number: 1, name: '' },
+const playerDrafts = ref<Record<TeamSide, { number: number; name: string; isLibero: boolean; role?: string; active?: boolean }>>({
+  local: { number: 1, name: '', isLibero: false, role: '' },
+  visitor: { number: 1, name: '', isLibero: false, role: '' },
 })
 const saveNotice = ref<{
   type: 'success' | 'warning' | 'error' | 'info'
@@ -116,18 +117,22 @@ const savePlayer = async (team: TeamSide, existing?: TeamPlayer) => {
     return
   }
 
-  const draft = existing
-    ? { number: existing.number, name: existing.name, active: existing.active, id: existing.id }
-    : playerDrafts.value[team]
+    const draft = existing
+      ? { number: existing.number, name: existing.name, active: existing.active, id: existing.id, isLibero: existing.isLibero, role: existing.role }
+      : playerDrafts.value[team]
 
-  try {
-    await libraryApi.savePlayer(profileId, {
-      ...draft,
-      number: Math.max(1, Math.min(99, Number(draft.number) || 1)),
-      name: draft.name.trim() || `Jugador ${draft.number}`,
-    })
-    if (!existing) playerDrafts.value[team] = { number: Math.min(99, playerDrafts.value[team].number + 1), name: '' }
-    await loadTeamLibrary(false)
+    try {
+      await libraryApi.savePlayer(profileId, {
+        id: existing?.id,
+        number: Math.max(1, Math.min(99, Number(draft.number) || 1)),
+        name: draft.name.trim() || `Jugador ${draft.number}`,
+        active: draft.active !== undefined ? draft.active : true,
+        isLibero: draft.isLibero || false,
+        role: draft.role || undefined,
+      })
+      
+      if (!existing) playerDrafts.value[team] = { number: Math.min(99, playerDrafts.value[team].number + 1), name: '', isLibero: false, role: '' }
+      await loadTeamLibrary(false)
     notify('Jugador guardado en el roster.', 'success')
   } catch (error) {
     notify(`No se pudo guardar el jugador: ${(error as Error).message}`, 'error')
@@ -154,6 +159,8 @@ const applyRosterToMatch = (team: TeamSide) => {
     name: player.name,
     position: index + 1,
     active: player.active,
+    isLibero: player.isLibero,
+    role: player.role,
   }))
   match.setTeamRoster(team, roster)
   notify(`Roster aplicado a ${team === 'local' ? 'equipo local' : 'equipo visitante'}.`, 'success')
@@ -327,16 +334,41 @@ onMounted(() => loadTeamLibrary(false))
             placeholder="Nombre del jugador"
             :disabled="!activeProfileIds[side]"
           />
+          <select
+            v-model="playerDrafts[side].role"
+            class="admin-input h-full"
+            :disabled="!activeProfileIds[side]"
+          >
+            <option value="">Posición (Opcional)</option>
+            <option value="S">Armador (S)</option>
+            <option value="OH">Punta (OH)</option>
+            <option value="MB">Central (MB)</option>
+            <option value="OPP">Opuesto (OPP)</option>
+            <option value="L">Líbero (L)</option>
+            <option value="DS">Defensa (DS)</option>
+          </select>
           <button class="admin-button" :disabled="!activeProfileIds[side]" @click="savePlayer(side)">
             Agregar
           </button>
+        </div>
+
+        <div class="mb-4 flex items-center gap-2">
+          <label class="flex cursor-pointer items-center gap-2" :class="{ 'opacity-50': !activeProfileIds[side] }">
+            <input
+              v-model="playerDrafts[side].isLibero"
+              type="checkbox"
+              class="rounded border-broadcast-outline bg-transparent"
+              :disabled="!activeProfileIds[side]"
+            />
+            <span class="text-xs font-semibold text-broadcast-muted">Jugador es Líbero (L)</span>
+          </label>
         </div>
 
         <div class="grid gap-2">
           <div
             v-for="player in rosterBySide[side]"
             :key="player.id"
-            class="grid grid-cols-[76px_1fr_auto_auto] items-center gap-2 rounded border border-broadcast-outline bg-broadcast-surface-high p-2"
+            class="grid grid-cols-[76px_1fr_120px_auto_auto_auto] items-center gap-2 rounded border border-broadcast-outline bg-broadcast-surface-high p-2"
           >
             <input
               class="admin-input text-center font-black"
@@ -347,11 +379,39 @@ onMounted(() => loadTeamLibrary(false))
               @change="savePlayer(side, { ...player, number: Number(($event.target as HTMLInputElement).value) })"
             />
             <input
-              class="admin-input"
-              :value="player.name"
-              @change="savePlayer(side, { ...player, name: ($event.target as HTMLInputElement).value })"
+              v-model="player.name"
+              class="admin-input h-8 text-sm"
+              placeholder="Nombre"
+              @blur="savePlayer(side, player)"
+              @keydown.enter="($event.target as HTMLInputElement).blur()"
             />
-            <button class="admin-button" @click="savePlayer(side, { ...player, active: !player.active })">
+            
+            <select
+              class="admin-input h-8 text-[10px] uppercase font-bold"
+              :value="player.role ?? ''"
+              @change="savePlayer(side, { ...player, role: ($event.target as HTMLSelectElement).value })"
+            >
+              <option value="">---</option>
+              <option value="S">Armador</option>
+              <option value="OH">Punta</option>
+              <option value="MB">Central</option>
+              <option value="OPP">Opuesto</option>
+              <option value="L">Líbero</option>
+              <option value="DS">Defensa</option>
+            </select>
+
+            <button
+              class="flex items-center justify-center rounded px-2 py-1 text-[10px] font-black uppercase tracking-wider transition-colors"
+              :class="player.isLibero ? 'bg-[#ffcf4a]/20 text-[#ffcf4a]' : 'bg-broadcast-surface text-broadcast-muted hover:bg-broadcast-surface-low hover:text-white'"
+              @click="player.isLibero = !player.isLibero; savePlayer(side, player)"
+            >
+              Líbero
+            </button>
+
+            <button
+              class="flex h-8 w-8 items-center justify-center rounded transition-colors"
+              @click="savePlayer(side, { ...player, active: !player.active })"
+            >
               {{ player.active ? 'Activo' : 'Inactivo' }}
             </button>
             <button class="admin-button-danger" @click="deletePlayer(side, player)">

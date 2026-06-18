@@ -51,6 +51,7 @@ const courtPlayers = computed(() =>
       name: player?.name ?? '',
       firstName: player?.name?.split(' ')[0] ?? '',
       isServer: cell.zone === 1,
+      isLibero: player?.isLibero ?? false,
     }
   }),
 )
@@ -76,10 +77,12 @@ const teamColor = computed(() => props.team.primaryColor || '#7bd0ff')
           v-for="cell in courtPlayers.filter(p => p.row === 0)"
           :key="cell.zone"
           class="vb-cell vb-cell--front"
+          :class="{ 'vb-cell--libero': cell.isLibero }"
         >
           <div class="vb-cell__zone">Z{{ cell.zone }}</div>
           <div class="vb-cell__jersey">#{{ cell.jerseyNumber }}</div>
           <div v-if="showNames && cell.firstName" class="vb-cell__name">{{ cell.firstName }}</div>
+          <div v-if="cell.isLibero" class="absolute -right-1 -top-1 rounded bg-[#ffcf4a] px-1 py-0.5 text-[8px] font-black text-black">LÍBERO</div>
         </div>
       </div>
 
@@ -96,14 +99,15 @@ const teamColor = computed(() => props.team.primaryColor || '#7bd0ff')
           v-for="cell in courtPlayers.filter(p => p.row === 1)"
           :key="cell.zone"
           class="vb-cell vb-cell--back"
-          :class="{ 'vb-cell--server': cell.isServer }"
+          :class="{ 'vb-cell--server': cell.isServer, 'vb-cell--libero': cell.isLibero }"
         >
           <div class="vb-cell__zone" :class="{ 'vb-cell__zone--server': cell.isServer }">Z{{ cell.zone }}</div>
           <div class="vb-cell__jersey" :class="{ 'vb-cell__jersey--server': cell.isServer }">
             #{{ cell.jerseyNumber }}
           </div>
           <div v-if="showNames && cell.firstName" class="vb-cell__name">{{ cell.firstName }}</div>
-          <div v-if="cell.isServer" class="vb-cell__serve-icon">⚡</div>
+          <div v-if="cell.isServer && !cell.isLibero" class="vb-cell__serve-icon">⚡</div>
+          <div v-if="cell.isLibero" class="absolute -right-1 -top-1 rounded bg-[#ffcf4a] px-1 py-0.5 text-[8px] font-black text-black">LÍBERO</div>
         </div>
       </div>
     </div>
@@ -114,9 +118,9 @@ const teamColor = computed(() => props.team.primaryColor || '#7bd0ff')
         v-for="(p, i) in courtPlayers.sort((a, b) => a.rotIdx - b.rotIdx)"
         :key="i"
         class="vb-rotation-strip__item"
-        :class="{ 'vb-rotation-strip__item--server': p.isServer }"
+        :class="{ 'vb-rotation-strip__item--server': p.isServer, 'vb-rotation-strip__item--libero': p.isLibero }"
       >
-        {{ p.jerseyNumber }}
+        {{ p.jerseyNumber }}<span v-if="p.isLibero" class="ml-0.5 text-[6px]">L</span>
       </span>
     </div>
   </div>

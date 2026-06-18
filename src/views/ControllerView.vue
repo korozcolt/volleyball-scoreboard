@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'ControllerView' })
 import { computed, onMounted, onUnmounted } from 'vue'
 import { BarChart2, ExternalLink, History, Radio, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'

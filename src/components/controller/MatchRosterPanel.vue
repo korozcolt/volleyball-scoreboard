@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ChevronDown, RefreshCcw, Users } from 'lucide-vue-next'
+import { ChevronDown, RefreshCcw, Users, List, LayoutTemplate } from 'lucide-vue-next'
 import type { MatchTeamPlayer, TeamSide } from '@/types/game.types'
 import { useMatchStore } from '@/stores/match'
+import { useOverlayControlStore } from '@/stores/overlayControl'
 
 const match = useMatchStore()
+const overlay = useOverlayControlStore()
 
 // ─── Volleyball court position layout ────────────────────────────────────────
 // rotation array: [pos1, pos2, pos3, pos4, pos5, pos6]
@@ -87,8 +89,36 @@ const isDirty = computed(() => {
 
 <template>
   <section class="admin-card mt-4 p-5">
+    <div class="flex items-center justify-between px-3 py-2 border-b border-broadcast-outline bg-broadcast-surface-high">
+      <div class="flex items-center gap-2 text-broadcast-muted">
+        <Users class="h-4 w-4" />
+        <h3 class="text-xs font-bold uppercase tracking-wider">Formación en Cancha</h3>
+      </div>
+      
+      <!-- Overlay View Toggle -->
+      <div class="flex items-center gap-1 rounded bg-broadcast-surface p-1">
+        <button
+          class="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold uppercase transition-colors"
+          :class="overlay.state.lineupMode === 'list' ? 'bg-broadcast-accent text-white' : 'text-broadcast-muted hover:text-white'"
+          @click="overlay.setLineupMode('list')"
+          title="Vista de Lista (Roster completo)"
+        >
+          <List class="h-3 w-3" />
+          Lista
+        </button>
+        <button
+          class="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold uppercase transition-colors"
+          :class="overlay.state.lineupMode === 'court' ? 'bg-broadcast-accent text-white' : 'text-broadcast-muted hover:text-white'"
+          @click="overlay.setLineupMode('court')"
+          title="Vista de Cancha (Titulares)"
+        >
+          <LayoutTemplate class="h-3 w-3" />
+          Cancha
+        </button>
+      </div>
+    </div>
+    
     <div class="mb-5 flex items-center gap-2 border-b border-broadcast-outline pb-4">
-      <Users class="h-5 w-5 text-broadcast-accent" />
       <div>
         <h2 class="text-xl font-semibold text-broadcast-text">Formación en cancha</h2>
         <p class="text-xs text-broadcast-muted">
@@ -181,10 +211,13 @@ const isDirty = computed(() => {
                     :key="player.id"
                     :value="player.number"
                   >
-                    #{{ player.number }} {{ player.name }}
+                    #{{ player.number }} {{ player.name }}{{ player.isLibero ? ' (L)' : '' }}
                   </option>
-                  <!-- Fallback if roster empty -->
-                  <option v-if="!rosterFor(side).length" :value="getDraft(side)[cell.rotIdx]">
+                  <!-- Fallback if current draft jersey is not in the roster -->
+                  <option
+                    v-if="!rosterFor(side).some(p => p.number === getDraft(side)[cell.rotIdx])"
+                    :value="getDraft(side)[cell.rotIdx]"
+                  >
                     #{{ getDraft(side)[cell.rotIdx] }}
                   </option>
                 </select>
@@ -212,15 +245,17 @@ const isDirty = computed(() => {
               v-for="(jersey, idx) in match.gameState[side].rotation"
               :key="idx"
               class="flex items-center gap-1 rounded border px-2 py-1 text-xs font-black"
-              :class="
+              :class="[
                 idx === 0
                   ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
-                  : 'border-broadcast-outline bg-broadcast-surface-high text-broadcast-text'
-              "
+                  : 'border-broadcast-outline bg-broadcast-surface-high text-broadcast-text',
+                playerByNumber(side, jersey)?.isLibero ? '!border-[#ffcf4a] !text-[#ffcf4a]' : ''
+              ]"
             >
               <span class="text-broadcast-muted">Z{{ idx + 1 }}:</span>
               {{ playerLabel(side, jersey) }}
-              <span v-if="idx === 0" class="ml-0.5 text-yellow-400">⚡</span>
+              <span v-if="playerByNumber(side, jersey)?.isLibero" class="ml-0.5 text-[#ffcf4a] text-[10px]">(L)</span>
+              <span v-if="idx === 0 && !playerByNumber(side, jersey)?.isLibero" class="ml-0.5 text-yellow-400">⚡</span>
             </div>
           </div>
         </div>

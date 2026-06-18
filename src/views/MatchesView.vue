@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'MatchesView' })
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ExternalLink, MonitorCog, Plus, Radio, RefreshCw, Settings, Users } from 'lucide-vue-next'
@@ -55,32 +56,38 @@ const teamById = (teamId: string) => teams.value.find((team) => team.id === team
 
 const toRosterSnapshot = (side: TeamSide, profile?: TeamProfile): MatchTeamPlayer[] => {
   const source = profile?.players?.filter((player) => player.active) ?? []
-  const selected = source.slice(0, 6)
-  const players = selected.length >= 6
-    ? selected
-    : [1, 2, 3, 4, 5, 6].map((number) => ({
-        id: `${side}-${number}`,
-        teamId: profile?.id ?? side,
-        number,
-        name: `Jugador ${number}`,
-        active: true,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }))
+  if (source.length > 0) {
+    return source.map((player, index) => ({
+      id: `${side}-${player.number}`,
+      teamPlayerId: player.id,
+      number: player.number,
+      name: player.name,
+      position: index + 1,
+      active: player.active,
+      isLibero: player.isLibero,
+      role: player.role,
+    }))
+  }
 
-  return players.slice(0, 6).map((player, index) => ({
-    id: `${side}-${player.number}`,
-    teamPlayerId: player.id,
-    number: player.number,
-    name: player.name,
-    position: index + 1,
-    active: player.active,
+  return [1, 2, 3, 4, 5, 6].map((number) => ({
+    id: `${side}-${number}`,
+    teamId: profile?.id ?? side,
+    number,
+    name: `Jugador ${number}`,
+    active: true,
+    position: number,
   }))
 }
 
 const createTeam = (side: TeamSide, config: BroadcastConfig, profile?: TeamProfile): Team => {
   const roster = toRosterSnapshot(side, profile)
-  const rotation = roster.map((player) => player.number)
+  // Initially put the first 6 available players on court
+  const rotation = roster.slice(0, 6).map((player) => player.number)
+  
+  // Fill with dummy numbers if roster has fewer than 6 players
+  while (rotation.length < 6) {
+    rotation.push(rotation.length + 1)
+  }
 
   return {
     id: side,

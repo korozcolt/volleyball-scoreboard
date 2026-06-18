@@ -16,6 +16,8 @@ export interface Player {
   position: number
   number?: number
   active?: boolean
+  isLibero?: boolean
+  role?: string
 }
 
 export interface TeamPlayer {
@@ -24,6 +26,8 @@ export interface TeamPlayer {
   number: number
   name: string
   active: boolean
+  isLibero?: boolean
+  role?: string
   createdAt: number
   updatedAt: number
 }
@@ -35,6 +39,8 @@ export interface MatchTeamPlayer {
   name: string
   position: number
   active: boolean
+  isLibero?: boolean
+  role?: string
 }
 
 export interface RotationState {
@@ -191,6 +197,7 @@ export interface OverlayControlState {
   showHistory: boolean
   lowerThirdVisible: boolean
   lineupVisible: boolean
+  lineupMode: 'court' | 'list'
   lastCommand?: OverlayCommand
 }
 
