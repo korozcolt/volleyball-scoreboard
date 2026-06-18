@@ -60,68 +60,35 @@ const teamColor = computed(() => props.team.primaryColor || '#7bd0ff')
 </script>
 
 <template>
-  <div class="vb-court" :style="{ '--team-color': teamColor }">
-
-    <!-- NET label -->
-    <div class="vb-net">
-      <div class="vb-net__line" />
-      <span class="vb-net__label">RED</span>
-      <div class="vb-net__line" />
+  <div class="vb-court-container" :style="{ '--team-color': teamColor }">
+    
+    <!-- 3D Court Floor -->
+    <div class="vb-court-floor">
+      <div class="vb-court-floor__attack-line" />
+      <div class="vb-court-floor__net-line" />
     </div>
 
-    <!-- Perspective court wrapper -->
-    <div class="vb-court-perspective">
-      <!-- Front row (zones 4, 3, 2) -->
-      <div class="vb-row vb-row--front">
-        <div
-          v-for="cell in courtPlayers.filter(p => p.row === 0)"
-          :key="cell.zone"
-          class="vb-cell vb-cell--front"
-          :class="{ 'vb-cell--libero': cell.isLibero }"
-        >
-          <div class="vb-cell__zone">Z{{ cell.zone }}</div>
-          <div class="vb-cell__jersey">#{{ cell.jerseyNumber }}</div>
-          <div v-if="showNames && cell.firstName" class="vb-cell__name">{{ cell.firstName }}</div>
-          <div v-if="cell.isLibero" class="absolute -right-1 -top-1 rounded bg-[#ffcf4a] px-1 py-0.5 text-[8px] font-black text-black">LÍBERO</div>
-        </div>
-      </div>
-
-      <!-- Attack line -->
-      <div class="vb-attack-line">
-        <div class="vb-attack-line__dash" />
-        <span class="vb-attack-line__label">Línea de ataque</span>
-        <div class="vb-attack-line__dash" />
-      </div>
-
-      <!-- Back row (zones 5, 6, 1) -->
-      <div class="vb-row vb-row--back">
-        <div
-          v-for="cell in courtPlayers.filter(p => p.row === 1)"
-          :key="cell.zone"
-          class="vb-cell vb-cell--back"
-          :class="{ 'vb-cell--server': cell.isServer, 'vb-cell--libero': cell.isLibero }"
-        >
-          <div class="vb-cell__zone" :class="{ 'vb-cell__zone--server': cell.isServer }">Z{{ cell.zone }}</div>
-          <div class="vb-cell__jersey" :class="{ 'vb-cell__jersey--server': cell.isServer }">
-            #{{ cell.jerseyNumber }}
-          </div>
-          <div v-if="showNames && cell.firstName" class="vb-cell__name">{{ cell.firstName }}</div>
-          <div v-if="cell.isServer && !cell.isLibero" class="vb-cell__serve-icon">⚡</div>
-          <div v-if="cell.isLibero" class="absolute -right-1 -top-1 rounded bg-[#ffcf4a] px-1 py-0.5 text-[8px] font-black text-black">LÍBERO</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Rotation order strip -->
-    <div class="vb-rotation-strip">
-      <span
-        v-for="(p, i) in courtPlayers.sort((a, b) => a.rotIdx - b.rotIdx)"
-        :key="i"
-        class="vb-rotation-strip__item"
-        :class="{ 'vb-rotation-strip__item--server': p.isServer, 'vb-rotation-strip__item--libero': p.isLibero }"
+    <!-- 2D Players Layer -->
+    <div class="vb-court-players">
+      <div
+        v-for="cell in courtPlayers"
+        :key="cell.zone"
+        class="vb-player-token"
+        :class="[`vb-player-token--z${cell.zone}`, { 'vb-player-token--server': cell.isServer, 'vb-player-token--libero': cell.isLibero }]"
       >
-        {{ p.jerseyNumber }}<span v-if="p.isLibero" class="ml-0.5 text-[6px]">L</span>
-      </span>
+        <div class="vb-player-token__body">
+          <!-- Server icon indicator -->
+          <div v-if="cell.isServer" class="vb-player-token__server-icon"></div>
+          
+          <span class="vb-player-token__number">{{ cell.jerseyNumber }}</span>
+        </div>
+        
+        <div class="vb-player-token__info" v-if="showNames || cell.isLibero">
+          <span v-if="showNames && cell.firstName" class="vb-player-token__name">{{ cell.firstName }}</span>
+          <span v-if="cell.isLibero" class="vb-player-token__role">LÍBERO</span>
+        </div>
+      </div>
     </div>
+
   </div>
 </template>

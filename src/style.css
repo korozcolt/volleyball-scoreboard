@@ -1042,169 +1042,145 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 @layer components {
 
-  .vb-court {
+  .vb-court-container {
     --team-color: #7bd0ff;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+    position: relative;
     width: 100%;
-  }
-
-  .vb-net {
+    height: 220px;
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.25rem;
+    margin-top: 20px;
   }
 
-  .vb-net__line {
-    flex: 1;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
-    border-radius: 2px;
+  .vb-court-floor {
+    position: absolute;
+    width: 320px;
+    height: 180px;
+    background-color: #0d386e;
+    border: 3px solid #1c6ad6;
+    transform-origin: center;
+    transform: perspective(600px) rotateX(45deg);
+    border-radius: 4px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.6);
   }
 
-  .vb-net__label {
-    font-size: 0.55rem;
-    font-weight: 900;
-    letter-spacing: 0.25em;
-    color: rgba(255,255,255,0.5);
-    flex-shrink: 0;
+  .vb-court-floor__attack-line {
+    position: absolute;
+    top: 33.33%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: rgba(255,255,255,0.8);
   }
 
-  .vb-court-perspective {
-    perspective: 700px;
-    perspective-origin: 50% -20%;
+  .vb-court-players {
+    position: absolute;
+    width: 380px;
+    height: 200px;
+    top: -5px;
+    pointer-events: none;
   }
 
-  .vb-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-  }
-
-  .vb-row--front {
-    transform: perspective(600px) rotateX(12deg) scale(0.88);
-    transform-origin: bottom center;
-  }
-
-  .vb-row--back {
-    transform: perspective(600px) rotateX(-4deg) scale(1);
-    transform-origin: top center;
-    margin-top: 2px;
-  }
-
-  .vb-attack-line {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin: 3px 0;
-  }
-
-  .vb-attack-line__dash {
-    flex: 1;
-    height: 0;
-    border-top: 2px dashed rgba(255,255,255,0.25);
-  }
-
-  .vb-attack-line__label {
-    font-size: 0.48rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.3);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .vb-cell {
+  .vb-player-token {
+    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.1rem;
-    padding: 0.4rem 0.25rem;
-    border-radius: 0.25rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(0,60,20,0.25);
-    min-height: 58px;
+    transform: translate(-50%, -50%);
+    width: 90px;
+  }
+
+  /* Zones placement using percentages */
+  .vb-player-token--z4 { top: 25%; left: 24%; }
+  .vb-player-token--z3 { top: 25%; left: 50%; }
+  .vb-player-token--z2 { top: 25%; left: 76%; }
+  
+  .vb-player-token--z5 { top: 75%; left: 14%; }
+  .vb-player-token--z6 { top: 75%; left: 50%; }
+  .vb-player-token--z1 { top: 75%; left: 86%; }
+
+  .vb-player-token__body {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--team-color) 80%, white), var(--team-color));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
     position: relative;
   }
 
-  .vb-cell--front {
-    background: color-mix(in srgb, var(--team-color) 8%, rgba(0,50,18,0.3));
-    border-color: color-mix(in srgb, var(--team-color) 25%, rgba(255,255,255,0.08));
+  .vb-player-token--libero .vb-player-token__body {
+    background: linear-gradient(135deg, #fff2cc, #ffcf4a);
+    border-color: #222;
   }
 
-  .vb-cell--server {
-    border-color: rgba(255,207,74,0.6) !important;
-    background: rgba(255,207,74,0.1) !important;
-    box-shadow: 0 0 14px rgba(255,207,74,0.15);
-  }
-
-  .vb-cell__zone {
-    font-size: 0.48rem;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.3);
-  }
-
-  .vb-cell__zone--server { color: rgba(255,207,74,0.7); }
-
-  .vb-cell__jersey {
-    font-size: 1.1rem;
+  .vb-player-token__number {
+    font-size: 1.35rem;
     font-weight: 900;
     color: white;
-    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     font-variant-numeric: tabular-nums;
-  }
-
-  .vb-cell__jersey--server { color: #ffcf4a; }
-
-  .vb-cell__name {
-    font-size: 0.5rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.55);
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: center;
-  }
-
-  .vb-cell__serve-icon {
-    position: absolute;
-    top: 3px;
-    right: 4px;
-    font-size: 0.55rem;
     line-height: 1;
   }
 
-  .vb-rotation-strip {
-    display: flex;
-    gap: 3px;
-    margin-top: 0.4rem;
-    justify-content: center;
+  .vb-player-token--libero .vb-player-token__number {
+    color: #111;
+    text-shadow: none;
   }
 
-  .vb-rotation-strip__item {
+  .vb-player-token__info {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0,0,0,0.85);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+
+  .vb-player-token__name {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: white;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 80px;
+  }
+
+  .vb-player-token__role {
+    font-size: 0.45rem;
+    font-weight: 900;
+    color: #ffcf4a;
+    letter-spacing: 0.05em;
+  }
+
+  .vb-player-token__server-icon {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    background-color: #ffcf4a;
+    border-radius: 50%;
+    border: 2px solid #111;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.05);
-    font-size: 0.62rem;
-    font-weight: 900;
-    color: rgba(255,255,255,0.6);
-    font-variant-numeric: tabular-nums;
   }
-
-  .vb-rotation-strip__item--server {
-    border-color: rgba(255,207,74,0.5);
-    background: rgba(255,207,74,0.12);
-    color: #ffcf4a;
+  
+  .vb-player-token__server-icon::after {
+    content: "⚡";
+    font-size: 9px;
+    line-height: 1;
   }
 
   /* Formation Panel — MatchRosterPanel.vue */
