@@ -53,6 +53,8 @@ db.exec(`
     number INTEGER NOT NULL,
     name TEXT NOT NULL,
     active INTEGER NOT NULL DEFAULT 1,
+    is_libero INTEGER NOT NULL DEFAULT 0,
+    role TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     UNIQUE(team_id, number),
@@ -78,6 +80,14 @@ db.exec(`
 const tableColumns = (table) => db.prepare(`PRAGMA table_info(${table})`).all().map((column) => column.name)
 if (!tableColumns('match_archives').includes('match_id')) {
   db.prepare('ALTER TABLE match_archives ADD COLUMN match_id TEXT').run()
+}
+
+const playerCols = tableColumns('team_players')
+if (!playerCols.includes('is_libero')) {
+  db.prepare('ALTER TABLE team_players ADD COLUMN is_libero INTEGER NOT NULL DEFAULT 0').run()
+}
+if (!playerCols.includes('role')) {
+  db.prepare('ALTER TABLE team_players ADD COLUMN role TEXT').run()
 }
 
 const mimeTypes = new Map([
@@ -124,6 +134,8 @@ const toApiPlayer = (row) => ({
   number: row.number,
   name: row.name,
   active: Boolean(row.active),
+  isLibero: Boolean(row.is_libero),
+  role: row.role ?? undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 })
@@ -188,16 +200,20 @@ const upsertPlayer = (teamId, player) => {
     number: Math.max(1, Math.min(99, Number(player.number) || 1)),
     name: String(player.name ?? '').trim() || `Jugador ${player.number ?? ''}`.trim(),
     active: player.active === false ? 0 : 1,
+    isLibero: player.isLibero ? 1 : 0,
+    role: player.role ? String(player.role) : null,
     createdAt: player.createdAt ?? now,
     updatedAt: now,
   }
 
   db.prepare(`
-    INSERT INTO team_players (id, team_id, number, name, active, created_at, updated_at)
-    VALUES (@id, @teamId, @number, @name, @active, @createdAt, @updatedAt)
+    INSERT INTO team_players (id, team_id, number, name, active, is_libero, role, created_at, updated_at)
+    VALUES (@id, @teamId, @number, @name, @active, @isLibero, @role, @createdAt, @updatedAt)
     ON CONFLICT(team_id, number) DO UPDATE SET
       name = excluded.name,
       active = excluded.active,
+      is_libero = excluded.is_libero,
+      role = excluded.role,
       updated_at = excluded.updated_at
   `).run(payload)
 

@@ -101,7 +101,11 @@ const selectTeamProfile = (team: TeamSide, profileId: string) => {
 const saveTeamProfile = async (team: TeamSide) => {
   savingTeam.value = team
   try {
-    const saved = await libraryApi.saveTeam(broadcast.config.teams[team])
+    const config = broadcast.config.teams[team]
+    const saved = await libraryApi.saveTeam({
+      ...config,
+      id: activeProfileIds.value[team] || config.profileId
+    })
     activeProfileIds.value[team] = saved.id
     updateTeam(team, { profileId: saved.id })
     await loadTeamLibrary(false)
