@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { BarChart3, CircleHelp, LogOut, Menu, Radio, Settings, Trophy, Users, X } from 'lucide-vue-next'
 import { RouterLink, useRoute } from 'vue-router'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
 import { useOverlayControlStore } from '@/stores/overlayControl'
 
@@ -10,13 +10,21 @@ const broadcast = useBroadcastConfigStore()
 const overlay = useOverlayControlStore()
 const sidebarCollapsed = ref(false)
 const mobileMenuOpen = ref(false)
+const matchId = computed(() => {
+  const param = route.params.matchId
+  return Array.isArray(param) ? param[0] : param
+})
+const scopedPath = (base: string) => (matchId.value ? `${base}/${matchId.value}` : '/matches')
+const isActive = (to: string) =>
+  to === '/matches' ? route.path === '/matches' : route.path.startsWith(to.split('/').slice(0, 2).join('/'))
 
-const navItems = [
-  { to: '/controller', label: 'Partido', icon: Trophy },
-  { to: '/statistics', label: 'Estadísticas', icon: BarChart3 },
-  { to: '/settings', label: 'Equipos', icon: Users },
-  { to: '/settings', label: 'Configuración', icon: Settings },
-]
+const navItems = computed(() => [
+  { to: '/matches', label: 'Partidos', icon: Trophy },
+  { to: scopedPath('/controller'), label: 'Partido', icon: Trophy },
+  { to: scopedPath('/statistics'), label: 'Estadísticas', icon: BarChart3 },
+  { to: scopedPath('/settings'), label: 'Equipos', icon: Users },
+  { to: scopedPath('/settings'), label: 'Configuración', icon: Settings },
+])
 </script>
 
 <template>
@@ -33,15 +41,15 @@ const navItems = [
         >
           <Menu class="h-5 w-5" />
         </button>
-        <RouterLink to="/controller" class="text-xl font-bold text-broadcast-accent">
+        <RouterLink to="/matches" class="text-xl font-bold text-broadcast-accent">
           ProVolley Live
         </RouterLink>
         <nav class="hidden items-center gap-6 md:flex">
           <RouterLink
-            to="/controller"
+            :to="scopedPath('/controller')"
             class="border-b-2 pb-1 text-sm font-semibold transition"
             :class="
-              route.path === '/controller'
+              route.path.startsWith('/controller')
                 ? 'border-broadcast-text text-broadcast-text'
                 : 'border-transparent text-broadcast-muted hover:text-broadcast-text'
             "
@@ -49,17 +57,17 @@ const navItems = [
             Dashboard
           </RouterLink>
           <RouterLink
-            to="/overlay"
+            :to="scopedPath('/overlay')"
             target="_blank"
             class="border-b-2 border-transparent pb-1 text-sm font-semibold text-broadcast-muted transition hover:text-broadcast-text"
           >
             Overlay OBS
           </RouterLink>
           <RouterLink
-            to="/settings"
+            :to="scopedPath('/settings')"
             class="border-b-2 pb-1 text-sm font-semibold transition"
             :class="
-              route.path === '/settings'
+              route.path.startsWith('/settings')
                 ? 'border-broadcast-text text-broadcast-text'
                 : 'border-transparent text-broadcast-muted hover:text-broadcast-text'
             "
@@ -121,7 +129,7 @@ const navItems = [
           :title="sidebarCollapsed ? item.label : undefined"
           :class="
             [
-              route.path === item.to
+              isActive(item.to)
                 ? 'bg-broadcast-accent text-[#00354a]'
                 : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text',
               sidebarCollapsed ? 'justify-center px-0' : 'translate-x-1',
@@ -183,7 +191,7 @@ const navItems = [
           :to="item.to"
           class="mb-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition"
           :class="
-            route.path === item.to
+            isActive(item.to)
               ? 'bg-broadcast-accent text-[#00354a]'
               : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text'
           "

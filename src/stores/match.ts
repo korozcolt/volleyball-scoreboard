@@ -1,8 +1,9 @@
 import { COMMUNICATION_CONFIG, DEFAULT_BROADCAST_CONFIG, DEFAULT_GAME_SETTINGS, DEFAULT_MESSAGES, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
 import type { BroadcastConfig, CompletedSet, GameHistory, GameState, HistoryType, Team, TeamSide } from '@/types/game.types'
 import { computed, ref, watch } from 'vue'
-import { createLocalSyncAdapter } from '@/services/syncService'
+import { createScopedLocalSyncAdapter, type SyncAdapter } from '@/services/syncService'
 import { defineStore } from 'pinia'
+import { libraryApi } from '@/services/libraryApi'
 import {
   canManuallyAdvanceSet,
   getCurrentSetWinner,
@@ -15,8 +16,6 @@ import {
 } from '@/utils/volleyballRules'
 import { useBroadcastConfigStore } from './broadcastConfig'
 import { useOverlayControlStore } from './overlayControl'
-
-const matchSync = createLocalSyncAdapter<GameState>(SYNC_CHANNELS.MATCH, STORAGE_KEYS.MATCH_STATE)
 
 const cloneState = (state: GameState): GameState => JSON.parse(JSON.stringify(state))
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -32,6 +31,18 @@ const createTeam = (id: TeamSide, config: BroadcastConfig): Team => ({
   serving: id === 'local',
   currentPlayer: 1,
   rotation: [1, 2, 3, 4, 5, 6],
+  roster: [1, 2, 3, 4, 5, 6].map((number) => ({
+    id: `${id}-${number}`,
+    number,
+    name: `Jugador ${number}`,
+    position: number,
+    active: true,
+  })),
+  rotationState: {
+    positions: [1, 2, 3, 4, 5, 6],
+    currentPlayerNumber: 1,
+    history: [],
+  },
   primaryColor: config.teams[id].primaryColor,
   color: config.teams[id].primaryColor,
   timeoutsUsed: 0,
@@ -66,6 +77,13 @@ export const useMatchStore = defineStore('match', () => {
 
   const gameState = ref<GameState>(createInitialState(broadcastConfig.config))
   const isLoaded = ref(false)
+  const activeMatchId = ref<string | null>(null)
+  let matchSync: SyncAdapter<GameState> = createScopedLocalSyncAdapter<GameState>(
+    SYNC_CHANNELS.MATCH,
+    STORAGE_KEYS.MATCH_STATE,
+  )
+  let unsubscribeSync: (() => void) | undefined
+  let persistTimer: number | undefined
   let isApplyingRemoteState = false
 
   const hydrate = () => {
@@ -76,7 +94,57 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   const publish = () => {
-    if (isLoaded.value && !isApplyingRemoteState) matchSync.publish(cloneState(gameState.value))
+    if (isLoaded.value && !isApplyingRemoteState) {
+      matchSync.publish(cloneState(gameState.value))
+      persistSessionState()
+    }
+  }
+
+  const persistSessionState = () => {
+    if (!activeMatchId.value || typeof window === 'undefined') return
+    if (persistTimer) window.clearTimeout(persistTimer)
+    persistTimer = window.setTimeout(() => {
+      libraryApi
+        .updateMatchSession(activeMatchId.value!, {
+          state: cloneState(gameState.value),
+          status: gameState.value.gameFinished
+            ? 'finished'
+            : gameState.value.status === 'live'
+              ? 'live'
+              : 'draft',
+        })
+        .catch(() => undefined)
+    }, 450)
+  }
+
+  const subscribe = () => {
+    unsubscribeSync?.()
+    unsubscribeSync = matchSync.subscribe((payload) => {
+      if (!isLoaded.value) return
+      isApplyingRemoteState = true
+      gameState.value = cloneState(payload)
+      setTimeout(() => {
+        isApplyingRemoteState = false
+      }, 0)
+    })
+  }
+
+  const setMatchScope = (matchId?: string, initialState?: GameState, initialConfig = broadcastConfig.config) => {
+    const nextScope = matchId ?? null
+    if (activeMatchId.value === nextScope && isLoaded.value) return
+
+    activeMatchId.value = nextScope
+    matchSync = createScopedLocalSyncAdapter<GameState>(
+      SYNC_CHANNELS.MATCH,
+      STORAGE_KEYS.MATCH_STATE,
+      matchId,
+    )
+
+    const stored = matchSync.read()
+    gameState.value = cloneState(initialState ?? stored ?? createInitialState(initialConfig))
+    isLoaded.value = true
+    subscribe()
+    if (!stored && initialState) publish()
   }
 
   const addToHistory = (message: string, type: HistoryType = 'info') => {
@@ -96,7 +164,20 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value.history = gameState.value.history.slice(0, COMMUNICATION_CONFIG.MAX_HISTORY_ITEMS)
   }
 
-  const syncTeamsFromConfig = () => {
+  const hasMatchProgress = () => {
+    return (
+      gameState.value.status !== 'idle' ||
+      gameState.value.local.score > 0 ||
+      gameState.value.visitor.score > 0 ||
+      gameState.value.local.sets > 0 ||
+      gameState.value.visitor.sets > 0 ||
+      gameState.value.completedSets.length > 0
+    )
+  }
+
+  const syncTeamsFromConfig = (force = false) => {
+    if (!force && hasMatchProgress()) return false
+
     ;(['local', 'visitor'] as TeamSide[]).forEach((team) => {
       const configTeam = broadcastConfig.config.teams[team]
       gameState.value[team].name = configTeam.name
@@ -111,6 +192,7 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value.metadata.tournament = broadcastConfig.config.tournament
     gameState.value.metadata.phase = broadcastConfig.config.phase
     gameState.value.leagueLogo = broadcastConfig.config.leagueLogoUrl
+    return true
   }
 
   const startMatch = () => {
@@ -127,6 +209,10 @@ export const useMatchStore = defineStore('match', () => {
     startMatch()
 
     const opponent = getOpponent(team)
+    const regainedServe = !gameState.value[team].serving
+    if (regainedServe && gameState.value.settings.enableRotation) {
+      rotateTeam(team, 'regained_serve')
+    }
     gameState.value[team].score += 1
     gameState.value[team].serving = true
     gameState.value[opponent].serving = false
@@ -253,6 +339,7 @@ export const useMatchStore = defineStore('match', () => {
 
   const resetGame = () => {
     gameState.value = createInitialState(broadcastConfig.config)
+    syncTeamsFromConfig(true)
     addToHistory(DEFAULT_MESSAGES.GAME_RESET, 'warning')
   }
 
@@ -269,10 +356,58 @@ export const useMatchStore = defineStore('match', () => {
     addToHistory(`Saque para ${gameState.value[team].name}`, 'info')
   }
 
-  const rotateTeam = (team: TeamSide) => {
+  const rotateTeam = (team: TeamSide, reason: 'regained_serve' | 'manual' = 'manual') => {
     const next = gameState.value[team].rotation.shift()
     if (next) gameState.value[team].rotation.push(next)
     gameState.value[team].currentPlayer = gameState.value[team].rotation[0] ?? 1
+    gameState.value[team].rotationState = {
+      positions: [...gameState.value[team].rotation],
+      currentPlayerNumber: gameState.value[team].currentPlayer,
+      history: [
+        {
+          team,
+          timestamp: Date.now(),
+          reason,
+          rotation: [...gameState.value[team].rotation],
+        },
+        ...(gameState.value[team].rotationState?.history ?? []),
+      ].slice(0, 30),
+    }
+    if (reason === 'manual') {
+      addToHistory(`Rotación manual de ${gameState.value[team].shortCode}`, 'info')
+    }
+  }
+
+  const setTeamRoster = (team: TeamSide, players: Team['roster'] = []) => {
+    const activePlayers = players.filter((player) => player.active !== false)
+    const selected = activePlayers.slice(0, 6)
+    const fallback = [1, 2, 3, 4, 5, 6].map((number) => ({
+      id: `${team}-${number}`,
+      number,
+      name: `Jugador ${number}`,
+      position: number,
+      active: true,
+    }))
+    const roster = (selected.length >= 6 ? selected : fallback).map((player, index) => ({
+      ...player,
+      position: index + 1,
+    }))
+    const rotation = roster.map((player) => player.number)
+    gameState.value[team].roster = roster
+    gameState.value[team].players = roster.map((player) => ({
+      id: player.number,
+      number: player.number,
+      name: player.name,
+      position: player.position,
+      active: player.active,
+    }))
+    gameState.value[team].rotation = rotation
+    gameState.value[team].currentPlayer = rotation[0] ?? 1
+    gameState.value[team].rotationState = {
+      positions: rotation,
+      currentPlayerNumber: gameState.value[team].currentPlayer,
+      history: gameState.value[team].rotationState?.history ?? [],
+    }
   }
 
   const startTimeout = (team: TeamSide) => {
@@ -333,26 +468,20 @@ export const useMatchStore = defineStore('match', () => {
     return null
   })
   const canAdvanceSet = computed(() => canManuallyAdvanceSet(gameState.value))
+  const canSyncTeamsFromConfig = computed(() => !hasMatchProgress())
   const targetPoints = computed(() => getSetTargetPoints(gameState.value))
 
-  const unsubscribe = matchSync.subscribe((payload) => {
-    if (!isLoaded.value) return
-    isApplyingRemoteState = true
-    gameState.value = cloneState(payload)
-    setTimeout(() => {
-      isApplyingRemoteState = false
-    }, 0)
-  })
-
   watch(gameState, publish, { deep: true })
-  watch(() => broadcastConfig.config, syncTeamsFromConfig, { deep: true })
+  watch(() => broadcastConfig.config, () => syncTeamsFromConfig(), { deep: true })
   if (typeof window !== 'undefined') window.setInterval(expireTimeouts, 500)
 
   hydrate()
+  subscribe()
 
   return {
     gameState,
     isLoaded,
+    activeMatchId,
     currentTeamServing,
     currentSet,
     isGameFinished,
@@ -362,8 +491,10 @@ export const useMatchStore = defineStore('match', () => {
     setPointTeam,
     matchPointTeam,
     canAdvanceSet,
+    canSyncTeamsFromConfig,
     targetPoints,
     hydrate,
+    setMatchScope,
     startMatch,
     scorePoint,
     removePoint,
@@ -375,12 +506,13 @@ export const useMatchStore = defineStore('match', () => {
     toggleServe,
     setServingTeam,
     rotateTeam,
+    setTeamRoster,
     startTimeout,
     updateGameSettings,
     addToHistory,
     getGameState,
     restoreGameState,
     syncTeamsFromConfig,
-    unsubscribe,
+    unsubscribe: () => unsubscribeSync?.(),
   }
 })

@@ -1,12 +1,19 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { ROUTES } from '@utils/constants'
+import { ROUTES, STORAGE_KEYS } from '@utils/constants'
 
 // Importaciones lazy de las vistas para code splitting
 const ControllerView = () => import('@/views/ControllerView.vue')
 const OverlayView = () => import('@/views/OverlayView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
+const MatchesView = () => import('@/views/MatchesView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
 const StatisticsView = () => import('@/views/StatisticsView.vue')
+
+const legacyMatchRedirect = (base: string) => {
+  const lastMatchId =
+    typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.LAST_MATCH_ID) : null
+  return lastMatchId ? `${base}/${lastMatchId}` : ROUTES.MATCHES
+}
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -19,7 +26,16 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: ROUTES.CONTROLLER,
+    path: ROUTES.MATCHES,
+    name: 'Matches',
+    component: MatchesView,
+    meta: {
+      title: 'Partidos | VolleyStream',
+      description: 'Sesiones de partidos y enlaces aislados para controller y OBS',
+    },
+  },
+  {
+    path: `${ROUTES.CONTROLLER}/:matchId`,
     name: 'Controller',
     component: ControllerView,
     meta: {
@@ -29,7 +45,7 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: ROUTES.OVERLAY,
+    path: `${ROUTES.OVERLAY}/:matchId`,
     name: 'Overlay',
     component: OverlayView,
     meta: {
@@ -40,7 +56,7 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: ROUTES.STATISTICS,
+    path: `${ROUTES.STATISTICS}/:matchId`,
     name: 'Statistics',
     component: StatisticsView,
     meta: {
@@ -49,7 +65,7 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: ROUTES.SETTINGS,
+    path: `${ROUTES.SETTINGS}/:matchId`,
     name: 'Settings',
     component: SettingsView,
     meta: {
@@ -57,18 +73,22 @@ const routes: Array<RouteRecordRaw> = [
       description: 'Configuracion de equipos, torneo, sponsor, colores y estilo visual',
     },
   },
+  { path: ROUTES.CONTROLLER, redirect: () => legacyMatchRedirect(ROUTES.CONTROLLER) },
+  { path: ROUTES.OVERLAY, redirect: () => legacyMatchRedirect(ROUTES.OVERLAY) },
+  { path: ROUTES.STATISTICS, redirect: () => legacyMatchRedirect(ROUTES.STATISTICS) },
+  { path: ROUTES.SETTINGS, redirect: () => legacyMatchRedirect(ROUTES.SETTINGS) },
   // Rutas de redirección para compatibilidad
   {
     path: '/control',
-    redirect: ROUTES.CONTROLLER,
+    redirect: () => legacyMatchRedirect(ROUTES.CONTROLLER),
   },
   {
     path: '/obs',
-    redirect: ROUTES.OVERLAY,
+    redirect: () => legacyMatchRedirect(ROUTES.OVERLAY),
   },
   {
     path: '/stream',
-    redirect: ROUTES.OVERLAY,
+    redirect: () => legacyMatchRedirect(ROUTES.OVERLAY),
   },
   // Ruta 404
   {
@@ -179,8 +199,8 @@ if (import.meta.env.DEV) {
   ; (window as Window & { volleyball?: object }).volleyball = {
     router,
     navigateTo,
-    openController: () => openInNewWindow(ROUTES.CONTROLLER, 'controller'),
-    openOverlay: () => openInNewWindow(ROUTES.OVERLAY, 'overlay'),
+    openController: () => openInNewWindow(ROUTES.MATCHES, 'controller'),
+    openOverlay: () => openInNewWindow(ROUTES.MATCHES, 'overlay'),
   }
 }
 

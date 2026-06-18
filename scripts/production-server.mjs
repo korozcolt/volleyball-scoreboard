@@ -36,6 +36,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS match_archives (
     id TEXT PRIMARY KEY,
+    match_id TEXT,
     tournament TEXT,
     phase TEXT,
     local_team TEXT,
@@ -45,7 +46,39 @@ db.exec(`
     snapshot TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS team_players (
+    id TEXT PRIMARY KEY,
+    team_id TEXT NOT NULL,
+    number INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    UNIQUE(team_id, number),
+    FOREIGN KEY(team_id) REFERENCES team_profiles(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS match_sessions (
+    id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    format INTEGER NOT NULL,
+    local_team_profile_id TEXT,
+    visitor_team_profile_id TEXT,
+    title TEXT,
+    state TEXT,
+    config TEXT,
+    statistics TEXT,
+    overlay TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `)
+
+const tableColumns = (table) => db.prepare(`PRAGMA table_info(${table})`).all().map((column) => column.name)
+if (!tableColumns('match_archives').includes('match_id')) {
+  db.prepare('ALTER TABLE match_archives ADD COLUMN match_id TEXT').run()
+}
 
 const mimeTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -85,6 +118,37 @@ const toApiTeam = (row) => ({
   updatedAt: row.updated_at,
 })
 
+const toApiPlayer = (row) => ({
+  id: row.id,
+  teamId: row.team_id,
+  number: row.number,
+  name: row.name,
+  active: Boolean(row.active),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+})
+
+const readPlayers = (teamId) =>
+  db
+    .prepare('SELECT * FROM team_players WHERE team_id = ? ORDER BY number ASC')
+    .all(teamId)
+    .map(toApiPlayer)
+
+const toApiSession = (row) => ({
+  id: row.id,
+  status: row.status,
+  format: row.format,
+  localTeamProfileId: row.local_team_profile_id ?? undefined,
+  visitorTeamProfileId: row.visitor_team_profile_id ?? undefined,
+  title: row.title ?? undefined,
+  state: row.state ? JSON.parse(row.state) : undefined,
+  config: row.config ? JSON.parse(row.config) : undefined,
+  statistics: row.statistics ? JSON.parse(row.statistics) : undefined,
+  overlay: row.overlay ? JSON.parse(row.overlay) : undefined,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+})
+
 const upsertTeam = (team) => {
   const now = Date.now()
   const id = team.id || createId('team')
@@ -110,6 +174,89 @@ const upsertTeam = (team) => {
   `).run(payload)
 
   return payload
+}
+
+const upsertPlayer = (teamId, player) => {
+  const team = db.prepare('SELECT id FROM team_profiles WHERE id = ?').get(teamId)
+  if (!team) return null
+
+  const now = Date.now()
+  const id = player.id || createId('player')
+  const payload = {
+    id,
+    teamId,
+    number: Math.max(1, Math.min(99, Number(player.number) || 1)),
+    name: String(player.name ?? '').trim() || `Jugador ${player.number ?? ''}`.trim(),
+    active: player.active === false ? 0 : 1,
+    createdAt: player.createdAt ?? now,
+    updatedAt: now,
+  }
+
+  db.prepare(`
+    INSERT INTO team_players (id, team_id, number, name, active, created_at, updated_at)
+    VALUES (@id, @teamId, @number, @name, @active, @createdAt, @updatedAt)
+    ON CONFLICT(team_id, number) DO UPDATE SET
+      name = excluded.name,
+      active = excluded.active,
+      updated_at = excluded.updated_at
+  `).run(payload)
+
+  const row = db.prepare('SELECT * FROM team_players WHERE team_id = ? AND number = ?').get(teamId, payload.number)
+  return toApiPlayer(row)
+}
+
+const upsertSession = (session) => {
+  const now = Date.now()
+  const id = session.id || createId('session')
+  const current = session.id
+    ? db.prepare('SELECT * FROM match_sessions WHERE id = ?').get(session.id)
+    : null
+  const payload = {
+    id,
+    status: session.status ?? current?.status ?? 'draft',
+    format: Number(session.format ?? current?.format ?? 5),
+    localTeamProfileId: session.localTeamProfileId ?? current?.local_team_profile_id ?? null,
+    visitorTeamProfileId: session.visitorTeamProfileId ?? current?.visitor_team_profile_id ?? null,
+    title: session.title ?? current?.title ?? null,
+    state:
+      session.state !== undefined
+        ? JSON.stringify(session.state)
+        : current?.state ?? null,
+    config:
+      session.config !== undefined
+        ? JSON.stringify(session.config)
+        : current?.config ?? null,
+    statistics:
+      session.statistics !== undefined
+        ? JSON.stringify(session.statistics)
+        : current?.statistics ?? null,
+    overlay:
+      session.overlay !== undefined
+        ? JSON.stringify(session.overlay)
+        : current?.overlay ?? null,
+    createdAt: current?.created_at ?? session.createdAt ?? now,
+    updatedAt: now,
+  }
+
+  db.prepare(`
+    INSERT INTO match_sessions
+      (id, status, format, local_team_profile_id, visitor_team_profile_id, title, state, config, statistics, overlay, created_at, updated_at)
+    VALUES
+      (@id, @status, @format, @localTeamProfileId, @visitorTeamProfileId, @title, @state, @config, @statistics, @overlay, @createdAt, @updatedAt)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      format = excluded.format,
+      local_team_profile_id = excluded.local_team_profile_id,
+      visitor_team_profile_id = excluded.visitor_team_profile_id,
+      title = excluded.title,
+      state = excluded.state,
+      config = excluded.config,
+      statistics = excluded.statistics,
+      overlay = excluded.overlay,
+      updated_at = excluded.updated_at
+  `).run(payload)
+
+  return toApiSession(db.prepare('SELECT * FROM match_sessions WHERE id = ?').get(id))
 }
 
 const resolveUploadPath = (pathname) => {
@@ -169,7 +316,12 @@ const handleApi = async (request, response, url) => {
       const rows = db
         .prepare('SELECT * FROM team_profiles ORDER BY updated_at DESC, name ASC')
         .all()
-      sendJson(response, 200, { teams: rows.map(toApiTeam) })
+      sendJson(response, 200, {
+        teams: rows.map((row) => ({
+          ...toApiTeam(row),
+          players: readPlayers(row.id),
+        })),
+      })
       return true
     }
 
@@ -193,6 +345,88 @@ const handleApi = async (request, response, url) => {
         ...body,
       })
       sendJson(response, 200, { team })
+      return true
+    }
+
+    const playersMatch = url.pathname.match(/^\/api\/teams\/([^/]+)\/players$/)
+    if (playersMatch && request.method === 'GET') {
+      sendJson(response, 200, { players: readPlayers(playersMatch[1]) })
+      return true
+    }
+
+    if (playersMatch && request.method === 'POST') {
+      const player = upsertPlayer(playersMatch[1], await readJsonBody(request))
+      if (!player) {
+        sendJson(response, 404, { error: 'Equipo no encontrado.' })
+        return true
+      }
+      sendJson(response, 201, { player })
+      return true
+    }
+
+    const playerMatch = url.pathname.match(/^\/api\/teams\/([^/]+)\/players\/([^/]+)$/)
+    if (playerMatch && request.method === 'PATCH') {
+      const current = db
+        .prepare('SELECT * FROM team_players WHERE team_id = ? AND id = ?')
+        .get(playerMatch[1], playerMatch[2])
+      if (!current) {
+        sendJson(response, 404, { error: 'Jugador no encontrado.' })
+        return true
+      }
+      const body = await readJsonBody(request)
+      const player = upsertPlayer(playerMatch[1], {
+        id: playerMatch[2],
+        createdAt: current.created_at,
+        number: body.number ?? current.number,
+        name: body.name ?? current.name,
+        active: body.active ?? Boolean(current.active),
+      })
+      sendJson(response, 200, { player })
+      return true
+    }
+
+    if (playerMatch && request.method === 'DELETE') {
+      db.prepare('DELETE FROM team_players WHERE team_id = ? AND id = ?').run(playerMatch[1], playerMatch[2])
+      sendJson(response, 200, { ok: true })
+      return true
+    }
+
+    if (url.pathname === '/api/match-sessions' && request.method === 'GET') {
+      const rows = db
+        .prepare('SELECT * FROM match_sessions ORDER BY updated_at DESC LIMIT 100')
+        .all()
+      sendJson(response, 200, { sessions: rows.map(toApiSession) })
+      return true
+    }
+
+    if (url.pathname === '/api/match-sessions' && request.method === 'POST') {
+      const session = upsertSession(await readJsonBody(request))
+      sendJson(response, 201, { session })
+      return true
+    }
+
+    const sessionMatch = url.pathname.match(/^\/api\/match-sessions\/([^/]+)$/)
+    if (sessionMatch && request.method === 'GET') {
+      const row = db.prepare('SELECT * FROM match_sessions WHERE id = ?').get(sessionMatch[1])
+      if (!row) {
+        sendJson(response, 404, { error: 'Partido no encontrado.' })
+        return true
+      }
+      sendJson(response, 200, { session: toApiSession(row) })
+      return true
+    }
+
+    if (sessionMatch && request.method === 'PATCH') {
+      const row = db.prepare('SELECT * FROM match_sessions WHERE id = ?').get(sessionMatch[1])
+      if (!row) {
+        sendJson(response, 404, { error: 'Partido no encontrado.' })
+        return true
+      }
+      const session = upsertSession({
+        id: sessionMatch[1],
+        ...await readJsonBody(request),
+      })
+      sendJson(response, 200, { session })
       return true
     }
 
@@ -233,11 +467,12 @@ const handleApi = async (request, response, url) => {
 
       db.prepare(`
         INSERT INTO match_archives
-          (id, tournament, phase, local_team, visitor_team, winner, final_score, snapshot, created_at)
+          (id, match_id, tournament, phase, local_team, visitor_team, winner, final_score, snapshot, created_at)
         VALUES
-          (@id, @tournament, @phase, @localTeam, @visitorTeam, @winner, @finalScore, @snapshot, @createdAt)
+          (@id, @matchId, @tournament, @phase, @localTeam, @visitorTeam, @winner, @finalScore, @snapshot, @createdAt)
       `).run({
         id,
+        matchId: snapshot.matchId ?? null,
         tournament: gameState?.metadata?.tournament ?? null,
         phase: gameState?.metadata?.phase ?? null,
         localTeam: gameState?.local?.name ?? null,
@@ -250,6 +485,14 @@ const handleApi = async (request, response, url) => {
         snapshot: JSON.stringify(snapshot),
         createdAt: Date.now(),
       })
+      if (snapshot.matchId) {
+        upsertSession({
+          id: snapshot.matchId,
+          status: 'archived',
+          state: gameState,
+          statistics: snapshot.statistics,
+        })
+      }
       sendJson(response, 201, { id })
       return true
     }

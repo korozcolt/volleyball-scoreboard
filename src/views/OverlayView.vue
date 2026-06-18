@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
+import { useMatchScope } from '@/composables/useMatchScope'
 import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
 import { useMatchStore } from '@/stores/match'
 import { useOverlayControlStore } from '@/stores/overlayControl'
@@ -11,6 +12,7 @@ const DESIGN_HEIGHT = 200
 const match = useMatchStore()
 const broadcast = useBroadcastConfigStore()
 const overlay = useOverlayControlStore()
+useMatchScope()
 const scale = ref(1)
 
 const sponsorLogo = computed(() => broadcast.config.sponsorLogoUrl)

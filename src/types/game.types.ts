@@ -14,6 +14,38 @@ export interface Player {
   id: number
   name?: string
   position: number
+  number?: number
+  active?: boolean
+}
+
+export interface TeamPlayer {
+  id: string
+  teamId: string
+  number: number
+  name: string
+  active: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export interface MatchTeamPlayer {
+  id: string
+  teamPlayerId?: string
+  number: number
+  name: string
+  position: number
+  active: boolean
+}
+
+export interface RotationState {
+  positions: Array<number | null>
+  currentPlayerNumber?: number
+  history?: Array<{
+    team: TeamSide
+    timestamp: number
+    reason: 'regained_serve' | 'manual'
+    rotation: number[]
+  }>
 }
 
 export interface Team {
@@ -28,6 +60,8 @@ export interface Team {
   currentPlayer: number
   rotation: number[]
   players?: Player[]
+  roster?: MatchTeamPlayer[]
+  rotationState?: RotationState
   primaryColor: string
   color?: string
   timeoutsUsed: number
@@ -100,6 +134,24 @@ export interface BroadcastTeamConfig {
 
 export interface TeamProfile extends BroadcastTeamConfig {
   id: string
+  players?: TeamPlayer[]
+  createdAt: number
+  updatedAt: number
+}
+
+export type MatchSessionStatus = 'draft' | 'live' | 'finished' | 'archived'
+
+export interface MatchSession {
+  id: string
+  status: MatchSessionStatus
+  format: 1 | 3 | 5
+  localTeamProfileId?: string
+  visitorTeamProfileId?: string
+  title?: string
+  state?: GameState
+  config?: BroadcastConfig
+  statistics?: StatisticsState
+  overlay?: OverlayControlState
   createdAt: number
   updatedAt: number
 }

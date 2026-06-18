@@ -17,20 +17,19 @@ import { RouterLink } from 'vue-router'
       </div>
 
       <div class="grid gap-4 md:grid-cols-3">
-        <RouterLink class="admin-card block p-6 transition hover:border-broadcast-accent" to="/controller">
+        <RouterLink class="admin-card block p-6 transition hover:border-broadcast-accent" to="/matches">
           <MonitorCog class="mb-5 h-8 w-8 text-broadcast-accent" />
           <h2 class="text-xl font-bold">Panel de partido</h2>
           <p class="mt-2 text-sm text-broadcast-muted">Puntaje, saque, timeouts, preview e historial.</p>
         </RouterLink>
-        <RouterLink class="admin-card block p-6 transition hover:border-broadcast-accent" to="/settings">
+        <RouterLink class="admin-card block p-6 transition hover:border-broadcast-accent" to="/matches">
           <Settings class="mb-5 h-8 w-8 text-broadcast-accent" />
           <h2 class="text-xl font-bold">Configuración</h2>
           <p class="mt-2 text-sm text-broadcast-muted">Equipos, colores, códigos, logos y torneo.</p>
         </RouterLink>
         <RouterLink
           class="admin-card block p-6 transition hover:border-broadcast-accent"
-          to="/overlay"
-          target="_blank"
+          to="/matches"
         >
           <Radio class="mb-5 h-8 w-8 text-broadcast-accent" />
           <h2 class="text-xl font-bold">Overlay OBS</h2>

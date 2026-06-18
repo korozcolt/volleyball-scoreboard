@@ -1,19 +1,22 @@
 import { DEFAULT_BROADCAST_CONFIG, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
 import type { BroadcastConfig, TeamSide } from '@/types/game.types'
 import { computed, ref, watch } from 'vue'
-import { createLocalSyncAdapter } from '@/services/syncService'
+import { createScopedLocalSyncAdapter, type SyncAdapter } from '@/services/syncService'
 import { defineStore } from 'pinia'
-
-const sync = createLocalSyncAdapter<BroadcastConfig>(
-  SYNC_CHANNELS.BROADCAST_CONFIG,
-  STORAGE_KEYS.BROADCAST_CONFIG,
-)
+import { libraryApi } from '@/services/libraryApi'
 
 const cloneConfig = (config: BroadcastConfig): BroadcastConfig => JSON.parse(JSON.stringify(config))
 
 export const useBroadcastConfigStore = defineStore('broadcastConfig', () => {
   const config = ref<BroadcastConfig>(cloneConfig(DEFAULT_BROADCAST_CONFIG))
   const isLoaded = ref(false)
+  const activeMatchId = ref<string | null>(null)
+  let sync: SyncAdapter<BroadcastConfig> = createScopedLocalSyncAdapter<BroadcastConfig>(
+    SYNC_CHANNELS.BROADCAST_CONFIG,
+    STORAGE_KEYS.BROADCAST_CONFIG,
+  )
+  let unsubscribeSync: (() => void) | undefined
+  let persistTimer: number | undefined
   let isApplyingRemoteState = false
 
   const hydrate = () => {
@@ -35,8 +38,49 @@ export const useBroadcastConfigStore = defineStore('broadcastConfig', () => {
     isLoaded.value = true
   }
 
+  const persistSessionConfig = () => {
+    if (!activeMatchId.value || typeof window === 'undefined') return
+    if (persistTimer) window.clearTimeout(persistTimer)
+    persistTimer = window.setTimeout(() => {
+      libraryApi.updateMatchSession(activeMatchId.value!, { config: cloneConfig(config.value) }).catch(() => undefined)
+    }, 450)
+  }
+
   const publish = () => {
-    if (isLoaded.value && !isApplyingRemoteState) sync.publish(cloneConfig(config.value))
+    if (isLoaded.value && !isApplyingRemoteState) {
+      sync.publish(cloneConfig(config.value))
+      persistSessionConfig()
+    }
+  }
+
+  const subscribe = () => {
+    unsubscribeSync?.()
+    unsubscribeSync = sync.subscribe((payload) => {
+      if (!isLoaded.value) return
+      isApplyingRemoteState = true
+      config.value = cloneConfig(payload)
+      setTimeout(() => {
+        isApplyingRemoteState = false
+      }, 0)
+    })
+  }
+
+  const setMatchScope = async (matchId?: string, initialConfig?: BroadcastConfig) => {
+    const nextScope = matchId ?? null
+    if (activeMatchId.value === nextScope && isLoaded.value) return
+
+    activeMatchId.value = nextScope
+    sync = createScopedLocalSyncAdapter<BroadcastConfig>(
+      SYNC_CHANNELS.BROADCAST_CONFIG,
+      STORAGE_KEYS.BROADCAST_CONFIG,
+      matchId,
+    )
+
+    const stored = sync.read()
+    config.value = cloneConfig(initialConfig ?? stored ?? DEFAULT_BROADCAST_CONFIG)
+    isLoaded.value = true
+    subscribe()
+    if (!stored && initialConfig) publish()
   }
 
   const updateTeam = (
@@ -67,18 +111,10 @@ export const useBroadcastConfigStore = defineStore('broadcastConfig', () => {
     config.value = cloneConfig(DEFAULT_BROADCAST_CONFIG)
   }
 
-  const unsubscribe = sync.subscribe((payload) => {
-    if (!isLoaded.value) return
-    isApplyingRemoteState = true
-    config.value = cloneConfig(payload)
-    setTimeout(() => {
-      isApplyingRemoteState = false
-    }, 0)
-  })
-
   watch(config, publish, { deep: true })
 
   hydrate()
+  subscribe()
 
   const teams = computed(() => config.value.teams)
 
@@ -86,10 +122,12 @@ export const useBroadcastConfigStore = defineStore('broadcastConfig', () => {
     config,
     teams,
     isLoaded,
+    activeMatchId,
     hydrate,
+    setMatchScope,
     updateTeam,
     updateConfig,
     resetConfig,
-    unsubscribe,
+    unsubscribe: () => unsubscribeSync?.(),
   }
 })

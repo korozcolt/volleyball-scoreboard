@@ -40,6 +40,8 @@ export const STORAGE_KEYS = {
   OVERLAY_CONFIG: 'volleystream_overlay_control',
   USER_PREFERENCES: 'volleystream_user_preferences',
   TEAM_LOGOS: 'volleystream_team_logos',
+  MATCH_SESSIONS: 'volleystream_match_sessions',
+  LAST_MATCH_ID: 'volleystream_last_match_id',
 } as const
 
 export const SYNC_CHANNELS = {
@@ -49,12 +51,19 @@ export const SYNC_CHANNELS = {
   STATISTICS: 'volleystream:statistics',
 } as const
 
+export const scopedStorageKey = (baseKey: string, scopeId?: string) =>
+  scopeId ? `${baseKey}:${scopeId}` : baseKey
+
+export const scopedSyncChannel = (baseChannel: string, scopeId?: string) =>
+  scopeId ? `${baseChannel}:${scopeId}` : baseChannel
+
 export const ROUTES = {
   HOME: '/',
   CONTROLLER: '/controller',
   OVERLAY: '/overlay',
   STATISTICS: '/statistics',
   SETTINGS: '/settings',
+  MATCHES: '/matches',
 } as const
 
 export const COMMUNICATION_CONFIG = {

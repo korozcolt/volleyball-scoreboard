@@ -163,3 +163,13 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
     },
   }
 }
+
+export function createScopedLocalSyncAdapter<T>(
+  channelBase: string,
+  storageKeyBase: string,
+  scopeId?: string,
+): SyncAdapter<T> {
+  const channel = scopeId ? `${channelBase}:${scopeId}` : channelBase
+  const storageKey = scopeId ? `${storageKeyBase}:${scopeId}` : storageKeyBase
+  return createLocalSyncAdapter<T>(channel, storageKey)
+}

@@ -9,15 +9,11 @@ import type {
   TeamStatistics,
 } from '@/types/game.types'
 import { computed, ref, watch } from 'vue'
-import { createLocalSyncAdapter } from '@/services/syncService'
+import { createScopedLocalSyncAdapter, type SyncAdapter } from '@/services/syncService'
 import { defineStore } from 'pinia'
 import { getOpponent } from '@/utils/volleyballRules'
+import { libraryApi } from '@/services/libraryApi'
 import { useMatchStore } from './match'
-
-const sync = createLocalSyncAdapter<StatisticsState>(
-  SYNC_CHANNELS.STATISTICS,
-  STORAGE_KEYS.STATISTICS,
-)
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 const cloneState = (state: StatisticsState): StatisticsState => JSON.parse(JSON.stringify(state))
@@ -55,6 +51,13 @@ export const useStatisticsStore = defineStore('statistics', () => {
   const match = useMatchStore()
   const state = ref<StatisticsState>(createInitialState())
   const isLoaded = ref(false)
+  const activeMatchId = ref<string | null>(null)
+  let sync: SyncAdapter<StatisticsState> = createScopedLocalSyncAdapter<StatisticsState>(
+    SYNC_CHANNELS.STATISTICS,
+    STORAGE_KEYS.STATISTICS,
+  )
+  let unsubscribeSync: (() => void) | undefined
+  let persistTimer: number | undefined
   let isApplyingRemoteState = false
 
   const hydrate = () => {
@@ -66,7 +69,46 @@ export const useStatisticsStore = defineStore('statistics', () => {
   }
 
   const publish = () => {
-    if (isLoaded.value && !isApplyingRemoteState) sync.publish(cloneState(state.value))
+    if (isLoaded.value && !isApplyingRemoteState) {
+      sync.publish(cloneState(state.value))
+      persistSessionStatistics()
+    }
+  }
+
+  const persistSessionStatistics = () => {
+    if (!activeMatchId.value || typeof window === 'undefined') return
+    if (persistTimer) window.clearTimeout(persistTimer)
+    persistTimer = window.setTimeout(() => {
+      libraryApi.updateMatchSession(activeMatchId.value!, { statistics: cloneState(state.value) }).catch(() => undefined)
+    }, 450)
+  }
+
+  const subscribe = () => {
+    unsubscribeSync?.()
+    unsubscribeSync = sync.subscribe((payload) => {
+      if (!isLoaded.value) return
+      isApplyingRemoteState = true
+      state.value = cloneState(payload)
+      setTimeout(() => {
+        isApplyingRemoteState = false
+      }, 0)
+    })
+  }
+
+  const setMatchScope = (matchId?: string, initialState?: StatisticsState) => {
+    const nextScope = matchId ?? null
+    if (activeMatchId.value === nextScope && isLoaded.value) return
+    activeMatchId.value = nextScope
+    sync = createScopedLocalSyncAdapter<StatisticsState>(
+      SYNC_CHANNELS.STATISTICS,
+      STORAGE_KEYS.STATISTICS,
+      matchId,
+    )
+    const stored = sync.read()
+    state.value = cloneState(initialState ?? stored ?? createInitialState())
+    isLoaded.value = true
+    subscribe()
+    if (!stored && initialState) publish()
   }
 
   const addEvent = (team: TeamSide, type: StatisticEvent['type']) => {
@@ -185,29 +227,23 @@ export const useStatisticsStore = defineStore('statistics', () => {
     } satisfies Record<string, TeamSide>
   })
 
-  const unsubscribe = sync.subscribe((payload) => {
-    if (!isLoaded.value) return
-    isApplyingRemoteState = true
-    state.value = cloneState(payload)
-    setTimeout(() => {
-      isApplyingRemoteState = false
-    }, 0)
-  })
-
   watch(state, publish, { deep: true })
   hydrate()
+  subscribe()
 
   return {
     state,
     isLoaded,
+    activeMatchId,
     leaders,
     hydrate,
+    setMatchScope,
     recordScoredPoint,
     scorePointWithReason,
     recordErrorAndPoint,
     recordSkill,
     resetMatchStats,
     teamEfficiency,
-    unsubscribe,
+    unsubscribe: () => unsubscribeSync?.(),
   }
 })

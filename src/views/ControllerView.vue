@@ -7,6 +7,7 @@ import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
 import StatisticsPanel from '@/components/controller/StatisticsPanel.vue'
 import TeamControlPanel from '@/components/controller/TeamControlPanel.vue'
 import type { ScoringReason, StatErrorType, StatSkillType, OverlayMode, TeamSide } from '@/types/game.types'
+import { useMatchScope } from '@/composables/useMatchScope'
 import { useMatchStore } from '@/stores/match'
 import { useOverlayControlStore } from '@/stores/overlayControl'
 import { useStatisticsStore } from '@/stores/statistics'
@@ -15,6 +16,7 @@ import { KEYBOARD_SHORTCUTS } from '@/utils/constants'
 const match = useMatchStore()
 const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
+const scope = useMatchScope()
 
 const activeMode = computed<OverlayMode>(() => overlay.state.activeOverlay)
 
@@ -84,6 +86,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <h1 class="text-2xl font-semibold text-broadcast-text">Panel de partido</h1>
           <p class="text-sm text-broadcast-muted">
             {{ match.gameState.metadata.tournament }} · {{ match.gameState.metadata.phase }}
+            <span v-if="scope.matchId"> · {{ scope.matchId }}</span>
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -184,6 +187,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @score-reason="scorePointWithReason"
           @stat-error="recordError"
           @stat-skill="recordSkill"
+          @rotate="match.rotateTeam"
         />
 
         <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 md:flex-col md:border-x md:border-y-0 md:py-0">
@@ -218,6 +222,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @score-reason="scorePointWithReason"
           @stat-error="recordError"
           @stat-skill="recordSkill"
+          @rotate="match.rotateTeam"
         />
       </div>
     </section>

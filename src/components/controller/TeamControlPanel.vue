@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, Minus, Plus, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
+import { ChevronDown, Minus, Plus, RotateCw, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { ScoringReason, StatErrorType, StatSkillType, Team, TeamSide } from '@/types/game.types'
 
@@ -19,6 +19,7 @@ const emit = defineEmits<{
   scoreReason: [team: TeamSide, reason: ScoringReason]
   statError: [team: TeamSide, errorType: StatErrorType]
   statSkill: [team: TeamSide, skill: StatSkillType]
+  rotate: [team: TeamSide]
 }>()
 
 const now = ref(Date.now())
@@ -130,6 +131,36 @@ const skillActionTitle = (skill: StatSkillType) => {
         <Timer class="h-3 w-3" />
         Pedir
       </button>
+    </div>
+
+    <div class="rounded border border-broadcast-outline bg-broadcast-surface-low p-3">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <div class="text-xs font-black uppercase text-broadcast-muted">Rotación</div>
+          <div class="text-sm font-bold text-broadcast-text">
+            Sacador actual: #{{ team.currentPlayer }}
+          </div>
+        </div>
+        <button
+          class="inline-flex items-center gap-1 rounded bg-broadcast-surface px-2 py-1 text-xs font-bold text-broadcast-accent transition hover:bg-broadcast-accent hover:text-[#00354a]"
+          type="button"
+          :disabled="gameFinished"
+          @click="emit('rotate', side)"
+        >
+          <RotateCw class="h-3.5 w-3.5" />
+          Rotar
+        </button>
+      </div>
+      <div class="grid grid-cols-6 gap-1">
+        <div
+          v-for="number in team.rotation"
+          :key="number"
+          class="rounded border border-broadcast-outline bg-broadcast-surface-high px-1 py-2 text-center text-xs font-black text-broadcast-text"
+          :class="number === team.currentPlayer ? 'border-broadcast-accent text-broadcast-accent' : ''"
+        >
+          #{{ number }}
+        </div>
+      </div>
     </div>
 
     <button

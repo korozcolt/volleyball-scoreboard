@@ -2,6 +2,7 @@
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import StatisticsPanel from '@/components/controller/StatisticsPanel.vue'
+import { useMatchScope } from '@/composables/useMatchScope'
 import { useMatchStore } from '@/stores/match'
 import { useOverlayControlStore } from '@/stores/overlayControl'
 import { useStatisticsStore } from '@/stores/statistics'
@@ -9,6 +10,7 @@ import { useStatisticsStore } from '@/stores/statistics'
 const match = useMatchStore()
 const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
+useMatchScope()
 
 const showStatsOverlay = () => overlay.setActiveOverlay('stats')
 

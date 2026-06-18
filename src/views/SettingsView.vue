@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import TeamConfigCard from '@/components/broadcast/TeamConfigCard.vue'
-import type { BackgroundStyle, BroadcastTeamConfig, LowerThirdStyle, TeamProfile, TeamSide } from '@/types/game.types'
+import { useMatchScope } from '@/composables/useMatchScope'
+import type { BackgroundStyle, BroadcastTeamConfig, LowerThirdStyle, TeamPlayer, TeamProfile, TeamSide } from '@/types/game.types'
 import { libraryApi } from '@/services/libraryApi'
 import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
 import { useMatchStore } from '@/stores/match'
@@ -11,14 +13,50 @@ import { useStatisticsStore } from '@/stores/statistics'
 const broadcast = useBroadcastConfigStore()
 const match = useMatchStore()
 const statistics = useStatisticsStore()
+const scope = useMatchScope()
 const teamLibrary = ref<TeamProfile[]>([])
 const libraryStatus = ref('')
 const uploadingTeam = ref<TeamSide | null>(null)
 const savingTeam = ref<TeamSide | null>(null)
 const isArchiving = ref(false)
+const activeProfileIds = ref<Record<TeamSide, string>>({ local: '', visitor: '' })
+const playerDrafts = ref<Record<TeamSide, { number: number; name: string }>>({
+  local: { number: 1, name: '' },
+  visitor: { number: 1, name: '' },
+})
+const saveNotice = ref<{
+  type: 'success' | 'warning' | 'error' | 'info'
+  message: string
+} | null>(null)
+let noticeTimer: number | undefined
+
+const notify = (message: string, type: 'success' | 'warning' | 'error' | 'info' = 'success') => {
+  saveNotice.value = { message, type }
+  libraryStatus.value = message
+
+  if (noticeTimer) window.clearTimeout(noticeTimer)
+  noticeTimer = window.setTimeout(() => {
+    saveNotice.value = null
+  }, 5200)
+}
 
 const updateTeam = (team: TeamSide, changes: Partial<BroadcastTeamConfig>) => {
   broadcast.updateTeam(team, changes)
+}
+
+const rosterBySide = computed<Record<TeamSide, TeamPlayer[]>>(() => ({
+  local: teamLibrary.value.find((team) => team.id === activeProfileIds.value.local)?.players ?? [],
+  visitor: teamLibrary.value.find((team) => team.id === activeProfileIds.value.visitor)?.players ?? [],
+}))
+
+const applyConfigToCurrentMatch = () => {
+  const applied = match.syncTeamsFromConfig()
+  notify(
+    applied
+      ? 'Configuración aplicada al partido actual.'
+      : 'El partido actual ya tiene progreso. La configuración quedó guardada para el próximo partido.',
+    applied ? 'success' : 'warning',
+  )
 }
 
 const setBackground = (backgroundStyle: BackgroundStyle) => {
@@ -29,39 +67,96 @@ const setLowerThirdStyle = (lowerThirdStyle: LowerThirdStyle) => {
   broadcast.updateConfig({ lowerThirdStyle })
 }
 
-const loadTeamLibrary = async () => {
+const loadTeamLibrary = async (showNotice = true) => {
   try {
     teamLibrary.value = await libraryApi.listTeams()
-    libraryStatus.value = teamLibrary.value.length
-      ? `${teamLibrary.value.length} equipos guardados`
-      : 'Biblioteca lista, sin equipos guardados'
+    const message = teamLibrary.value.length
+      ? `${teamLibrary.value.length} equipos guardados.`
+      : 'Biblioteca lista, sin equipos guardados.'
+    libraryStatus.value = message
+    if (showNotice) notify(message, 'info')
   } catch (error) {
-    libraryStatus.value = `Biblioteca no disponible: ${(error as Error).message}`
+    const message = `Biblioteca no disponible: ${(error as Error).message}`
+    libraryStatus.value = message
+    if (showNotice) notify(message, 'error')
   }
 }
 
 const selectTeamProfile = (team: TeamSide, profileId: string) => {
   const profile = teamLibrary.value.find((item) => item.id === profileId)
   if (!profile) return
+  activeProfileIds.value[team] = profile.id
   updateTeam(team, {
     name: profile.name,
     shortCode: profile.shortCode,
     primaryColor: profile.primaryColor,
     logoUrl: profile.logoUrl,
   })
+  notify(`${profile.shortCode} cargado en ${team === 'local' ? 'equipo local' : 'equipo visitante'}.`, 'success')
 }
 
 const saveTeamProfile = async (team: TeamSide) => {
   savingTeam.value = team
   try {
     const saved = await libraryApi.saveTeam(broadcast.config.teams[team])
-    await loadTeamLibrary()
-    libraryStatus.value = `Equipo guardado: ${saved.shortCode} · ${saved.name}`
+    activeProfileIds.value[team] = saved.id
+    await loadTeamLibrary(false)
+    notify(`Equipo guardado: ${saved.shortCode} · ${saved.name}`, 'success')
   } catch (error) {
-    libraryStatus.value = `No se pudo guardar el equipo: ${(error as Error).message}`
+    notify(`No se pudo guardar el equipo: ${(error as Error).message}`, 'error')
   } finally {
     savingTeam.value = null
   }
+}
+
+const savePlayer = async (team: TeamSide, existing?: TeamPlayer) => {
+  const profileId = activeProfileIds.value[team]
+  if (!profileId) {
+    notify('Guarda o selecciona primero un equipo de la biblioteca.', 'warning')
+    return
+  }
+
+  const draft = existing
+    ? { number: existing.number, name: existing.name, active: existing.active, id: existing.id }
+    : playerDrafts.value[team]
+
+  try {
+    await libraryApi.savePlayer(profileId, {
+      ...draft,
+      number: Math.max(1, Math.min(99, Number(draft.number) || 1)),
+      name: draft.name.trim() || `Jugador ${draft.number}`,
+    })
+    if (!existing) playerDrafts.value[team] = { number: Math.min(99, playerDrafts.value[team].number + 1), name: '' }
+    await loadTeamLibrary(false)
+    notify('Jugador guardado en el roster.', 'success')
+  } catch (error) {
+    notify(`No se pudo guardar el jugador: ${(error as Error).message}`, 'error')
+  }
+}
+
+const deletePlayer = async (team: TeamSide, player: TeamPlayer) => {
+  const profileId = activeProfileIds.value[team]
+  if (!profileId) return
+  try {
+    await libraryApi.deletePlayer(profileId, player.id)
+    await loadTeamLibrary(false)
+    notify(`Jugador #${player.number} eliminado del roster.`, 'success')
+  } catch (error) {
+    notify(`No se pudo eliminar el jugador: ${(error as Error).message}`, 'error')
+  }
+}
+
+const applyRosterToMatch = (team: TeamSide) => {
+  const roster = rosterBySide.value[team].map((player, index) => ({
+    id: `${team}-${player.number}`,
+    teamPlayerId: player.id,
+    number: player.number,
+    name: player.name,
+    position: index + 1,
+    active: player.active,
+  }))
+  match.setTeamRoster(team, roster)
+  notify(`Roster aplicado a ${team === 'local' ? 'equipo local' : 'equipo visitante'}.`, 'success')
 }
 
 const uploadTeamLogo = async (team: TeamSide, file: File) => {
@@ -69,9 +164,9 @@ const uploadTeamLogo = async (team: TeamSide, file: File) => {
   try {
     const asset = await libraryApi.uploadLogo(file)
     updateTeam(team, { logoUrl: asset.url })
-    libraryStatus.value = `Logo optimizado y guardado (${Math.round(asset.size / 1024)} KB)`
+    notify(`Logo optimizado y guardado (${Math.round(asset.size / 1024)} KB).`, 'success')
   } catch (error) {
-    libraryStatus.value = `No se pudo subir el logo: ${(error as Error).message}`
+    notify(`No se pudo subir el logo: ${(error as Error).message}`, 'error')
   } finally {
     uploadingTeam.value = null
   }
@@ -81,12 +176,13 @@ const archiveCurrentMatch = async () => {
   isArchiving.value = true
   try {
     const archived = await libraryApi.archiveMatch({
+      matchId: scope.matchId.value,
       gameState: match.getGameState(),
       statistics: statistics.state,
     })
-    libraryStatus.value = `Partido guardado en histórico: ${archived.id}`
+    notify(`Partido guardado en histórico: ${archived.id}`, 'success')
   } catch (error) {
-    libraryStatus.value = `No se pudo guardar el partido: ${(error as Error).message}`
+    notify(`No se pudo guardar el partido: ${(error as Error).message}`, 'error')
   } finally {
     isArchiving.value = false
   }
@@ -117,7 +213,7 @@ const setDecidingSetPoints = (decidingSetPoints: number) => {
   })
 }
 
-onMounted(loadTeamLibrary)
+onMounted(() => loadTeamLibrary(false))
 </script>
 
 <template>
@@ -127,9 +223,40 @@ onMounted(loadTeamLibrary)
         <h1 class="text-2xl font-semibold text-broadcast-text">Configuración broadcast</h1>
         <p class="text-sm text-broadcast-muted">Equipos, assets globales y estilo de salida OBS.</p>
       </div>
-      <button class="admin-button" @click="match.syncTeamsFromConfig">
+      <button class="admin-button" @click="applyConfigToCurrentMatch">
         Guardar configuración
       </button>
+    </div>
+
+    <div
+      v-if="saveNotice"
+      class="mb-6 flex items-start gap-3 rounded border px-4 py-3 shadow-[0_14px_30px_rgba(0,0,0,0.22)]"
+      :class="{
+        'border-broadcast-accent bg-broadcast-accent/12 text-broadcast-accent': saveNotice.type === 'success',
+        'border-broadcast-alert bg-broadcast-alert/12 text-broadcast-alert': saveNotice.type === 'warning',
+        'border-broadcast-danger bg-broadcast-danger/12 text-broadcast-danger': saveNotice.type === 'error',
+        'border-broadcast-outline bg-broadcast-surface-high text-broadcast-text': saveNotice.type === 'info',
+      }"
+      role="status"
+      aria-live="polite"
+    >
+      <CheckCircle2 v-if="saveNotice.type === 'success'" class="mt-0.5 h-5 w-5 shrink-0" />
+      <AlertTriangle v-else-if="saveNotice.type === 'warning' || saveNotice.type === 'error'" class="mt-0.5 h-5 w-5 shrink-0" />
+      <Info v-else class="mt-0.5 h-5 w-5 shrink-0" />
+      <div>
+        <div class="text-sm font-black uppercase tracking-wide">
+          {{
+            saveNotice.type === 'success'
+              ? 'Guardado'
+              : saveNotice.type === 'warning'
+                ? 'Atención'
+                : saveNotice.type === 'error'
+                  ? 'No guardado'
+                  : 'Estado'
+          }}
+        </div>
+        <div class="text-sm font-semibold text-broadcast-text">{{ saveNotice.message }}</div>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -159,6 +286,88 @@ onMounted(loadTeamLibrary)
       />
     </div>
 
+    <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div
+        v-for="side in (['local', 'visitor'] as const)"
+        :key="side"
+        class="admin-card p-5"
+      >
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-broadcast-outline pb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-broadcast-text">
+              Roster {{ side === 'local' ? 'local' : 'visitante' }}
+            </h2>
+            <p class="text-sm text-broadcast-muted">
+              {{ activeProfileIds[side] ? 'Jugadores guardados para reutilizar este equipo.' : 'Selecciona o guarda un equipo para editar jugadores.' }}
+            </p>
+          </div>
+          <button
+            class="admin-button"
+            type="button"
+            :disabled="!activeProfileIds[side] || rosterBySide[side].length < 6"
+            @click="applyRosterToMatch(side)"
+          >
+            Aplicar al partido
+          </button>
+        </div>
+
+        <div class="mb-4 grid grid-cols-[90px_1fr_auto] gap-2">
+          <input
+            v-model.number="playerDrafts[side].number"
+            class="admin-input text-center font-black"
+            type="number"
+            min="1"
+            max="99"
+            placeholder="#"
+            :disabled="!activeProfileIds[side]"
+          />
+          <input
+            v-model="playerDrafts[side].name"
+            class="admin-input"
+            placeholder="Nombre del jugador"
+            :disabled="!activeProfileIds[side]"
+          />
+          <button class="admin-button" :disabled="!activeProfileIds[side]" @click="savePlayer(side)">
+            Agregar
+          </button>
+        </div>
+
+        <div class="grid gap-2">
+          <div
+            v-for="player in rosterBySide[side]"
+            :key="player.id"
+            class="grid grid-cols-[76px_1fr_auto_auto] items-center gap-2 rounded border border-broadcast-outline bg-broadcast-surface-high p-2"
+          >
+            <input
+              class="admin-input text-center font-black"
+              type="number"
+              min="1"
+              max="99"
+              :value="player.number"
+              @change="savePlayer(side, { ...player, number: Number(($event.target as HTMLInputElement).value) })"
+            />
+            <input
+              class="admin-input"
+              :value="player.name"
+              @change="savePlayer(side, { ...player, name: ($event.target as HTMLInputElement).value })"
+            />
+            <button class="admin-button" @click="savePlayer(side, { ...player, active: !player.active })">
+              {{ player.active ? 'Activo' : 'Inactivo' }}
+            </button>
+            <button class="admin-button-danger" @click="deletePlayer(side, player)">
+              Borrar
+            </button>
+          </div>
+          <div
+            v-if="activeProfileIds[side] && !rosterBySide[side].length"
+            class="rounded border border-dashed border-broadcast-outline p-4 text-center text-sm text-broadcast-muted"
+          >
+            Este equipo todavía no tiene jugadores guardados.
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="admin-card mt-6 p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -168,7 +377,7 @@ onMounted(loadTeamLibrary)
           </p>
         </div>
         <div class="flex gap-2">
-          <button class="admin-button" @click="loadTeamLibrary">
+          <button class="admin-button" @click="() => loadTeamLibrary()">
             Recargar biblioteca
           </button>
           <button class="admin-button" @click="archiveCurrentMatch" :disabled="isArchiving">
