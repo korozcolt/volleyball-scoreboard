@@ -18,6 +18,7 @@ const match = useMatchStore()
 const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
 const scope = useMatchScope()
+const { matchId } = scope  // desestructurar para que Vue auto-unwrappee en templates
 
 const activeMode = computed<OverlayMode>(() => overlay.state.activeOverlay)
 
@@ -171,7 +172,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
       <div class="flex flex-wrap gap-2">
         <a
-          :href="`/overlay/${scope.matchId}`"
+          :href="`/overlay/${matchId}`"
           target="_blank"
           rel="noopener"
           class="admin-button"
@@ -181,7 +182,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <ExternalLink class="h-3 w-3 opacity-60" />
         </a>
         <a
-          :href="`/lineup/${scope.matchId}`"
+          :href="`/lineup/${matchId}`"
           target="_blank"
           rel="noopener"
           class="admin-button"
@@ -191,7 +192,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <ExternalLink class="h-3 w-3 opacity-60" />
         </a>
         <a
-          :href="`/statistics/${scope.matchId}`"
+          :href="`/statistics/${matchId}`"
           target="_blank"
           rel="noopener"
           class="admin-button"
@@ -211,7 +212,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <div>
             <div class="text-sm font-semibold text-broadcast-text">Overlay de Lineup</div>
             <div class="text-xs text-broadcast-muted">
-              Muestra roster y posicionamiento en cancha · /lineup/{{ scope.matchId }}
+              Muestra roster y posicionamiento en cancha · /lineup/{{ matchId }}
             </div>
           </div>
         </div>
