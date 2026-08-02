@@ -13,6 +13,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
   let broadcastChannel: BroadcastChannel | null = null
   let socket: WebSocket | null = null
   let reconnectTimer: number | undefined
+  let closedByUs = false
   const socketQueue: Array<SyncEnvelope<T> & { sourceId: string }> = []
   const supportsBroadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window
   const sourceId =
@@ -99,6 +100,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
           return
         }
 
+        closedByUs = false
         socket = new WebSocket(getSocketUrl())
 
         socket.onopen = () => {
@@ -124,6 +126,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
         }
 
         socket.onclose = () => {
+          if (closedByUs) return
           reconnectTimer = window.setTimeout(connectSocket, 1200)
         }
 
@@ -149,6 +152,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
       return () => {
         window.removeEventListener(channel, customHandler)
         window.removeEventListener('storage', storageHandler)
+        closedByUs = true
         if (reconnectTimer) window.clearTimeout(reconnectTimer)
         socket?.close()
         socket = null

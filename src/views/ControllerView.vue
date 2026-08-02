@@ -66,8 +66,8 @@ const handleKeydown = (event: KeyboardEvent) => {
   const handlers: Partial<Record<string, () => void>> = {
     [KEYBOARD_SHORTCUTS.SCORE_LOCAL]: () => scorePoint('local'),
     [KEYBOARD_SHORTCUTS.SCORE_VISITOR]: () => scorePoint('visitor'),
-    [KEYBOARD_SHORTCUTS.REMOVE_LOCAL]: () => match.removePoint('local'),
-    [KEYBOARD_SHORTCUTS.REMOVE_VISITOR]: () => match.removePoint('visitor'),
+    [KEYBOARD_SHORTCUTS.REMOVE_LOCAL]: () => statistics.removePointWithRevert('local'),
+    [KEYBOARD_SHORTCUTS.REMOVE_VISITOR]: () => statistics.removePointWithRevert('visitor'),
     [KEYBOARD_SHORTCUTS.TOGGLE_SERVE]: () => match.toggleServe(),
     [KEYBOARD_SHORTCUTS.NEXT_SET]: () => match.nextSet(),
     [KEYBOARD_SHORTCUTS.SHOW_HISTORY]: () =>
@@ -357,7 +357,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
           @score="scorePoint"
-          @remove="match.removePoint"
+          @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
           @manual-sets="setManualSets"
           @timeout="match.startTimeout"
@@ -393,7 +393,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
           @score="scorePoint"
-          @remove="match.removePoint"
+          @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
           @manual-sets="setManualSets"
           @timeout="match.startTimeout"

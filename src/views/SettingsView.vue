@@ -128,6 +128,14 @@ const savePlayer = async (team: TeamSide, existing?: TeamPlayer) => {
       ? { number: existing.number, name: existing.name, active: existing.active, id: existing.id, isLibero: existing.isLibero, role: existing.role }
       : playerDrafts.value[team]
 
+    if (!existing && draft.isLibero) {
+      const currentLiberos = rosterBySide.value[team].filter((p) => p.isLibero).length
+      if (currentLiberos >= 2) {
+        notify('Ya hay 2 líberos en el plantel (máximo permitido por reglamento FIVB).', 'warning')
+        return
+      }
+    }
+
     try {
       await libraryApi.savePlayer(profileId, {
         id: existing?.id,
@@ -144,6 +152,20 @@ const savePlayer = async (team: TeamSide, existing?: TeamPlayer) => {
   } catch (error) {
     notify(`No se pudo guardar el jugador: ${(error as Error).message}`, 'error')
   }
+}
+
+const liberoCapReached = (team: TeamSide) => rosterBySide.value[team].filter((p) => p.isLibero).length >= 2
+
+const toggleLibero = (team: TeamSide, player: TeamPlayer) => {
+  if (!player.isLibero) {
+    const currentLiberos = rosterBySide.value[team].filter((p) => p.isLibero).length
+    if (currentLiberos >= 2) {
+      notify('Ya hay 2 líberos en el plantel (máximo permitido por reglamento FIVB).', 'warning')
+      return
+    }
+  }
+  player.isLibero = !player.isLibero
+  savePlayer(team, player)
 }
 
 const deletePlayer = async (team: TeamSide, player: TeamPlayer) => {
@@ -376,14 +398,16 @@ onMounted(async () => {
         </div>
 
         <div class="mb-4 flex items-center gap-2">
-          <label class="flex cursor-pointer items-center gap-2" :class="{ 'opacity-50': !activeProfileIds[side] }">
+          <label class="flex cursor-pointer items-center gap-2" :class="{ 'opacity-50': !activeProfileIds[side] || liberoCapReached(side) }">
             <input
               v-model="playerDrafts[side].isLibero"
               type="checkbox"
               class="rounded border-broadcast-outline bg-transparent"
-              :disabled="!activeProfileIds[side]"
+              :disabled="!activeProfileIds[side] || liberoCapReached(side)"
             />
-            <span class="text-xs font-semibold text-broadcast-muted">Jugador es Líbero (L)</span>
+            <span class="text-xs font-semibold text-broadcast-muted">
+              Jugador es Líbero (L){{ liberoCapReached(side) ? ' — máximo 2 alcanzado' : '' }}
+            </span>
           </label>
         </div>
 
@@ -426,7 +450,7 @@ onMounted(async () => {
               class="flex h-8 w-8 items-center justify-center rounded transition-colors font-black"
               title="Alternar Líbero"
               :class="player.isLibero ? 'bg-[#ffcf4a]/20 text-[#ffcf4a]' : 'bg-broadcast-surface text-broadcast-muted hover:bg-broadcast-surface-low hover:text-white'"
-              @click="player.isLibero = !player.isLibero; savePlayer(side, player)"
+              @click="toggleLibero(side, player)"
             >
               L
             </button>

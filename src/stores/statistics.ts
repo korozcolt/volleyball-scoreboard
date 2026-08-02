@@ -169,6 +169,72 @@ export const useStatisticsStore = defineStore('statistics', () => {
     match.addToHistory(message, 'warning')
   }
 
+  const statEventLabels: Record<StatisticEvent['type'], string> = {
+    ...scoringLabels,
+    attack_error: 'Error de ataque',
+    serve_error: 'Error de saque',
+    positive_reception: 'Recepción positiva',
+    negative_reception: 'Recepción negativa',
+    dig: 'Defensa',
+  }
+
+  const revertLastEventForTeam = (team: TeamSide) => {
+    const index = state.value.events.findIndex((event) => event.team === team)
+    if (index === -1) return
+
+    const event = state.value.events[index]
+    const stats = state.value[team]
+
+    switch (event.type) {
+      case 'attack':
+        stats.attackPoints = Math.max(0, stats.attackPoints - 1)
+        stats.points = Math.max(0, stats.points - 1)
+        break
+      case 'block':
+        stats.blockPoints = Math.max(0, stats.blockPoints - 1)
+        stats.points = Math.max(0, stats.points - 1)
+        break
+      case 'ace':
+        stats.aces = Math.max(0, stats.aces - 1)
+        stats.points = Math.max(0, stats.points - 1)
+        break
+      case 'opponent_error':
+        stats.opponentErrors = Math.max(0, stats.opponentErrors - 1)
+        stats.points = Math.max(0, stats.points - 1)
+        break
+      case 'manual':
+        stats.points = Math.max(0, stats.points - 1)
+        break
+      case 'attack_error':
+        stats.attackErrors = Math.max(0, stats.attackErrors - 1)
+        break
+      case 'serve_error':
+        stats.serveErrors = Math.max(0, stats.serveErrors - 1)
+        break
+      case 'positive_reception':
+        stats.positiveReceptions = Math.max(0, stats.positiveReceptions - 1)
+        break
+      case 'negative_reception':
+        stats.negativeReceptions = Math.max(0, stats.negativeReceptions - 1)
+        break
+      case 'dig':
+        stats.digs = Math.max(0, stats.digs - 1)
+        break
+    }
+
+    state.value.events.splice(index, 1)
+    match.addToHistory(
+      `Estadística revertida: ${statEventLabels[event.type]} de ${match.gameState[team].shortCode}`,
+      'warning',
+    )
+  }
+
+  const removePointWithRevert = (team: TeamSide) => {
+    if (match.gameState[team].score <= 0 || match.gameState.gameFinished) return
+    match.removePoint(team)
+    revertLastEventForTeam(team)
+  }
+
   const scorePointWithReason = (team: TeamSide, reason: ScoringReason) => {
     if (reason === 'ace' && !match.gameState[team].serving) {
       rejectInvalidStat('El ace solo puede registrarlo el equipo que tiene el saque.')
@@ -249,6 +315,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     scorePointWithReason,
     recordErrorAndPoint,
     recordSkill,
+    removePointWithRevert,
     resetMatchStats,
     teamEfficiency,
     unsubscribe: () => unsubscribeSync?.(),

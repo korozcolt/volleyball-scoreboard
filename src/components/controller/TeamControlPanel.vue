@@ -60,14 +60,21 @@ const skillActions: Array<{ label: string; skill: StatSkillType }> = [
   { label: 'Defensa', skill: 'dig' },
 ]
 
+const currentServerIsLibero = computed(
+  () => props.team.roster?.find((p) => String(p.number) === String(props.team.currentPlayer))?.isLibero ?? false,
+)
+
 const canUseScoringAction = (reason: ScoringReason) => {
   if (props.gameFinished) return false
-  if (reason === 'ace') return props.team.serving
+  if (reason === 'ace') return props.team.serving && !currentServerIsLibero.value
   return true
 }
 
 const scoringActionTitle = (reason: ScoringReason) => {
   if (reason === 'ace' && !props.team.serving) return 'El ace solo puede registrarlo el equipo que saca.'
+  if (reason === 'ace' && currentServerIsLibero.value) {
+    return 'El líbero no puede sacar (reglamento FIVB) — no se puede registrar ace.'
+  }
   return ''
 }
 
