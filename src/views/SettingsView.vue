@@ -626,7 +626,12 @@ onMounted(async () => {
                 <span class="relative text-xs font-bold text-white">Acero</span>
               </button>
               <button
-                class="h-20 rounded border border-broadcast-outline bg-broadcast-surface-high text-xs font-bold text-broadcast-muted"
+                class="h-20 rounded border bg-broadcast-surface-high text-xs font-bold text-broadcast-muted"
+                :class="
+                  broadcast.config.backgroundStyle === 'custom'
+                    ? 'border-broadcast-accent'
+                    : 'border-broadcast-outline'
+                "
                 @click="setBackground('custom')"
               >
                 Custom

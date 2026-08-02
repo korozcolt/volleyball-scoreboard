@@ -46,35 +46,30 @@ const navItems = computed(() => [
           ProVolley Live
         </RouterLink>
         <nav class="hidden items-center gap-6 md:flex">
-          <RouterLink
-            :to="scopedPath('/controller')"
-            class="border-b-2 pb-1 text-sm font-semibold transition"
-            :class="
-              route.path.startsWith('/controller')
-                ? 'border-broadcast-text text-broadcast-text'
-                : 'border-transparent text-broadcast-muted hover:text-broadcast-text'
-            "
-          >
-            Dashboard
-          </RouterLink>
-          <RouterLink
-            :to="scopedPath('/overlay')"
-            target="_blank"
-            class="border-b-2 border-transparent pb-1 text-sm font-semibold text-broadcast-muted transition hover:text-broadcast-text"
-          >
-            Overlay OBS
-          </RouterLink>
-          <RouterLink
-            :to="scopedPath('/settings')"
-            class="border-b-2 pb-1 text-sm font-semibold transition"
-            :class="
-              route.path.startsWith('/settings')
-                ? 'border-broadcast-text text-broadcast-text'
-                : 'border-transparent text-broadcast-muted hover:text-broadcast-text'
-            "
-          >
-            Configuración
-          </RouterLink>
+          <template v-for="item in navItems" :key="item.label">
+            <a
+              v-if="item.external"
+              :href="item.to"
+              target="_blank"
+              rel="noopener"
+              class="flex items-center gap-1.5 border-b-2 border-transparent pb-1 text-sm font-semibold text-broadcast-muted transition hover:text-broadcast-text"
+            >
+              {{ item.label }}
+              <ExternalLink class="h-3 w-3 opacity-50" />
+            </a>
+            <RouterLink
+              v-else
+              :to="item.to"
+              class="border-b-2 pb-1 text-sm font-semibold transition"
+              :class="
+                isActive(item.base)
+                  ? 'border-broadcast-text text-broadcast-text'
+                  : 'border-transparent text-broadcast-muted hover:text-broadcast-text'
+              "
+            >
+              {{ item.label }}
+            </RouterLink>
+          </template>
         </nav>
       </div>
 

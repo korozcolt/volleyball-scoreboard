@@ -15,7 +15,13 @@ useMatchScope()
 const showStatsOverlay = () => overlay.setActiveOverlay('stats')
 
 const resetStatistics = () => {
-  if (window.confirm('¿Reiniciar solo las estadísticas del partido?')) statistics.resetMatchStats()
+  if (
+    window.confirm(
+      '¿Reiniciar solo las estadísticas del partido?\n\nEsto NO afecta el marcador ni el historial de sets ya completados — esos números seguirán mostrando lo que realmente pasó en cancha.',
+    )
+  ) {
+    statistics.resetMatchStats()
+  }
 }
 </script>
 
@@ -47,7 +53,10 @@ const resetStatistics = () => {
     <StatisticsPanel
       :game-state="match.gameState"
       :statistics="statistics.state"
-      :efficiency="statistics.teamEfficiency"
+      :attack-efficiency="statistics.attackEfficiency"
+      :block-efficiency="statistics.blockEfficiency"
+      :serve-efficiency="statistics.serveEfficiency"
+      :reception-rating="statistics.receptionRating"
       @reset="resetStatistics"
     />
   </BroadcastLayout>

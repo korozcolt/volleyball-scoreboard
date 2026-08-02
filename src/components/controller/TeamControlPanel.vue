@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ChevronDown, Minus, Plus, RotateCw, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import type { ScoringReason, StatErrorType, StatSkillType, Team, TeamSide } from '@/types/game.types'
+import type { MatchStatus, ScoringReason, StatErrorType, StatSkillType, Team, TeamSide } from '@/types/game.types'
 
 const props = defineProps<{
   team: Team
   side: TeamSide
   matchStarted?: boolean
   gameFinished?: boolean
+  status?: MatchStatus
 }>()
 
 const emit = defineEmits<{
@@ -103,6 +104,13 @@ const skillActionTitle = (skill: StatSkillType) => {
   }
   return ''
 }
+
+const canRotateManually = computed(() => !props.gameFinished && props.status !== 'live')
+const rotateTitle = computed(() =>
+  props.status === 'live'
+    ? 'Pausa el set para corregir la rotación manualmente — en vivo rota automáticamente al recuperar el saque.'
+    : '',
+)
 </script>
 
 <template>
@@ -150,9 +158,10 @@ const skillActionTitle = (skill: StatSkillType) => {
           </div>
         </div>
         <button
-          class="inline-flex items-center gap-1 rounded bg-broadcast-surface px-2 py-1 text-xs font-bold text-broadcast-accent transition hover:bg-broadcast-accent hover:text-[#00354a]"
+          class="inline-flex items-center gap-1 rounded bg-broadcast-surface px-2 py-1 text-xs font-bold text-broadcast-accent transition hover:bg-broadcast-accent hover:text-[#00354a] disabled:opacity-40"
           type="button"
-          :disabled="gameFinished"
+          :disabled="!canRotateManually"
+          :title="rotateTitle"
           @click="emit('rotate', side)"
         >
           <RotateCw class="h-3.5 w-3.5" />

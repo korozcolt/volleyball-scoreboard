@@ -153,7 +153,7 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
       v-else-if="mode === 'stats'"
       :game-state="gameState"
       :statistics="statisticsState"
-      :efficiency="statisticsStore.teamEfficiency"
+      :attack-efficiency="statisticsStore.attackEfficiency"
     />
 
     <div

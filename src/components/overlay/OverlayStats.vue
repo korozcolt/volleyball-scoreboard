@@ -5,7 +5,7 @@ import type { GameState, StatisticsState, TeamSide } from '@/types/game.types'
 defineProps<{
   gameState: GameState
   statistics: StatisticsState
-  efficiency: (team: TeamSide) => number
+  attackEfficiency: (team: TeamSide) => number
 }>()
 
 const metricRows = [
@@ -58,9 +58,9 @@ const metricRows = [
       <Radio class="mb-1 h-7 w-7 text-broadcast-accent" />
       <div class="text-[11px] font-black uppercase tracking-[0.24em] text-white/60">Stats</div>
       <div class="mt-1 flex items-end gap-3">
-        <span class="text-4xl font-black">{{ efficiency('local') }}%</span>
-        <span class="pb-1 text-sm font-black text-white/40">EFF</span>
-        <span class="text-4xl font-black">{{ efficiency('visitor') }}%</span>
+        <span class="text-4xl font-black">{{ attackEfficiency('local') }}%</span>
+        <span class="pb-1 text-sm font-black text-white/40">ATQ%</span>
+        <span class="text-4xl font-black">{{ attackEfficiency('visitor') }}%</span>
       </div>
       <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-black uppercase text-white/70">
         <Activity class="h-3.5 w-3.5 text-broadcast-alert" />

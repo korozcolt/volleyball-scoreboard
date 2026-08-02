@@ -283,22 +283,47 @@ export const useStatisticsStore = defineStore('statistics', () => {
     state.value = createInitialState()
   }
 
-  const teamEfficiency = (team: TeamSide) => {
-    const stats = state.value[team]
-    const positive = stats.attackPoints + stats.blockPoints + stats.aces
-    const negative = stats.attackErrors + stats.serveErrors + stats.negativeReceptions
+  const resetRun = () => {
+    state.value.local.currentRun = 0
+    state.value.visitor.currentRun = 0
+    state.value.lastScoringTeam = undefined
+  }
+
+  match.onSetStart(resetRun)
+
+  const ratio = (positive: number, negative: number) => {
     const total = positive + negative
     return total > 0 ? Math.round((positive / total) * 100) : 0
   }
 
+  // % de ataque: kills sobre kills+errores. No hay conteo de "ataques en juego"
+  // (que quedaron en la cancha), solo se registran los desenlaces (punto o error).
+  const attackEfficiency = (team: TeamSide) => {
+    const stats = state.value[team]
+    return ratio(stats.attackPoints, stats.attackErrors)
+  }
+
+  // Sin conteo de bloqueos fallidos/tocados, solo se puede reportar el total de puntos.
+  const blockEfficiency = (team: TeamSide) => state.value[team].blockPoints
+
+  const serveEfficiency = (team: TeamSide) => {
+    const stats = state.value[team]
+    return ratio(stats.aces, stats.serveErrors)
+  }
+
+  const receptionRating = (team: TeamSide) => {
+    const stats = state.value[team]
+    return ratio(stats.positiveReceptions, stats.negativeReceptions)
+  }
+
   const leaders = computed(() => {
-    const localEfficiency = teamEfficiency('local')
-    const visitorEfficiency = teamEfficiency('visitor')
+    const localAttack = attackEfficiency('local')
+    const visitorAttack = attackEfficiency('visitor')
     return {
       points: state.value.local.points >= state.value.visitor.points ? 'local' : 'visitor',
       aces: state.value.local.aces >= state.value.visitor.aces ? 'local' : 'visitor',
       blocks: state.value.local.blockPoints >= state.value.visitor.blockPoints ? 'local' : 'visitor',
-      efficiency: localEfficiency >= visitorEfficiency ? 'local' : 'visitor',
+      efficiency: localAttack >= visitorAttack ? 'local' : 'visitor',
     } satisfies Record<string, TeamSide>
   })
 
@@ -317,7 +342,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
     recordSkill,
     removePointWithRevert,
     resetMatchStats,
-    teamEfficiency,
+    attackEfficiency,
+    blockEfficiency,
+    serveEfficiency,
+    receptionRating,
     unsubscribe: () => unsubscribeSync?.(),
   }
 })

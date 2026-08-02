@@ -46,7 +46,13 @@ const recordError = (team: TeamSide, errorType: StatErrorType) =>
   statistics.recordErrorAndPoint(team, errorType)
 const recordSkill = (team: TeamSide, skill: StatSkillType) => statistics.recordSkill(team, skill)
 const resetStatistics = () => {
-  if (window.confirm('¿Reiniciar solo las estadísticas del partido?')) statistics.resetMatchStats()
+  if (
+    window.confirm(
+      '¿Reiniciar solo las estadísticas del partido?\n\nEsto NO afecta el marcador ni el historial de sets ya completados — esos números seguirán mostrando lo que realmente pasó en cancha.',
+    )
+  ) {
+    statistics.resetMatchStats()
+  }
 }
 
 const teamSides: Array<{ side: TeamSide; label: string }> = [
@@ -356,6 +362,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           side="local"
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
+          :status="match.gameState.status"
           @score="scorePoint"
           @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
@@ -392,6 +399,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           side="visitor"
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
+          :status="match.gameState.status"
           @score="scorePoint"
           @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
@@ -409,7 +417,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
     <StatisticsPanel
       :game-state="match.gameState"
       :statistics="statistics.state"
-      :efficiency="statistics.teamEfficiency"
+      :attack-efficiency="statistics.attackEfficiency"
+      :block-efficiency="statistics.blockEfficiency"
+      :serve-efficiency="statistics.serveEfficiency"
+      :reception-rating="statistics.receptionRating"
       @reset="resetStatistics"
     />
 

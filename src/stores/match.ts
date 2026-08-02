@@ -20,6 +20,16 @@ import { useOverlayControlStore } from './overlayControl'
 const cloneState = (state: GameState): GameState => JSON.parse(JSON.stringify(state))
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
+const setStartListeners: Array<() => void> = []
+const onSetStart = (listener: () => void) => {
+  setStartListeners.push(listener)
+  return () => {
+    const index = setStartListeners.indexOf(listener)
+    if (index !== -1) setStartListeners.splice(index, 1)
+  }
+}
+const notifySetStart = () => setStartListeners.forEach((listener) => listener())
+
 const createTeam = (id: TeamSide, config: BroadcastConfig): Team => ({
   id,
   name: config.teams[id].name,
@@ -352,6 +362,7 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value.visitor.startingRotation = [...gameState.value.visitor.rotation]
     gameState.value.currentSetStartedAt = Date.now()
     addToHistory(DEFAULT_MESSAGES.SET_START(gameState.value.currentSet), 'info')
+    notifySetStart()
   }
 
   const nextSet = () => {
@@ -377,6 +388,7 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value.visitor.timeoutActiveUntil = undefined
     gameState.value.currentSetStartedAt = Date.now()
     addToHistory(DEFAULT_MESSAGES.SET_RESET, 'warning')
+    notifySetStart()
     publish()
     flushSessionState(true)
   }
@@ -569,6 +581,7 @@ export const useMatchStore = defineStore('match', () => {
     targetPoints,
     hydrate,
     setMatchScope,
+    onSetStart,
     startMatch,
     scorePoint,
     rotationFault,

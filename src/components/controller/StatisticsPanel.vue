@@ -6,7 +6,10 @@ import type { GameState } from '@/types/game.types'
 defineProps<{
   gameState: GameState
   statistics: StatisticsState
-  efficiency: (team: TeamSide) => number
+  attackEfficiency: (team: TeamSide) => number
+  blockEfficiency: (team: TeamSide) => number
+  serveEfficiency: (team: TeamSide) => number
+  receptionRating: (team: TeamSide) => number
 }>()
 
 const emit = defineEmits<{
@@ -68,9 +71,23 @@ const eventLabel = (type: string) =>
             <div class="text-2xl font-black text-broadcast-text">{{ gameState[side].shortCode }}</div>
             <div class="text-xs font-bold uppercase text-broadcast-muted">{{ gameState[side].name }}</div>
           </div>
-          <div class="rounded border border-broadcast-outline bg-broadcast-surface px-3 py-2 text-center">
-            <div class="text-[10px] font-black uppercase text-broadcast-muted">Eficiencia</div>
-            <div class="text-2xl font-black text-broadcast-accent">{{ efficiency(side) }}%</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <div class="rounded border border-broadcast-outline bg-broadcast-surface px-2 py-1.5 text-center" title="Ataques punto sobre ataques punto + errores de ataque">
+              <div class="text-[9px] font-black uppercase text-broadcast-muted">Ataque</div>
+              <div class="text-lg font-black text-broadcast-accent">{{ attackEfficiency(side) }}%</div>
+            </div>
+            <div class="rounded border border-broadcast-outline bg-broadcast-surface px-2 py-1.5 text-center" title="Total de bloqueos punto">
+              <div class="text-[9px] font-black uppercase text-broadcast-muted">Bloqueo</div>
+              <div class="text-lg font-black text-broadcast-accent">{{ blockEfficiency(side) }}</div>
+            </div>
+            <div class="rounded border border-broadcast-outline bg-broadcast-surface px-2 py-1.5 text-center" title="Aces sobre aces + errores de saque">
+              <div class="text-[9px] font-black uppercase text-broadcast-muted">Saque</div>
+              <div class="text-lg font-black text-broadcast-accent">{{ serveEfficiency(side) }}%</div>
+            </div>
+            <div class="rounded border border-broadcast-outline bg-broadcast-surface px-2 py-1.5 text-center" title="Recepciones positivas sobre positivas + negativas">
+              <div class="text-[9px] font-black uppercase text-broadcast-muted">Recepción</div>
+              <div class="text-lg font-black text-broadcast-accent">{{ receptionRating(side) }}%</div>
+            </div>
           </div>
         </div>
 
