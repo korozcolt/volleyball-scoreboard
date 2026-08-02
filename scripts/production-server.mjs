@@ -233,7 +233,7 @@ const upsertPlayer = (teamId, player) => {
   const payload = {
     id,
     teamId,
-    number: Math.max(1, Math.min(99, Number(player.number) || 1)),
+    number: String(Math.max(1, Math.min(99, Number(player.number) || 1))),
     name: String(player.name ?? '').trim() || `Jugador ${player.number ?? ''}`.trim(),
     active: player.active === false ? 0 : 1,
     isLibero: player.isLibero ? 1 : 0,
