@@ -55,7 +55,7 @@
   SSH si el pipeline no es automático). Verificar después con `curl` a `/api/teams` y una revisión visual en
   `score.kronnos.dev`.
 
-### 1.1 Socket zombie: reconexión no cancelada al cambiar de partido sin recargar
+### 1.1 Socket zombie: reconexión no cancelada al cambiar de partido sin recargar — [x] cerrado, commit `e458883`
 - **Dónde:** `src/services/syncService.ts`, función `subscribe()` (el handler `onclose` ~línea 126-132, y la
   función de limpieza retornada ~línea 149-157).
 - **Qué pasa:** `onclose` siempre reprograma `reconnectTimer = setTimeout(connectSocket, 1200)`. La limpieza llama
@@ -72,7 +72,7 @@
 - **Cómo probar:** dos pestañas apuntando a partidos distintos; anotar en la pestaña A, cambiar la pestaña B de
   partido sin recargar, esperar >1.2s, seguir anotando en A, confirmar que B ya NO recibe esos cambios.
 
-### 1.2 "-1 Punto" no revierte la estadística asociada
+### 1.2 "-1 Punto" no revierte la estadística asociada — [x] cerrado, commit `e458883`
 - **Dónde:** `src/stores/match.ts` función `removePoint` (~línea 271-275, solo hace
   `gameState.value[team].score -= 1`); `src/stores/statistics.ts` (no tiene ningún método de "deshacer evento");
   `src/components/controller/TeamControlPanel.vue` (emite `'remove'`, línea ~194).
@@ -86,11 +86,14 @@
   simple si se prefiere: exponer un botón explícito "Deshacer último punto" que revierta score + stat + evento en
   una sola acción, en vez de depender de que "-1 Punto" adivine qué revertir cuando hay múltiples razones posibles
   acumuladas.
-- **Decisión pendiente con el usuario:** ¿"-1 Punto" debe intentar revertir automáticamente el último evento de ESE
-  equipo (aunque no sea el último evento global), o se prefiere un botón separado "Deshacer" que solo actúa sobre
-  el evento más reciente del partido (de cualquier equipo)? Esto cambia el diseño de la función.
+- **Decisión del usuario (tomada):** "-1 Punto" revierte automáticamente el último evento de ESE equipo.
+  Implementado como `removePointWithRevert()` en `src/stores/statistics.ts` — decrementa el contador específico
+  (`attackPoints`/`blockPoints`/`aces`/`opponentErrors`/errores/habilidades) y saca el evento de `events[]`.
+  Los 4 call sites que usaban `match.removePoint` directo (`ControllerView.vue`: 2 atajos de teclado + 2 `@remove`
+  de `TeamControlPanel`) se movieron a `statistics.removePointWithRevert`. No toca `currentRun`/`biggestRun`
+  (ver 2.2, bug separado).
 
-### 1.3 Líbero: sin tope de plantel y sin restricción de saque/ataque/bloqueo
+### 1.3 Líbero: sin tope de plantel y sin restricción de saque/ataque/bloqueo — [x] cerrado (fix mínimo), commit `e458883`
 - **Dónde:** `MatchTeamPlayer.isLibero` (`src/types/game.types.ts`), checkbox libre en
   `src/views/SettingsView.vue` (líneas ~381, ~429); `src/components/controller/TeamControlPanel.vue`
   (`canUseScoringAction`, `canUseSkillAction` — no filtran por líbero); `src/stores/statistics.ts`
@@ -108,6 +111,12 @@
      asignado a la zona 1 (saque) ahora mismo?" usando `team.rotation` + `team.roster`, no un "quién anotó qué".
 - **Nota:** la implementación *completa* de reglas de líbero (zona de reemplazo, sustituciones ilimitadas que no
   cuentan contra el límite de 6) es trabajo de Fase 3 — no factible como "fix rápido".
+- **Implementado:** tope de 2 líberos en `SettingsView.vue` (`liberoCapReached()`, valida en `savePlayer` y en el
+  nuevo `toggleLibero()`, checkbox/botón se deshabilitan al llegar al máximo). Botón "Ace" deshabilitado en
+  `TeamControlPanel.vue` cuando `team.currentPlayer` (sacador actual) es líbero (`currentServerIsLibero`), con
+  tooltip explicativo. No se restringió ataque/bloqueo a nivel de equipo porque, sin atribución por jugador (3.3),
+  no hay forma de saber quién remató/bloqueó — bloquear el botón para todo el equipo por tener un líbero sacando
+  sería incorrecto.
 
 ---
 
