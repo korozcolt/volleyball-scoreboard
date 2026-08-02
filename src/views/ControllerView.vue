@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'ControllerView' })
 import { computed, onMounted, onUnmounted } from 'vue'
-import { BarChart2, ExternalLink, History, Radio, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
+import { BarChart2, ClipboardList, ExternalLink, History, LayoutGrid, Radio, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
@@ -48,6 +48,11 @@ const recordSkill = (team: TeamSide, skill: StatSkillType) => statistics.recordS
 const resetStatistics = () => {
   if (window.confirm('¿Reiniciar solo las estadísticas del partido?')) statistics.resetMatchStats()
 }
+
+const teamSides: Array<{ side: TeamSide; label: string }> = [
+  { side: 'local', label: 'Local' },
+  { side: 'visitor', label: 'Visitante' },
+]
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return
@@ -237,6 +242,97 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           />
           {{ overlay.state.lineupVisible ? 'Visible en OBS' : 'Oculto' }}
         </button>
+      </div>
+    </section>
+
+    <!-- ─── Overlays de Roster y Formación (por equipo) ────────────── -->
+    <section class="admin-card mb-4 p-4">
+      <div class="mb-3 flex items-center gap-2">
+        <ClipboardList class="h-4 w-4 text-broadcast-accent" />
+        <h3 class="text-sm font-semibold text-broadcast-text">Overlays de Roster y Formación</h3>
+      </div>
+      <div class="grid gap-3 md:grid-cols-2">
+        <div
+          v-for="t in teamSides"
+          :key="t.side"
+          class="rounded border border-broadcast-outline bg-broadcast-surface-high p-3"
+        >
+          <div class="mb-3 text-xs font-black uppercase tracking-wider text-broadcast-muted">
+            {{ t.label }} · {{ match.gameState[t.side].shortCode }}
+          </div>
+
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <a
+              :href="`/roster/${scope.matchId.value}/${t.side}`"
+              target="_blank"
+              rel="noopener"
+              class="admin-button"
+            >
+              <ClipboardList class="h-4 w-4" />
+              Roster
+              <ExternalLink class="h-3 w-3 opacity-60" />
+            </a>
+            <button
+              class="lineup-toggle-btn"
+              :class="overlay.state.rosterVisible[t.side] ? 'lineup-toggle-btn--active' : ''"
+              @click="overlay.toggleRoster(t.side)"
+            >
+              <span
+                class="lineup-toggle-dot"
+                :class="overlay.state.rosterVisible[t.side] ? 'lineup-toggle-dot--active' : ''"
+              />
+              {{ overlay.state.rosterVisible[t.side] ? 'Visible' : 'Oculto' }}
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <a
+              :href="`/formation/${scope.matchId.value}/${t.side}`"
+              target="_blank"
+              rel="noopener"
+              class="admin-button"
+            >
+              <LayoutGrid class="h-4 w-4" />
+              Formación
+              <ExternalLink class="h-3 w-3 opacity-60" />
+            </a>
+            <button
+              class="lineup-toggle-btn"
+              :class="overlay.state.formationVisible[t.side] ? 'lineup-toggle-btn--active' : ''"
+              @click="overlay.toggleFormation(t.side)"
+            >
+              <span
+                class="lineup-toggle-dot"
+                :class="overlay.state.formationVisible[t.side] ? 'lineup-toggle-dot--active' : ''"
+              />
+              {{ overlay.state.formationVisible[t.side] ? 'Visible' : 'Oculto' }}
+            </button>
+            <div class="inline-flex rounded border border-broadcast-outline bg-broadcast-surface-lowest p-0.5">
+              <button
+                class="rounded px-2 py-1 text-[11px] font-bold transition"
+                :class="
+                  overlay.state.formationMode[t.side] === 'starting'
+                    ? 'bg-broadcast-accent text-[#00354a]'
+                    : 'text-broadcast-muted hover:text-broadcast-text'
+                "
+                @click="overlay.setFormationMode(t.side, 'starting')"
+              >
+                Titular
+              </button>
+              <button
+                class="rounded px-2 py-1 text-[11px] font-bold transition"
+                :class="
+                  overlay.state.formationMode[t.side] === 'current'
+                    ? 'bg-broadcast-accent text-[#00354a]'
+                    : 'text-broadcast-muted hover:text-broadcast-text'
+                "
+                @click="overlay.setFormationMode(t.side, 'current')"
+              >
+                Actual
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

@@ -114,6 +114,27 @@ const onFileChange = (side: TeamSide, event: Event) => {
       />
     </label>
 
+    <div class="mt-4 grid grid-cols-2 gap-4">
+      <label>
+        <span class="mb-2 block text-xs font-bold uppercase text-broadcast-muted">Head coach</span>
+        <input
+          class="admin-input"
+          :value="team.headCoach"
+          placeholder="Nombre del entrenador"
+          @input="emit('update', side, { headCoach: ($event.target as HTMLInputElement).value })"
+        />
+      </label>
+      <label>
+        <span class="mb-2 block text-xs font-bold uppercase text-broadcast-muted">Assistant coach</span>
+        <input
+          class="admin-input"
+          :value="team.assistantCoach"
+          placeholder="Nombre del asistente"
+          @input="emit('update', side, { assistantCoach: ($event.target as HTMLInputElement).value })"
+        />
+      </label>
+    </div>
+
     <label
       class="mt-4 flex cursor-pointer flex-col items-center justify-center rounded border-2 border-dashed border-broadcast-outline bg-broadcast-surface-high p-5 text-center transition hover:border-broadcast-accent"
     >

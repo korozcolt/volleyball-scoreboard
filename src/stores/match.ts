@@ -46,6 +46,8 @@ const createTeam = (id: TeamSide, config: BroadcastConfig): Team => ({
   primaryColor: config.teams[id].primaryColor,
   color: config.teams[id].primaryColor,
   timeoutsUsed: 0,
+  headCoach: config.teams[id].headCoach,
+  assistantCoach: config.teams[id].assistantCoach,
 })
 
 const createInitialState = (config = DEFAULT_BROADCAST_CONFIG): GameState => {
@@ -193,6 +195,8 @@ export const useMatchStore = defineStore('match', () => {
       gameState.value[team].color = configTeam.primaryColor
       gameState.value[team].logoUrl = configTeam.logoUrl
       gameState.value[team].logo = configTeam.logoUrl
+      gameState.value[team].headCoach = configTeam.headCoach
+      gameState.value[team].assistantCoach = configTeam.assistantCoach
       if (configTeam.roster) {
         setTeamRoster(team, configTeam.roster.map((p, idx) => ({
           id: p.id || `p-${Date.now()}-${idx}`,
@@ -218,6 +222,8 @@ export const useMatchStore = defineStore('match', () => {
       gameState.value.status = 'live'
       gameState.value.startTime = Date.now()
       gameState.value.currentSetStartedAt = Date.now()
+      gameState.value.local.startingRotation = [...gameState.value.local.rotation]
+      gameState.value.visitor.startingRotation = [...gameState.value.visitor.rotation]
       addToHistory(DEFAULT_MESSAGES.GAME_START, 'success')
     }
   }
@@ -342,6 +348,8 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value.visitor.timeoutActiveUntil = undefined
     gameState.value.local.serving = gameState.value.currentSet % 2 === 1
     gameState.value.visitor.serving = !gameState.value.local.serving
+    gameState.value.local.startingRotation = [...gameState.value.local.rotation]
+    gameState.value.visitor.startingRotation = [...gameState.value.visitor.rotation]
     gameState.value.currentSetStartedAt = Date.now()
     addToHistory(DEFAULT_MESSAGES.SET_START(gameState.value.currentSet), 'info')
   }
@@ -543,9 +551,6 @@ export const useMatchStore = defineStore('match', () => {
   watch(gameState, publish, { deep: true })
   watch(() => broadcastConfig.config, () => syncTeamsFromConfig(), { deep: true })
   if (typeof window !== 'undefined') window.setInterval(expireTimeouts, 500)
-
-  hydrate()
-  subscribe()
 
   return {
     gameState,

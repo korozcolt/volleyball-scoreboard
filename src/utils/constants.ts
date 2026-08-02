@@ -62,6 +62,8 @@ export const ROUTES = {
   CONTROLLER: '/controller',
   OVERLAY: '/overlay',
   LINEUP: '/lineup',
+  ROSTER: '/roster',
+  FORMATION: '/formation',
   STATISTICS: '/statistics',
   SETTINGS: '/settings',
   MATCHES: '/matches',

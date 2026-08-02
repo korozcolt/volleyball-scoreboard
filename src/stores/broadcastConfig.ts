@@ -113,9 +113,6 @@ export const useBroadcastConfigStore = defineStore('broadcastConfig', () => {
 
   watch(config, publish, { deep: true })
 
-  hydrate()
-  subscribe()
-
   const teams = computed(() => config.value.teams)
 
   return {

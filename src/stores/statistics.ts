@@ -237,8 +237,6 @@ export const useStatisticsStore = defineStore('statistics', () => {
   })
 
   watch(state, publish, { deep: true })
-  hydrate()
-  subscribe()
 
   return {
     state,

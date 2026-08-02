@@ -65,6 +65,7 @@ export interface Team {
   serving: boolean
   currentPlayer: string | number
   rotation: (string | number)[]
+  startingRotation?: (string | number)[]
   players?: Player[]
   roster?: MatchTeamPlayer[]
   rotationState?: RotationState
@@ -72,6 +73,8 @@ export interface Team {
   color?: string
   timeoutsUsed: number
   timeoutActiveUntil?: number
+  headCoach?: string
+  assistantCoach?: string
 }
 
 export interface GameSettings {
@@ -138,6 +141,8 @@ export interface BroadcastTeamConfig {
   logoUrl?: string
   roster?: TeamPlayer[]
   profileId?: string
+  headCoach?: string
+  assistantCoach?: string
 }
 
 export interface TeamProfile extends BroadcastTeamConfig {
@@ -193,6 +198,8 @@ export interface OverlayCommand {
   durationMs?: number
 }
 
+export type FormationMode = 'starting' | 'current'
+
 export interface OverlayControlState {
   activeOverlay: OverlayMode
   isLive: boolean
@@ -200,6 +207,9 @@ export interface OverlayControlState {
   lowerThirdVisible: boolean
   lineupVisible: boolean
   lineupMode: 'court' | 'list'
+  rosterVisible: Record<TeamSide, boolean>
+  formationVisible: Record<TeamSide, boolean>
+  formationMode: Record<TeamSide, FormationMode>
   lastCommand?: OverlayCommand
 }
 

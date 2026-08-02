@@ -1,5 +1,5 @@
 import { STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
-import type { OverlayCommand, OverlayControlState, OverlayMode, TeamSide } from '@/types/game.types'
+import type { FormationMode, OverlayCommand, OverlayControlState, OverlayMode, TeamSide } from '@/types/game.types'
 import { ref, watch } from 'vue'
 import { createScopedLocalSyncAdapter, type SyncAdapter } from '@/services/syncService'
 import { defineStore } from 'pinia'
@@ -12,6 +12,9 @@ const defaultState: OverlayControlState = {
   lowerThirdVisible: false,
   lineupVisible: false,
   lineupMode: 'court',
+  rosterVisible: { local: false, visitor: false },
+  formationVisible: { local: false, visitor: false },
+  formationMode: { local: 'current', visitor: 'current' },
 }
 
 const createCommandId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -67,7 +70,7 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
       matchId,
     )
     const stored = sync.read()
-    state.value = cloneState(initialState ?? stored ?? defaultState)
+    state.value = { ...cloneState(defaultState), ...cloneState(initialState ?? stored ?? defaultState) }
     isLoaded.value = true
     subscribe()
     if (!stored && initialState) publish()
@@ -116,6 +119,18 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
     state.value.lineupMode = mode
   }
 
+  const toggleRoster = (team: TeamSide, visible?: boolean) => {
+    state.value.rosterVisible[team] = visible !== undefined ? visible : !state.value.rosterVisible[team]
+  }
+
+  const toggleFormation = (team: TeamSide, visible?: boolean) => {
+    state.value.formationVisible[team] = visible !== undefined ? visible : !state.value.formationVisible[team]
+  }
+
+  const setFormationMode = (team: TeamSide, mode: FormationMode) => {
+    state.value.formationMode[team] = mode
+  }
+
   const publish = () => {
     if (isLoaded.value && !isApplyingRemoteState) {
       sync.publish(cloneState(state.value))
@@ -124,8 +139,6 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
   }
 
   watch(state, publish, { deep: true })
-  hydrate()
-  subscribe()
 
   return {
     state,
@@ -139,6 +152,9 @@ export const useOverlayControlStore = defineStore('overlayControl', () => {
     showTimeout,
     toggleLineup,
     setLineupMode,
+    toggleRoster,
+    toggleFormation,
+    setFormationMode,
     unsubscribe: () => unsubscribeSync?.(),
   }
 })

@@ -5,6 +5,8 @@ import { ROUTES, STORAGE_KEYS } from '@utils/constants'
 const ControllerView = () => import('@/views/ControllerView.vue')
 const OverlayView = () => import('@/views/OverlayView.vue')
 const LineupOverlayView = () => import('@/views/LineupOverlayView.vue')
+const RosterOverlayView = () => import('@/views/RosterOverlayView.vue')
+const FormationOverlayView = () => import('@/views/FormationOverlayView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
 const MatchesView = () => import('@/views/MatchesView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
@@ -63,6 +65,28 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       title: 'Lineup Overlay OBS | VolleyStream',
       description: 'Overlay de roster y posicionamiento en cancha para OBS',
+      requiresFullscreen: true,
+      isOverlay: true,
+    },
+  },
+  {
+    path: `${ROUTES.ROSTER}/:matchId/:team`,
+    name: 'Roster',
+    component: RosterOverlayView,
+    meta: {
+      title: 'Roster Overlay OBS | VolleyStream',
+      description: 'Overlay de plantel completo para OBS',
+      requiresFullscreen: true,
+      isOverlay: true,
+    },
+  },
+  {
+    path: `${ROUTES.FORMATION}/:matchId/:team`,
+    name: 'Formation',
+    component: FormationOverlayView,
+    meta: {
+      title: 'Formation Overlay OBS | VolleyStream',
+      description: 'Overlay de formación en cancha (titular / actual) para OBS',
       requiresFullscreen: true,
       isOverlay: true,
     },
