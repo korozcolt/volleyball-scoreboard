@@ -15,16 +15,16 @@ const matchId = computed(() => {
   return Array.isArray(param) ? param[0] : param
 })
 const scopedPath = (base: string) => (matchId.value ? `${base}/${matchId.value}` : '/matches')
-const isActive = (to: string) =>
-  to === '/matches' ? route.path === '/matches' : route.path.startsWith(to.split('/').slice(0, 2).join('/'))
+const isActive = (basePath: string) =>
+  basePath === '/matches' ? route.path === '/matches' : route.path.startsWith(basePath)
 
 const navItems = computed(() => [
-  { to: '/matches', label: 'Partidos', icon: Trophy, external: false },
-  { to: scopedPath('/controller'), label: 'Partido', icon: MonitorCog, external: false },
-  { to: scopedPath('/statistics'), label: 'Estadísticas', icon: BarChart3, external: false },
-  { to: scopedPath('/settings'), label: 'Configuración', icon: Settings, external: false },
-  { to: scopedPath('/overlay'), label: 'Overlay OBS', icon: Radio, external: true },
-  { to: scopedPath('/lineup'), label: 'Lineup OBS', icon: Users, external: true },
+  { to: '/matches', base: '/matches', label: 'Partidos', icon: Trophy, external: false },
+  { to: scopedPath('/controller'), base: '/controller', label: 'Partido', icon: MonitorCog, external: false },
+  { to: scopedPath('/statistics'), base: '/statistics', label: 'Estadísticas', icon: BarChart3, external: false },
+  { to: scopedPath('/settings'), base: '/settings', label: 'Configuración', icon: Settings, external: false },
+  { to: scopedPath('/overlay'), base: '/overlay', label: 'Overlay OBS', icon: Radio, external: true },
+  { to: scopedPath('/lineup'), base: '/lineup', label: 'Lineup OBS', icon: Users, external: true },
 ])
 </script>
 
@@ -147,7 +147,7 @@ const navItems = computed(() => [
             :title="sidebarCollapsed ? item.label : undefined"
             :class="
               [
-                isActive(item.to)
+                isActive(item.base)
                   ? 'bg-broadcast-accent text-[#00354a]'
                   : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text',
                 sidebarCollapsed ? 'justify-center px-0' : 'translate-x-1',
@@ -221,7 +221,7 @@ const navItems = computed(() => [
             :to="item.to"
             class="mb-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition"
             :class="
-              isActive(item.to)
+              isActive(item.base)
                 ? 'bg-broadcast-accent text-[#00354a]'
                 : 'text-broadcast-muted hover:bg-broadcast-surface-high hover:text-broadcast-text'
             "
