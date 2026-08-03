@@ -232,10 +232,23 @@
   `StatisticEvent`, y una vista de "líderes" por jugadora (ya existe `leaders` a nivel de equipo en
   `statistics.ts`, se puede extender el patrón).
 
-### 3.4 Categorías de estadísticas faltantes
+### 3.4 Categorías de estadísticas faltantes — [x] cerrado, commit `334782f`
 - Toques de bloqueo no anotadores (distinto de bloqueo punto), errores de recepción/manejo, sanciones
   (tarjetas amarilla/roja, afectan el marcador), % de sideout. Evaluar cuáles priorizar según lo que el usuario
   realmente lleva en sus partidos reales — no implementar todo a ciegas.
+- **Decisión del usuario (tomada):** las 4 categorías, más apertura a otras métricas de rendimiento del equipo.
+  Implementado: `block_touch` (StatSkillType) y `reception_error` (StatErrorType, valida `!serving` igual que
+  `serve_error` valida `serving`), botones nuevos en `TeamControlPanel.vue`. Sanciones: `SanctionEvent` en
+  `Team.sanctions` (mismo patrón opcional+defensivo que `substitutions`), `match.recordSanction()` lleva el
+  registro, `statistics.issueSanction()` orquesta el punto de la tarjeta roja a través del flujo normal de
+  `recordScoredPoint` (para que `statistics.points` no se desincronice del marcador real — mismo razonamiento del
+  fix de 2.4). % de Sideout: `match.scorePoint()` ahora retorna si el equipo recuperó el saque
+  (`regainedServe`, ya se calculaba internamente para la rotación); ese booleano se guarda en cada
+  `StatisticEvent` de punto y `statistics.sideoutRating()` deriva el % directamente del log de eventos, sin
+  estructura nueva. **Nota de robustez:** al agregar campos nuevos a `TeamStatistics`, las sesiones de partido ya
+  persistidas (creadas antes de este cambio) no los tenían — se agregó `normalizeState()` en `statistics.ts` que
+  mezcla el estado cargado con los defaults, evitando que partidos viejos muestren `NaN`. Verificado localmente
+  contra la BD de desarrollo real antes de llegar a producción.
 
 ---
 
