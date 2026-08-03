@@ -197,7 +197,7 @@
 
 ## Fase 3 — Trabajo grande / requiere decisiones de producto (no son "bugs", son features ausentes)
 
-### 3.1 Sistema real de sustituciones
+### 3.1 Sistema real de sustituciones — [x] cerrado, commit `d311265`
 - **Estado actual:** no existe el concepto. `setCourtPositions` (`match.ts:469`) reescribe la alineación completa
   en cualquier momento, sin importar `status` (`idle`/`live`), sin contador, sin distinguir "corrección de
   configuración" de "sustitución real durante el partido". Mismo problema en `applyRosterToMatch` en
@@ -206,12 +206,23 @@
   set), un contador por equipo por set con tope de 6 (reglamento FIVB), y decidir si se bloquea o solo se advierte
   al intentar una 7ª sustitución. Requiere decisión de UX: ¿el contador es informativo (el anotador es quien
   decide si es válido, como en un partido real) o bloqueante?
+- **Decisiones del usuario (tomadas):** contador informativo (no bloqueante), flujo con selector "Sale"/"Entra".
+  Implementado: `SubstitutionEvent` en `game.types.ts` (`Team.substitutions`, opcional + fallback defensivo en
+  todo punto de lectura/escritura porque las sesiones de partido ya persistidas no tienen el campo — sin el
+  fallback, cargarlas rompía la app). `match.ts` → `substitutePlayer(team, playerOut, playerIn)` reemplaza en
+  `team.rotation` y registra el evento con el set actual; `substitutionCount(team)` cuenta sustituciones no-líbero
+  del set actual. `TeamControlPanel.vue` tiene una sección colapsable con los selectores y el contador "X/6".
 
-### 3.2 Reglas completas de líbero
+### 3.2 Reglas completas de líbero — [x] cerrado (alcance reducido por decisión del usuario)
 - Más allá del fix mínimo de la Fase 1: zona de reemplazo de líbero como concepto explícito, sustituciones de
   líbero ilimitadas que NO cuentan contra el límite de 6, y decisión sobre la regla de saque del líbero (ha
   cambiado entre ciclos de reglamento FIVB — confirmar cuál rige para las competencias del usuario antes de
   implementar la restricción).
+- **Decisiones del usuario (tomadas):** (1) el líbero nunca saca — ya cubierto por el fix de 3.3 (el botón Ace se
+  bloquea siempre que el jugador seleccionado sea líbero, sin excepción de zona). (2) la zona de reemplazo queda
+  solo informativa — no se valida en código, se confía en el anotador. Con eso, lo único pendiente de 3.2 es que
+  las sustituciones de líbero no cuenten contra el límite de 6 — eso se resuelve como parte del diseño de 3.1
+  (el contador de sustituciones), no como trabajo separado.
 
 ### 3.3 Atribución de estadísticas por jugador
 - **Por qué importa:** bloquea 1.3 (líbero no puede anotar ataque/bloqueo) y 3.2 de forma completa, y es lo que
