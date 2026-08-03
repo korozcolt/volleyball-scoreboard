@@ -10,6 +10,7 @@ defineProps<{
   blockEfficiency: (team: TeamSide) => number
   serveEfficiency: (team: TeamSide) => number
   receptionRating: (team: TeamSide) => number
+  sideoutRating: (team: TeamSide) => number
   playerStatsFor: (team: TeamSide) => PlayerStatSummary[]
 }>()
 
@@ -21,10 +22,12 @@ const rows = [
   { label: 'Puntos registrados', key: 'points' },
   { label: 'Ataques punto', key: 'attackPoints' },
   { label: 'Bloqueos', key: 'blockPoints' },
+  { label: 'Bloqueos tocados', key: 'blockTouches' },
   { label: 'Aces', key: 'aces' },
   { label: 'Puntos por error', key: 'opponentErrors' },
   { label: 'Errores ataque', key: 'attackErrors' },
   { label: 'Errores saque', key: 'serveErrors' },
+  { label: 'Errores recepción', key: 'receptionErrors' },
   { label: 'Recepciones +', key: 'positiveReceptions' },
   { label: 'Recepciones -', key: 'negativeReceptions' },
   { label: 'Defensas', key: 'digs' },
@@ -37,11 +40,14 @@ const eventLabel = (type: string) =>
     block: 'Bloqueo',
     ace: 'Ace',
     opponent_error: 'Punto por error',
+    sanction: 'Punto por sanción',
     attack_error: 'Error ataque',
     serve_error: 'Error saque',
+    reception_error: 'Error recepción',
     positive_reception: 'Recepción +',
     negative_reception: 'Recepción -',
     dig: 'Defensa',
+    block_touch: 'Bloqueo tocado',
   })[type] ?? type
 </script>
 
@@ -89,7 +95,16 @@ const eventLabel = (type: string) =>
               <div class="text-[9px] font-black uppercase text-broadcast-muted">Recepción</div>
               <div class="text-lg font-black text-broadcast-accent">{{ receptionRating(side) }}%</div>
             </div>
+            <div class="rounded border border-broadcast-outline bg-broadcast-surface px-2 py-1.5 text-center" title="% de veces que el equipo recupera el saque cuando está recibiendo">
+              <div class="text-[9px] font-black uppercase text-broadcast-muted">Sideout</div>
+              <div class="text-lg font-black text-broadcast-accent">{{ sideoutRating(side) }}%</div>
+            </div>
           </div>
+        </div>
+
+        <div v-if="(gameState[side].sanctions?.length ?? 0) > 0" class="mb-2 text-xs font-semibold text-broadcast-muted">
+          Sanciones: {{ gameState[side].sanctions?.filter((s) => s.cardType === 'yellow').length ?? 0 }} amarillas ·
+          {{ gameState[side].sanctions?.filter((s) => s.cardType === 'red').length ?? 0 }} rojas
         </div>
 
         <div class="grid gap-2">
@@ -138,15 +153,17 @@ const eventLabel = (type: string) =>
           Sin jugadas atribuidas a un jugador todavía.
         </div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[420px] text-left text-xs">
+          <table class="w-full min-w-[560px] text-left text-xs">
             <thead>
               <tr class="text-broadcast-muted">
                 <th class="pb-1 font-bold">#</th>
                 <th class="pb-1 font-bold text-right">ATQ</th>
                 <th class="pb-1 font-bold text-right">BLQ</th>
+                <th class="pb-1 font-bold text-right">BLQ TOC</th>
                 <th class="pb-1 font-bold text-right">ACE</th>
                 <th class="pb-1 font-bold text-right">ERR ATQ</th>
                 <th class="pb-1 font-bold text-right">ERR SAQ</th>
+                <th class="pb-1 font-bold text-right">ERR REC</th>
                 <th class="pb-1 font-bold text-right">REC+</th>
                 <th class="pb-1 font-bold text-right">REC-</th>
                 <th class="pb-1 font-bold text-right">DEF</th>
@@ -161,9 +178,11 @@ const eventLabel = (type: string) =>
                 <td class="py-1 font-black">#{{ player.playerNumber }}</td>
                 <td class="py-1 text-right">{{ player.attackPoints }}</td>
                 <td class="py-1 text-right">{{ player.blockPoints }}</td>
+                <td class="py-1 text-right">{{ player.blockTouches }}</td>
                 <td class="py-1 text-right">{{ player.aces }}</td>
                 <td class="py-1 text-right">{{ player.attackErrors }}</td>
                 <td class="py-1 text-right">{{ player.serveErrors }}</td>
+                <td class="py-1 text-right">{{ player.receptionErrors }}</td>
                 <td class="py-1 text-right">{{ player.positiveReceptions }}</td>
                 <td class="py-1 text-right">{{ player.negativeReceptions }}</td>
                 <td class="py-1 text-right">{{ player.digs }}</td>

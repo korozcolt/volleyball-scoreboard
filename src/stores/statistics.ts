@@ -23,10 +23,12 @@ const createTeamStats = (): TeamStatistics => ({
   points: 0,
   attackPoints: 0,
   blockPoints: 0,
+  blockTouches: 0,
   aces: 0,
   opponentErrors: 0,
   attackErrors: 0,
   serveErrors: 0,
+  receptionErrors: 0,
   positiveReceptions: 0,
   negativeReceptions: 0,
   digs: 0,
@@ -40,12 +42,22 @@ const createInitialState = (): StatisticsState => ({
   events: [],
 })
 
+// Sesiones de partido persistidas antes de agregar un campo nuevo a TeamStatistics no lo traen —
+// sin este merge, esos partidos viejos mostrarían NaN al cargar (el mismo problema que tuvo `substitutions`).
+const normalizeState = (raw?: Partial<StatisticsState> | null): StatisticsState => ({
+  local: { ...createTeamStats(), ...raw?.local },
+  visitor: { ...createTeamStats(), ...raw?.visitor },
+  events: raw?.events ?? [],
+  lastScoringTeam: raw?.lastScoringTeam,
+})
+
 const scoringLabels: Record<ScoringReason, string> = {
   manual: 'Punto manual',
   attack: 'Ataque',
   block: 'Bloqueo',
   ace: 'Ace',
   opponent_error: 'Punto por error',
+  sanction: 'Punto por sanción',
 }
 
 export const useStatisticsStore = defineStore('statistics', () => {
@@ -62,10 +74,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
   let isApplyingRemoteState = false
 
   const hydrate = () => {
-    state.value = {
-      ...createInitialState(),
-      ...sync.read(),
-    }
+    state.value = normalizeState(sync.read())
     isLoaded.value = true
   }
 
@@ -98,7 +107,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     unsubscribeSync = sync.subscribe((payload) => {
       if (!isLoaded.value) return
       isApplyingRemoteState = true
-      state.value = cloneState(payload)
+      state.value = normalizeState(payload)
       setTimeout(() => {
         isApplyingRemoteState = false
       }, 0)
@@ -115,13 +124,18 @@ export const useStatisticsStore = defineStore('statistics', () => {
       matchId,
     )
     const stored = sync.read()
-    state.value = cloneState(initialState ?? stored ?? createInitialState())
+    state.value = normalizeState(initialState ?? stored)
     isLoaded.value = true
     subscribe()
     if (!stored && initialState) publish()
   }
 
-  const addEvent = (team: TeamSide, type: StatisticEvent['type'], playerNumber?: string | number) => {
+  const addEvent = (
+    team: TeamSide,
+    type: StatisticEvent['type'],
+    playerNumber?: string | number,
+    regainedServe?: boolean,
+  ) => {
     state.value.events.unshift({
       id: createId(),
       team,
@@ -133,6 +147,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       },
       timestamp: Date.now(),
       playerNumber: playerNumber !== undefined ? String(playerNumber) : undefined,
+      regainedServe,
     })
     state.value.events = state.value.events.slice(0, COMMUNICATION_CONFIG.MAX_HISTORY_ITEMS)
   }
@@ -157,7 +172,12 @@ export const useStatisticsStore = defineStore('statistics', () => {
   // 'opponent_error' y 'manual' no son estadísticas personales — no se les atribuye jugador.
   const isPersonalReason = (reason: ScoringReason) => reason === 'attack' || reason === 'block' || reason === 'ace'
 
-  const recordScoredPoint = (team: TeamSide, reason: ScoringReason = 'manual', playerNumber?: string | number) => {
+  const recordScoredPoint = (
+    team: TeamSide,
+    reason: ScoringReason = 'manual',
+    playerNumber?: string | number,
+    regainedServe?: boolean,
+  ) => {
     state.value[team].points += 1
     updateRun(team)
 
@@ -166,7 +186,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     if (reason === 'ace') state.value[team].aces += 1
     if (reason === 'opponent_error') state.value[team].opponentErrors += 1
 
-    addEvent(team, reason, isPersonalReason(reason) ? playerNumber : undefined)
+    addEvent(team, reason, isPersonalReason(reason) ? playerNumber : undefined, regainedServe)
     match.addToHistory(`Estadística: ${scoringLabels[reason]} para ${match.gameState[team].shortCode}`, team)
   }
 
@@ -178,9 +198,11 @@ export const useStatisticsStore = defineStore('statistics', () => {
     ...scoringLabels,
     attack_error: 'Error de ataque',
     serve_error: 'Error de saque',
+    reception_error: 'Error de recepción',
     positive_reception: 'Recepción positiva',
     negative_reception: 'Recepción negativa',
     dig: 'Defensa',
+    block_touch: 'Bloqueo tocado',
   }
 
   const revertLastEventForTeam = (team: TeamSide) => {
@@ -207,6 +229,9 @@ export const useStatisticsStore = defineStore('statistics', () => {
         stats.opponentErrors = Math.max(0, stats.opponentErrors - 1)
         stats.points = Math.max(0, stats.points - 1)
         break
+      case 'sanction':
+        stats.points = Math.max(0, stats.points - 1)
+        break
       case 'manual':
         stats.points = Math.max(0, stats.points - 1)
         break
@@ -216,6 +241,9 @@ export const useStatisticsStore = defineStore('statistics', () => {
       case 'serve_error':
         stats.serveErrors = Math.max(0, stats.serveErrors - 1)
         break
+      case 'reception_error':
+        stats.receptionErrors = Math.max(0, stats.receptionErrors - 1)
+        break
       case 'positive_reception':
         stats.positiveReceptions = Math.max(0, stats.positiveReceptions - 1)
         break
@@ -224,6 +252,9 @@ export const useStatisticsStore = defineStore('statistics', () => {
         break
       case 'dig':
         stats.digs = Math.max(0, stats.digs - 1)
+        break
+      case 'block_touch':
+        stats.blockTouches = Math.max(0, stats.blockTouches - 1)
         break
     }
 
@@ -248,10 +279,22 @@ export const useStatisticsStore = defineStore('statistics', () => {
       return
     }
 
-    match.scorePoint(team)
+    const regainedServe = match.scorePoint(team)
     if (!match.gameState.gameFinished || reason !== 'manual') {
-      recordScoredPoint(team, reason, playerNumber)
+      recordScoredPoint(team, reason, playerNumber, regainedServe)
     }
+  }
+
+  const errorStatKey: Record<StatErrorType, 'attackErrors' | 'serveErrors' | 'receptionErrors'> = {
+    attack_error: 'attackErrors',
+    serve_error: 'serveErrors',
+    reception_error: 'receptionErrors',
+  }
+
+  const errorLabel: Record<StatErrorType, string> = {
+    attack_error: 'ataque',
+    serve_error: 'saque',
+    reception_error: 'recepción',
   }
 
   const recordErrorAndPoint = (team: TeamSide, errorType: StatErrorType, playerNumber?: string | number) => {
@@ -259,16 +302,27 @@ export const useStatisticsStore = defineStore('statistics', () => {
       rejectInvalidStat('El error de saque solo puede registrarlo el equipo que tiene el saque.')
       return
     }
+    if (errorType === 'reception_error' && match.gameState[team].serving) {
+      rejectInvalidStat('El error de recepción solo puede registrarlo el equipo que recibe el saque.')
+      return
+    }
 
     const opponent = getOpponent(team)
-    state.value[team][errorType === 'attack_error' ? 'attackErrors' : 'serveErrors'] += 1
-    match.scorePoint(opponent)
-    recordScoredPoint(opponent, 'opponent_error')
+    state.value[team][errorStatKey[errorType]] += 1
+    const regainedServe = match.scorePoint(opponent)
+    recordScoredPoint(opponent, 'opponent_error', undefined, regainedServe)
     addEvent(team, errorType, playerNumber)
-    match.addToHistory(
-      `Error de ${errorType === 'attack_error' ? 'ataque' : 'saque'} de ${match.gameState[team].shortCode}`,
-      'warning',
-    )
+    match.addToHistory(`Error de ${errorLabel[errorType]} de ${match.gameState[team].shortCode}`, 'warning')
+  }
+
+  const issueSanction = (team: TeamSide, cardType: 'yellow' | 'red') => {
+    if (match.gameState.gameFinished) return
+    match.recordSanction(team, cardType)
+    if (cardType === 'red') {
+      const opponent = getOpponent(team)
+      const regainedServe = match.scorePoint(opponent)
+      recordScoredPoint(opponent, 'sanction', undefined, regainedServe)
+    }
   }
 
   const recordSkill = (team: TeamSide, skill: StatSkillType, playerNumber?: string | number) => {
@@ -280,6 +334,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       return
     }
 
+    if (skill === 'block_touch') state.value[team].blockTouches += 1
     if (skill === 'positive_reception') state.value[team].positiveReceptions += 1
     if (skill === 'negative_reception') state.value[team].negativeReceptions += 1
     if (skill === 'dig') state.value[team].digs += 1
@@ -323,13 +378,28 @@ export const useStatisticsStore = defineStore('statistics', () => {
     return ratio(stats.positiveReceptions, stats.negativeReceptions)
   }
 
+  // % de sideout: puntos ganados recuperando el saque (regainedServe) sobre el total de veces que
+  // el equipo recibió saque (esos mismos puntos + los puntos que el rival anotó extendiendo su propio saque).
+  const sideoutRating = (team: TeamSide) => {
+    const opponent = getOpponent(team)
+    // regainedServe solo se registra en eventos de punto (vía recordScoredPoint); es undefined en
+    // eventos de habilidad/error (dig, block_touch, attack_error, ...), que no cuentan aquí.
+    const won = state.value.events.filter((event) => event.team === team && event.regainedServe === true).length
+    const lostReceiving = state.value.events.filter(
+      (event) => event.team === opponent && event.regainedServe === false,
+    ).length
+    return ratio(won, lostReceiving)
+  }
+
   const createPlayerSummary = (playerNumber: string): PlayerStatSummary => ({
     playerNumber,
     attackPoints: 0,
     blockPoints: 0,
+    blockTouches: 0,
     aces: 0,
     attackErrors: 0,
     serveErrors: 0,
+    receptionErrors: 0,
     positiveReceptions: 0,
     negativeReceptions: 0,
     digs: 0,
@@ -338,9 +408,11 @@ export const useStatisticsStore = defineStore('statistics', () => {
   const playerStatKeyByEventType: Partial<Record<StatisticEvent['type'], keyof Omit<PlayerStatSummary, 'playerNumber'>>> = {
     attack: 'attackPoints',
     block: 'blockPoints',
+    block_touch: 'blockTouches',
     ace: 'aces',
     attack_error: 'attackErrors',
     serve_error: 'serveErrors',
+    reception_error: 'receptionErrors',
     positive_reception: 'positiveReceptions',
     negative_reception: 'negativeReceptions',
     dig: 'digs',
@@ -389,12 +461,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
     scorePointWithReason,
     recordErrorAndPoint,
     recordSkill,
+    issueSanction,
     removePointWithRevert,
     resetMatchStats,
     attackEfficiency,
     blockEfficiency,
     serveEfficiency,
     receptionRating,
+    sideoutRating,
     playerStatsFor,
     unsubscribe: () => unsubscribeSync?.(),
   }

@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { ChevronDown, Minus, Plus, RotateCw, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import type { MatchStatus, ScoringReason, StatErrorType, StatSkillType, Team, TeamSide } from '@/types/game.types'
+import type {
+  MatchStatus,
+  SanctionCard,
+  ScoringReason,
+  StatErrorType,
+  StatSkillType,
+  Team,
+  TeamSide,
+} from '@/types/game.types'
 
 const props = defineProps<{
   team: Team
@@ -24,6 +32,7 @@ const emit = defineEmits<{
   rotate: [team: TeamSide]
   rotationFault: [team: TeamSide]
   substitute: [team: TeamSide, playerOut: string | number, playerIn: string | number]
+  sanction: [team: TeamSide, cardType: SanctionCard]
 }>()
 
 const now = ref(Date.now())
@@ -65,6 +74,7 @@ const skillActions: Array<{ label: string; skill: StatSkillType }> = [
   { label: 'Recep +', skill: 'positive_reception' },
   { label: 'Recep -', skill: 'negative_reception' },
   { label: 'Defensa', skill: 'dig' },
+  { label: 'Bloq. Tocado', skill: 'block_touch' },
 ]
 
 const selectedPlayerIsLibero = computed(
@@ -98,6 +108,7 @@ const canUseErrorAction = (errorType: StatErrorType) => {
   if (props.gameFinished) return false
   if (selectedPlayer.value === null) return false
   if (errorType === 'serve_error') return props.team.serving
+  if (errorType === 'reception_error') return !props.team.serving
   return true
 }
 
@@ -105,6 +116,9 @@ const errorActionTitle = (errorType: StatErrorType) => {
   if (selectedPlayer.value === null) return 'Selecciona el jugador que cometió el error.'
   if (errorType === 'serve_error' && !props.team.serving) {
     return 'El error de saque solo aplica al equipo que tiene el saque.'
+  }
+  if (errorType === 'reception_error' && props.team.serving) {
+    return 'El error de recepción solo aplica al equipo que recibe el saque.'
   }
   return ''
 }
@@ -148,6 +162,13 @@ const confirmSubstitution = () => {
   substitutePlayerOut.value = ''
   substitutePlayerIn.value = ''
 }
+
+const yellowCards = computed(
+  () => props.team.sanctions?.filter((sanction) => sanction.cardType === 'yellow').length ?? 0,
+)
+const redCards = computed(
+  () => props.team.sanctions?.filter((sanction) => sanction.cardType === 'red').length ?? 0,
+)
 </script>
 
 <template>
@@ -184,6 +205,35 @@ const confirmSubstitution = () => {
         <Timer class="h-3 w-3" />
         Pedir
       </button>
+    </div>
+
+    <div
+      class="flex items-center justify-between rounded border border-broadcast-outline bg-broadcast-surface-high p-3"
+    >
+      <span class="text-xs font-bold uppercase text-broadcast-muted">
+        Sanciones
+        <span v-if="yellowCards || redCards" class="ml-1 font-black text-broadcast-text">
+          {{ yellowCards }}A · {{ redCards }}R
+        </span>
+      </span>
+      <div class="flex gap-2">
+        <button
+          class="inline-flex h-8 items-center justify-center rounded border border-[#e8c547]/50 bg-[#e8c547]/10 px-3 text-xs font-black uppercase text-[#e8c547] transition hover:bg-[#e8c547] hover:text-[#40350a] disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          :disabled="gameFinished"
+          @click="emit('sanction', side, 'yellow')"
+        >
+          Amarilla
+        </button>
+        <button
+          class="inline-flex h-8 items-center justify-center rounded border border-broadcast-danger/50 bg-broadcast-danger/10 px-3 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          :disabled="gameFinished"
+          @click="emit('sanction', side, 'red')"
+        >
+          Roja
+        </button>
+      </div>
     </div>
 
     <div class="rounded border border-broadcast-outline bg-broadcast-surface-low p-3">
@@ -344,7 +394,7 @@ const confirmSubstitution = () => {
     </button>
 
     <div v-if="showAdvancedStats" class="grid gap-2 rounded border border-broadcast-outline bg-broadcast-surface-lowest p-3">
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-2 gap-2">
         <button
           class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
           @click="emit('statError', side, 'attack_error', selectedPlayer ?? undefined)"
@@ -362,6 +412,15 @@ const confirmSubstitution = () => {
         >
           <ShieldCheck class="h-3.5 w-3.5" />
           Saque
+        </button>
+        <button
+          class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
+          @click="emit('statError', side, 'reception_error', selectedPlayer ?? undefined)"
+          :disabled="!canUseErrorAction('reception_error')"
+          :title="errorActionTitle('reception_error')"
+        >
+          <ShieldCheck class="h-3.5 w-3.5" />
+          Recepción
         </button>
         <button
           class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"

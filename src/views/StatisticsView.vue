@@ -57,6 +57,7 @@ const resetStatistics = () => {
       :block-efficiency="statistics.blockEfficiency"
       :serve-efficiency="statistics.serveEfficiency"
       :reception-rating="statistics.receptionRating"
+      :sideout-rating="statistics.sideoutRating"
       :player-stats-for="statistics.playerStatsFor"
       @reset="resetStatistics"
     />

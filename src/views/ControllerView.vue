@@ -376,6 +376,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @rotate="match.rotateTeam"
           @rotation-fault="match.rotationFault"
           @substitute="match.substitutePlayer"
+          @sanction="statistics.issueSanction"
         />
 
         <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 md:flex-col md:border-x md:border-y-0 md:py-0">
@@ -415,6 +416,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @rotate="match.rotateTeam"
           @rotation-fault="match.rotationFault"
           @substitute="match.substitutePlayer"
+          @sanction="statistics.issueSanction"
         />
       </div>
     </section>
@@ -426,6 +428,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       :block-efficiency="statistics.blockEfficiency"
       :serve-efficiency="statistics.serveEfficiency"
       :reception-rating="statistics.receptionRating"
+      :sideout-rating="statistics.sideoutRating"
       :player-stats-for="statistics.playerStatsFor"
       @reset="resetStatistics"
     />

@@ -1,5 +1,5 @@
 import { COMMUNICATION_CONFIG, DEFAULT_BROADCAST_CONFIG, DEFAULT_GAME_SETTINGS, DEFAULT_MESSAGES, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
-import type { BroadcastConfig, CompletedSet, GameHistory, GameState, HistoryType, Team, TeamSide } from '@/types/game.types'
+import type { BroadcastConfig, CompletedSet, GameHistory, GameState, HistoryType, SanctionCard, Team, TeamSide } from '@/types/game.types'
 import { computed, ref, watch } from 'vue'
 import { createScopedLocalSyncAdapter, type SyncAdapter } from '@/services/syncService'
 import { defineStore } from 'pinia'
@@ -239,8 +239,8 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  const scorePoint = (team: TeamSide) => {
-    if (gameState.value.gameFinished) return
+  const scorePoint = (team: TeamSide): boolean => {
+    if (gameState.value.gameFinished) return false
     startMatch()
 
     const opponent = getOpponent(team)
@@ -261,6 +261,7 @@ export const useMatchStore = defineStore('match', () => {
     )
 
     resolveSetIfWon()
+    return regainedServe
   }
 
   const rotationFault = (offendingTeam: TeamSide) => {
@@ -547,6 +548,24 @@ export const useMatchStore = defineStore('match', () => {
     )
   }
 
+  // El punto por tarjeta roja lo orquesta statistics.ts (necesita registrar el evento de estadística
+  // además de anotar el punto), esta función solo lleva el registro de la sanción en sí.
+  const recordSanction = (team: TeamSide, cardType: SanctionCard) => {
+    if (gameState.value.gameFinished) return
+    if (!gameState.value[team].sanctions) gameState.value[team].sanctions = []
+    gameState.value[team].sanctions.push({
+      id: createId(),
+      team,
+      set: gameState.value.currentSet,
+      cardType,
+      timestamp: Date.now(),
+    })
+    addToHistory(
+      `Tarjeta ${cardType === 'red' ? 'roja' : 'amarilla'} para ${gameState.value[team].shortCode}`,
+      'warning',
+    )
+  }
+
   const startTimeout = (team: TeamSide) => {
     if (gameState.value.gameFinished || gameState.value.status === 'idle') return
     if (gameState.value[team].timeoutsUsed >= gameState.value.settings.timeoutsPerSet) return
@@ -646,6 +665,7 @@ export const useMatchStore = defineStore('match', () => {
     setCourtPositions,
     substitutePlayer,
     substitutionCount,
+    recordSanction,
     startTimeout,
     updateGameSettings,
     addToHistory,

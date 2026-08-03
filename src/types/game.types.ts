@@ -6,9 +6,10 @@ export type GameStatus = MatchStatus | 'waiting' | 'playing'
 export type OverlayMode = 'scoreboard' | 'history' | 'stats'
 export type BackgroundStyle = 'classic-dark' | 'steel-blue' | 'custom'
 export type LowerThirdStyle = 'glass' | 'solid-dark' | 'high-contrast'
-export type ScoringReason = 'manual' | 'attack' | 'block' | 'ace' | 'opponent_error'
-export type StatErrorType = 'attack_error' | 'serve_error'
-export type StatSkillType = 'positive_reception' | 'negative_reception' | 'dig'
+export type ScoringReason = 'manual' | 'attack' | 'block' | 'ace' | 'opponent_error' | 'sanction'
+export type StatErrorType = 'attack_error' | 'serve_error' | 'reception_error'
+export type StatSkillType = 'positive_reception' | 'negative_reception' | 'dig' | 'block_touch'
+export type SanctionCard = 'yellow' | 'red'
 
 export interface Player {
   id: number
@@ -64,6 +65,14 @@ export interface SubstitutionEvent {
   timestamp: number
 }
 
+export interface SanctionEvent {
+  id: string
+  team: TeamSide
+  set: number
+  cardType: SanctionCard
+  timestamp: number
+}
+
 export interface Team {
   id: TeamSide
   name: string
@@ -80,6 +89,7 @@ export interface Team {
   roster?: MatchTeamPlayer[]
   rotationState?: RotationState
   substitutions?: SubstitutionEvent[]
+  sanctions?: SanctionEvent[]
   primaryColor: string
   color?: string
   timeoutsUsed: number
@@ -228,10 +238,12 @@ export interface TeamStatistics {
   points: number
   attackPoints: number
   blockPoints: number
+  blockTouches: number
   aces: number
   opponentErrors: number
   attackErrors: number
   serveErrors: number
+  receptionErrors: number
   positiveReceptions: number
   negativeReceptions: number
   digs: number
@@ -250,6 +262,7 @@ export interface StatisticEvent {
   }
   timestamp: number
   playerNumber?: string | number
+  regainedServe?: boolean
 }
 
 export interface StatisticsState {
@@ -263,9 +276,11 @@ export interface PlayerStatSummary {
   playerNumber: string
   attackPoints: number
   blockPoints: number
+  blockTouches: number
   aces: number
   attackErrors: number
   serveErrors: number
+  receptionErrors: number
   positiveReceptions: number
   negativeReceptions: number
   digs: number
