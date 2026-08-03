@@ -454,7 +454,18 @@ export const useMatchStore = defineStore('match', () => {
       position: index + 1,
     }))
 
-    const initialStarters = roster.slice(0, 6)
+    // Máximo 1 líbero en cancha a la vez (regla FIVB) — aunque el plantel tenga 2 registrados,
+    // solo el primero que aparezca en el orden del roster arranca de titular.
+    const initialStarters = []
+    let liberoStarterPicked = false
+    for (const player of roster) {
+      if (initialStarters.length >= 6) break
+      if (player.isLibero) {
+        if (liberoStarterPicked) continue
+        liberoStarterPicked = true
+      }
+      initialStarters.push(player)
+    }
     const rotation = initialStarters.map((player) => player.number)
 
     gameState.value[team].roster = roster
@@ -480,9 +491,23 @@ export const useMatchStore = defineStore('match', () => {
    * Position 1 = server (back right), Position 2 = front right, 3 = front center,
    * 4 = front left, 5 = back left, 6 = back center
    */
+  const countLiberosInSlots = (team: TeamSide, slots: (string | number)[]) => {
+    const roster = gameState.value[team].roster ?? []
+    return slots.filter((number) => roster.find((p) => String(p.number) === String(number))?.isLibero).length
+  }
+
   const setCourtPositions = (team: TeamSide, jerseyByPosition: (string | number)[]) => {
     const slots = jerseyByPosition.slice(0, 6)
     while (slots.length < 6) slots.push(String(slots.length + 1))
+
+    if (countLiberosInSlots(team, slots) > 1) {
+      addToHistory(
+        `Formación inválida para ${gameState.value[team].shortCode}: no puede haber más de 1 líbero en cancha a la vez.`,
+        'warning',
+      )
+      return
+    }
+
     gameState.value[team].rotation = slots
     gameState.value[team].currentPlayer = slots[0] ?? '1'
     gameState.value[team].rotationState = {
@@ -525,6 +550,19 @@ export const useMatchStore = defineStore('match', () => {
         (String(player.number) === String(playerOut) || String(player.number) === String(playerIn)) &&
         player.isLibero,
     )
+
+    const playerInIsLibero = roster.find((p) => String(p.number) === String(playerIn))?.isLibero ?? false
+    const otherLiberoOnCourt = rotation.some(
+      (number, index) =>
+        index !== outIndex && roster.find((p) => String(p.number) === String(number))?.isLibero,
+    )
+    if (playerInIsLibero && otherLiberoOnCourt) {
+      addToHistory(
+        `Sustitución inválida en ${gameState.value[team].shortCode}: ya hay un líbero en cancha, no puede haber 2 a la vez.`,
+        'warning',
+      )
+      return
+    }
 
     rotation[outIndex] = playerIn
     if (String(gameState.value[team].currentPlayer) === String(playerOut)) {
