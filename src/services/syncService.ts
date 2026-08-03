@@ -14,6 +14,10 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
   let socket: WebSocket | null = null
   let reconnectTimer: number | undefined
   let closedByUs = false
+  // Gana el envelope más reciente por timestamp, no el que llegó último por la red — dos
+  // dispositivos controlando el mismo partido a la vez pueden entregar mensajes fuera de orden.
+  let lastAppliedTimestamp = 0
+  const isStale = (envelope: { timestamp: number }) => envelope.timestamp < lastAppliedTimestamp
   const socketQueue: Array<SyncEnvelope<T> & { sourceId: string }> = []
   const supportsBroadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window
   const sourceId =
@@ -57,6 +61,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
       if (typeof window === 'undefined') return
 
       const envelope = createEnvelope(payload)
+      lastAppliedTimestamp = envelope.timestamp
       localStorage.setItem(storageKey, JSON.stringify(envelope))
       window.dispatchEvent(new CustomEvent(channel, { detail: envelope }))
       if (socket?.readyState === WebSocket.OPEN) {
@@ -78,7 +83,12 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
 
       const customHandler = (event: Event) => {
         const detail = (event as CustomEvent<SyncEnvelope<T>>).detail
-        if (detail?.channel === channel && (detail as SyncEnvelope<T> & { sourceId?: string }).sourceId !== sourceId) {
+        if (
+          detail?.channel === channel &&
+          (detail as SyncEnvelope<T> & { sourceId?: string }).sourceId !== sourceId &&
+          !isStale(detail)
+        ) {
+          lastAppliedTimestamp = detail.timestamp
           listener(detail.payload, detail)
         }
       }
@@ -86,7 +96,10 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
       const storageHandler = (event: StorageEvent) => {
         if (event.key !== storageKey) return
         const envelope = parseEnvelope(event.newValue)
-        if (envelope) listener(envelope.payload, envelope)
+        if (envelope && !isStale(envelope)) {
+          lastAppliedTimestamp = envelope.timestamp
+          listener(envelope.payload, envelope)
+        }
       }
 
       window.addEventListener(channel, customHandler)
@@ -115,8 +128,10 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
             if (
               envelope.channel === channel &&
               envelope.version === COMMUNICATION_CONFIG.STORAGE_VERSION &&
-              envelope.sourceId !== sourceId
+              envelope.sourceId !== sourceId &&
+              !isStale(envelope)
             ) {
+              lastAppliedTimestamp = envelope.timestamp
               localStorage.setItem(storageKey, JSON.stringify(envelope))
               listener(envelope.payload, envelope)
             }
@@ -137,13 +152,30 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
 
       connectSocket()
 
+      // Una pestaña suspendida por el navegador (segundo plano/laptop dormida) puede despertar
+      // con el socket todavía "abierto" pero sin haber recibido mensajes durante la suspensión.
+      // Forzar un reconnect al volver a estar visible dispara el reenvío del último estado por
+      // canal que ya hace el servidor a toda conexión nueva — más el chequeo de isStale() arriba,
+      // el estado se autocorrige sin arriesgar sobreescribir el partido en vivo con datos viejos.
+      const handleVisibilityChange = () => {
+        if (document.visibilityState !== 'visible') return
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.close()
+        } else {
+          connectSocket()
+        }
+      }
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
       if (supportsBroadcastChannel) {
         broadcastChannel = new BroadcastChannel(channel)
         broadcastChannel.onmessage = (event: MessageEvent<SyncEnvelope<T>>) => {
           if (
             event.data?.channel === channel &&
-            (event.data as SyncEnvelope<T> & { sourceId?: string }).sourceId !== sourceId
+            (event.data as SyncEnvelope<T> & { sourceId?: string }).sourceId !== sourceId &&
+            !isStale(event.data)
           ) {
+            lastAppliedTimestamp = event.data.timestamp
             listener(event.data.payload, event.data)
           }
         }
@@ -152,6 +184,7 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
       return () => {
         window.removeEventListener(channel, customHandler)
         window.removeEventListener('storage', storageHandler)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
         closedByUs = true
         if (reconnectTimer) window.clearTimeout(reconnectTimer)
         socket?.close()
