@@ -46,7 +46,7 @@
 
 ## Fase 1 — Crítico (antes del próximo partido en vivo)
 
-### 1.0 Redesplegar el contenedor de producción con los últimos commits
+### 1.0 Redesplegar el contenedor de producción con los últimos commits — [x] cerrado (2026-08-02)
 - **Por qué:** los commits `1566146`, `bed239a`, `43f6fe8` están en `origin/main` pero el contenedor
   `marcadorvolleyball-app-rcr5xs` en `korserver` sigue corriendo el build viejo (solo se parchó la BD a mano para
   el bug de "12.0"). Sin redeploy, ninguno de los fixes de esta fase ni las features de overlays nuevas están
@@ -54,6 +54,12 @@
 - **Acción:** disparar rebuild/redeploy en Dokploy (o `git pull && npm run build` + reinicio del contenedor vía
   SSH si el pipeline no es automático). Verificar después con `curl` a `/api/teams` y una revisión visual en
   `score.kronnos.dev`.
+- **Resuelto:** resultó que Dokploy sí tiene un webhook de auto-deploy configurado — cada `git push` a `main`
+  disparó rebuild + rolling update solo, sin acción manual. Verificado comparando hashes de assets
+  (`ControllerView-CG4zNKsX.js` en `score.kronnos.dev` coincide exactamente con el build local del commit
+  `e398053`, incluyendo el string "Meter líbero"). Ver [[reference-deployment]] para el método de verificación —
+  la nota anterior de esa memoria (que asumía que no había auto-deploy) estaba desactualizada/incorrecta, ya
+  corregida.
 
 ### 1.1 Socket zombie: reconexión no cancelada al cambiar de partido sin recargar — [x] cerrado, commit `e458883`
 - **Dónde:** `src/services/syncService.ts`, función `subscribe()` (el handler `onclose` ~línea 126-132, y la
@@ -281,5 +287,12 @@
 2. Confirma con el usuario en qué fase está parado (revisa los checkboxes `[x]`).
 3. Antes de implementar Fase 3 (sustituciones, líbero completo, atribución por jugador), estas requieren
    decisiones de producto explícitas marcadas arriba — pregunta antes de construir, no asumas.
-3. Al cerrar cada ítem: marca `[x]`, anota el commit, y si tocó producción, recuerda el paso de redeploy
-   (ver 1.0) — el contenedor NO se actualiza solo con `git push`.
+3. Al cerrar cada ítem: marca `[x]` y anota el commit. El contenedor de producción SÍ se auto-despliega con
+   `git push` a `main` (Dokploy webhook, confirmado en 1.0) — no hace falta redeploy manual, pero conviene
+   verificar que el deploy realmente aterrizó (método en [[reference-deployment]]) antes de dar por sentado que
+   un fix ya está en vivo, sobre todo si el push fue hace menos de un par de minutos.
+
+Roadmap Fase 1-3 completo al cierre de esta sesión (2026-08-02). Todo el trabajo de código está en `main` y
+verificado en producción. Pendiente futuro: cualquier iteración sobre lo ya construido, o retomar ideas sueltas
+mencionadas en las decisiones de usuario de cada ítem (p. ej. validar zona de reemplazo de líbero si algún
+torneo específico lo exige).
