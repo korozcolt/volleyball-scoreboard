@@ -122,7 +122,7 @@
 
 ## Fase 2 — Moderado (siguiente iteración, no bloquea un partido)
 
-### 2.1 Botón "Rotar" manual sin restricción durante el set en vivo
+### 2.1 Botón "Rotar" manual sin restricción durante el set en vivo — [x] cerrado, commit `4f9cd61`
 - **Dónde:** `src/components/controller/TeamControlPanel.vue` (botón Rotar, solo deshabilitado en
   `gameFinished`); `src/stores/match.ts` `rotateTeam` (línea ~405).
 - **Qué pasa:** además de la rotación automática por cambio de saque (`scorePoint`), el botón manual puede rotar
@@ -131,8 +131,11 @@
 - **Fix propuesto:** o bien ocultar/deshabilitar "Rotar" mientras `status === 'live'` (dejarlo solo como
   herramienta de corrección con partido pausado/`idle`), o añadir una confirmación explícita ("¿Corregir rotación
   manualmente? Esto es una corrección, no una rotación de juego normal.").
+- **Decisión del usuario (tomada):** deshabilitar en vivo. Implementado en `TeamControlPanel.vue`
+  (`canRotateManually`, nuevo prop `status`) — el botón se deshabilita mientras `status === 'live'`, con tooltip
+  explicando la alternativa (pausar el set).
 
-### 2.2 "Racha actual" no se reinicia al empezar un set nuevo
+### 2.2 "Racha actual" no se reinicia al empezar un set nuevo — [x] cerrado, commit `4f9cd61`
 - **Dónde:** `src/stores/statistics.ts`, función `updateRun` (usa `state.value.lastScoringTeam`, nunca reseteado);
   `src/stores/match.ts` `advanceToNextSet` (línea ~339) no toca la store de estadísticas.
 - **Qué pasa:** si el equipo A cierra el set 1 con una racha de 4 puntos, y anota el primer punto del set 2, la UI
@@ -140,8 +143,12 @@
 - **Fix propuesto:** en `advanceToNextSet` (y en `resetSet`), llamar a un nuevo método de `statistics` store que
   resetee `currentRun` y `lastScoringTeam` a sus valores iniciales (NO tocar `biggestRun`, que es acumulado de
   todo el partido correctamente).
+- **Implementado:** para evitar import circular (`statistics.ts` ya importa `match.ts`), se agregó un pub-sub a
+  nivel de módulo en `match.ts` (`onSetStart`/`notifySetStart`), disparado desde `advanceToNextSet` y `resetSet`.
+  `statistics.ts` se suscribe una vez con `resetRun()`, que resetea `currentRun`/`lastScoringTeam` sin tocar
+  `biggestRun`.
 
-### 2.3 "Eficiencia" mezcla habilidades no relacionadas en un solo número
+### 2.3 "Eficiencia" mezcla habilidades no relacionadas en un solo número — [x] cerrado, commit `4f9cd61`
 - **Dónde:** `src/stores/statistics.ts`, función `teamEfficiency` (línea ~220-226).
 - **Qué pasa:** `(attackPoints + blockPoints + aces) / (positivos + attackErrors + serveErrors +
   negativeReceptions)`. Ninguna métrica real de voleibol combina ataque, bloqueo, saque y recepción en un solo
@@ -151,8 +158,15 @@
   reglamento/convención de scouting) o mantener un número compuesto pero renombrarlo/explicarlo mejor para no
   aparentar ser una métrica estándar? Requiere ajustar `StatisticsPanel.vue` y `StatisticsView.vue` además de la
   store.
+- **Decisión del usuario (tomada):** separar en 3-4 métricas reales. `statistics.ts` reemplaza `teamEfficiency`
+  por `attackEfficiency` (kills/(kills+errores ataque)), `blockEfficiency` (total bloqueos punto, sin conteo de
+  bloqueos fallidos disponible), `serveEfficiency` (aces/(aces+errores saque)), `receptionRating`
+  (recepciones+/(recepciones+ + recepciones-)). `StatisticsPanel.vue` (panel de control, con espacio) muestra las
+  4. `OverlayStats.vue`/`OverlayScoreboard.vue` (gráfico de broadcast, tamaño fijo) mantienen un solo número por
+  espacio, pero ahora es `attackEfficiency` real (la métrica más reconocible en transmisión), relabeleado
+  "ATQ%" en vez del genérico "EFF" engañoso.
 
-### 2.4 "Reiniciar estadísticas" desincroniza del historial de sets
+### 2.4 "Reiniciar estadísticas" desincroniza del historial de sets — [x] cerrado, commit `4f9cd61`
 - **Dónde:** `src/stores/statistics.ts` `resetMatchStats` (línea ~216-218); `gameState.completedSets` en
   `match.ts` no se toca.
 - **Qué pasa:** tras usar "Reiniciar estadísticas" a mitad de partido, "Historial de sets" sigue mostrando
@@ -161,19 +175,23 @@
 - **Fix propuesto:** o bien advertir explícitamente en el diálogo de confirmación que esto NO afecta el historial
   de sets (documentar la asimetría), o bloquear el reset una vez que `completedSets.length > 0` y ofrecer en su
   lugar "Reiniciar solo el set actual" (que ya existe como acción separada — verificar si cubre este caso).
+- **Decisión del usuario (tomada):** advertir en el diálogo. `ControllerView.vue` y `StatisticsView.vue` ahora
+  muestran un `confirm()` explícito: "Esto NO afecta el marcador ni el historial de sets ya completados".
 
-### 2.5 Botón "Custom" de fondo sin indicador de selección
+### 2.5 Botón "Custom" de fondo sin indicador de selección — [x] cerrado, commit `4f9cd61`
 - **Dónde:** `src/views/SettingsView.vue`, ~línea 603-609 (botones "Clásico"/"Acero"/"Custom").
 - **Fix:** añadir la misma clase condicional `border-broadcast-accent` que ya tienen los otros dos botones cuando
   `broadcast.config.backgroundStyle === 'custom'`.
 
-### 2.6 Triple lógica de nav-activo duplicada (mismo patrón que el bug ya corregido)
+### 2.6 Triple lógica de nav-activo duplicada (mismo patrón que el bug ya corregido) — [x] cerrado, commit `4f9cd61`
 - **Dónde:** `src/components/layout/BroadcastLayout.vue` — además del sidebar desktop y el menú móvil (ya
   corregidos, comparten `isActive()`/`navItems`), hay un **tercer** nav en el header (líneas ~49-77) con su propia
   lógica inline de `route.path.startsWith(...)`, y le faltan enlaces a "Estadísticas" y "Partidos".
 - **Fix propuesto:** extraer un solo `navItems` + `isActive` compartido y reusarlo en los tres sitios de render,
   para que un futuro cambio en uno no vuelva a desincronizar a los otros dos (que es exactamente lo que causó el
   bug original).
+- **Implementado:** el nav del header ahora itera `navItems` con `isActive()` compartido, igual que el sidebar y
+  el menú móvil — agrega los enlaces que faltaban ("Estadísticas", "Partidos").
 
 ---
 
