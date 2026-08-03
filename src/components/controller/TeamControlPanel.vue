@@ -169,6 +169,83 @@ const yellowCards = computed(
 const redCards = computed(
   () => props.team.sanctions?.filter((sanction) => sanction.cardType === 'red').length ?? 0,
 )
+
+// Atajo de cambio de líbero: detecta automáticamente al central (MB) en zaguero para meter al
+// líbero, o a quién reemplazó (vía historial de sustituciones) para sacarlo. Cae al selector
+// manual de arriba si no puede determinarlo (roster sin `role` asignado, etc.).
+const selectedLiberoToEnter = ref<string>('')
+// team.rotation[0]=zona1(zaguero der./saque), [4]=zona5(zaguero izq.), [5]=zona6(zaguero centro)
+const backRowZoneIndexes = [0, 4, 5]
+
+const liberosOnRoster = computed(() => props.team.roster?.filter((p) => p.isLibero) ?? [])
+
+const activeLiberoOnCourt = computed(
+  () =>
+    liberosOnRoster.value.find((p) => props.team.rotation.some((n) => String(n) === String(p.number))) ?? null,
+)
+
+const backRowMiddleBlocker = computed(() => {
+  const backRowNumbers = backRowZoneIndexes.map((i) => props.team.rotation[i]).filter((n) => n !== undefined)
+  return (
+    props.team.roster?.find(
+      (p) => p.role === 'MB' && backRowNumbers.some((n) => String(n) === String(p.number)),
+    ) ?? null
+  )
+})
+
+const liberoReturningPlayer = computed(() => {
+  const libero = activeLiberoOnCourt.value
+  if (!libero) return null
+  const subs = props.team.substitutions ?? []
+  for (let i = subs.length - 1; i >= 0; i -= 1) {
+    if (subs[i].isLibero && String(subs[i].playerIn) === String(libero.number)) return subs[i].playerOut
+  }
+  return null
+})
+
+const liberoSwapMode = computed(() => (activeLiberoOnCourt.value ? 'out' : 'in'))
+
+const liberoSwapReady = computed(() => {
+  if (props.gameFinished) return false
+  if (liberoSwapMode.value === 'out') return liberoReturningPlayer.value !== null
+  if (!backRowMiddleBlocker.value || liberosOnRoster.value.length === 0) return false
+  if (liberosOnRoster.value.length > 1 && !selectedLiberoToEnter.value) return false
+  return true
+})
+
+const liberoSwapLabel = computed(() => {
+  if (liberoSwapMode.value === 'out') return `Sacar líbero (#${activeLiberoOnCourt.value?.number})`
+  const target = backRowMiddleBlocker.value ? ` por #${backRowMiddleBlocker.value.number}` : ''
+  return `Meter líbero${target}`
+})
+
+const liberoSwapTitle = computed(() => {
+  if (liberoSwapMode.value === 'out') {
+    return liberoReturningPlayer.value === null
+      ? 'No se pudo determinar a quién reemplazó el líbero — usa el selector manual.'
+      : ''
+  }
+  if (liberosOnRoster.value.length === 0) return 'No hay líbero registrado en el roster.'
+  if (!backRowMiddleBlocker.value) {
+    return 'No se detectó un central (MB) en zaguero — usa el selector manual.'
+  }
+  if (liberosOnRoster.value.length > 1 && !selectedLiberoToEnter.value) return 'Elige cuál líbero entra.'
+  return ''
+})
+
+const confirmLiberoSwap = () => {
+  if (!liberoSwapReady.value) return
+  if (liberoSwapMode.value === 'out' && activeLiberoOnCourt.value && liberoReturningPlayer.value !== null) {
+    emit('substitute', side, activeLiberoOnCourt.value.number, liberoReturningPlayer.value)
+    return
+  }
+  if (liberoSwapMode.value === 'in' && backRowMiddleBlocker.value) {
+    const incoming =
+      liberosOnRoster.value.length === 1 ? liberosOnRoster.value[0].number : selectedLiberoToEnter.value
+    emit('substitute', side, backRowMiddleBlocker.value.number, incoming)
+    selectedLiberoToEnter.value = ''
+  }
+}
 </script>
 
 <template>
@@ -268,6 +345,28 @@ const redCards = computed(
     </div>
 
     <div class="rounded border border-broadcast-outline bg-broadcast-surface-low p-3">
+      <div v-if="liberosOnRoster.length > 0" class="mb-3 flex items-center gap-2">
+        <button
+          class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded border border-[#ffcf4a]/50 bg-[#ffcf4a]/10 text-xs font-black uppercase text-[#ffcf4a] transition hover:bg-[#ffcf4a] hover:text-[#40350a] disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          :disabled="!liberoSwapReady"
+          :title="liberoSwapTitle"
+          @click="confirmLiberoSwap"
+        >
+          {{ liberoSwapLabel }}
+        </button>
+        <select
+          v-if="liberoSwapMode === 'in' && liberosOnRoster.length > 1"
+          v-model="selectedLiberoToEnter"
+          class="admin-input h-9 w-24 text-xs"
+        >
+          <option value="" disabled>Líbero</option>
+          <option v-for="player in liberosOnRoster" :key="player.id" :value="String(player.number)">
+            #{{ player.number }}
+          </option>
+        </select>
+      </div>
+
       <button
         class="flex w-full items-center justify-between text-xs font-black uppercase text-broadcast-muted transition hover:text-broadcast-text"
         type="button"
