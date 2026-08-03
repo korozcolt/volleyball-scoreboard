@@ -260,24 +260,33 @@
 
 ## Fase 4 — Infraestructura / bajo riesgo, sin urgencia
 
-### 4.1 `lastByChannel` crece sin límite en el servidor de sync
+### 4.1 `lastByChannel` crece sin límite en el servidor de sync — [x] cerrado, commit `234894d`
 - **Dónde:** `scripts/sync-server.mjs:5` y `scripts/production-server.mjs:616`. Un entry por canal único (4 por
   partido: match/broadcastConfig/overlayControl/statistics), nunca se limpia, sin TTL.
 - **Fix propuesto:** limpiar entries cuando un `match_session` se archiva/borra, o poner un TTL simple basado en
   `updated_at`. Baja urgencia — fuga de memoria lenta, no un problema para uso normal a corto plazo.
+- **Implementado:** TTL de 12h + barrido cada 30 min (`setInterval(...).unref()`) en ambos servidores, idéntico en
+  los dos archivos (no comparten módulos entre sí).
 
-### 4.2 Sin resolución de conflictos entre escritores simultáneos
+### 4.2 Sin resolución de conflictos entre escritores simultáneos — [x] cerrado, commit `234894d`
 - **Dónde:** `syncService.ts` — cada envelope lleva `timestamp` pero nada lo usa; gana el último mensaje
   *entregado*, no el más reciente *editado*.
 - **Escenario:** dos pestañas de control para el mismo partido (laptop del anotador + tablet de respaldo).
 - **Fix propuesto (si el usuario confirma que usa múltiples dispositivos de control a la vez):** rechazar/ignorar
   un envelope entrante si su `timestamp` es más viejo que el último aplicado localmente.
+- **Decisión del usuario (tomada):** sí usa/podría usar múltiples dispositivos. Implementado: `lastAppliedTimestamp`
+  por adaptador, chequeado (`isStale()`) en las 4 rutas de recepción (CustomEvent same-tab, `storage` event
+  cross-tab, WebSocket, BroadcastChannel) y actualizado también al publicar.
 
-### 4.3 Pestaña en segundo plano puede reconectarse con estado obsoleto
+### 4.3 Pestaña en segundo plano puede reconectarse con estado obsoleto — [x] cerrado, commit `234894d`
 - Relacionado con 1.1 y 4.2 — una pestaña suspendida por el navegador que despierta y publica su copia en memoria
   (desactualizada) puede sobrescribir el partido en vivo. Mitigar junto con el fix de 1.1 (una vez que la
   reconexión esté bien controlada, considerar comparar timestamp/versión antes de aceptar la reconexión como
   fuente de verdad).
+- **Implementado:** listener de `visibilitychange` en `syncService.ts` — al volver a estar visible, fuerza el
+  cierre del socket (si sigue "abierto"), lo que dispara el reconnect de 1.1. El servidor ya reenvía el último
+  envelope por canal a toda conexión nueva (`lastByChannel.values()`), así que el reconnect forzado + el chequeo
+  de `isStale()` de 4.2 auto-corrigen el estado sin arriesgar sobreescribir el partido en vivo.
 
 ---
 
