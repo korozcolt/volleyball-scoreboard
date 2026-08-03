@@ -22,9 +22,16 @@ const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 // Compara únicamente los campos que importan para armar la alineación — ignora `id` (que se
 // regenera en cada resync) y `position` (derivada), para no disparar falsos positivos.
+// Ordena por número antes de comparar: dos resyncs del mismo plantel pueden llegar con el array
+// en distinto orden (otra pestaña, el overlay, un reenvío del servidor de sync al reconectar) sin
+// que el plantel haya cambiado realmente — sin este sort, ese solo reordenamiento se veía como "el
+// roster cambió" y disparaba setTeamRoster, que reconstruye la rotación y borraba cualquier
+// formación/sustitución/cambio de líbero aplicado a mano.
 const rosterSignature = (roster: Array<{ number: string | number; active: boolean; isLibero?: boolean; role?: string }>) =>
   JSON.stringify(
-    roster.map((p) => ({ n: String(p.number), a: p.active, l: !!p.isLibero, r: p.role ?? null })),
+    roster
+      .map((p) => ({ n: String(p.number), a: p.active, l: !!p.isLibero, r: p.role ?? null }))
+      .sort((a, b) => a.n.localeCompare(b.n, undefined, { numeric: true })),
   )
 
 const setStartListeners: Array<() => void> = []
