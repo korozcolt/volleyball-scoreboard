@@ -81,9 +81,20 @@ const toRosterSnapshot = (side: TeamSide, profile?: TeamProfile): MatchTeamPlaye
 
 const createTeam = (side: TeamSide, config: BroadcastConfig, profile?: TeamProfile): Team => {
   const roster = toRosterSnapshot(side, profile)
-  // Initially put the first 6 available players on court
-  const rotation = roster.slice(0, 6).map((player) => player.number)
-  
+  // Initially put the first 6 available players on court — máximo 1 líbero a la vez (regla FIVB),
+  // aunque el plantel tenga 2 registrados.
+  const starters: MatchTeamPlayer[] = []
+  let liberoStarterPicked = false
+  for (const player of roster) {
+    if (starters.length >= 6) break
+    if (player.isLibero) {
+      if (liberoStarterPicked) continue
+      liberoStarterPicked = true
+    }
+    starters.push(player)
+  }
+  const rotation = starters.map((player) => player.number)
+
   // Fill with dummy numbers if roster has fewer than 6 players
   while (rotation.length < 6) {
     rotation.push(String(rotation.length + 1))

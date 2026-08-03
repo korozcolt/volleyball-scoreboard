@@ -20,6 +20,13 @@ import { useOverlayControlStore } from './overlayControl'
 const cloneState = (state: GameState): GameState => JSON.parse(JSON.stringify(state))
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`
 
+// Compara únicamente los campos que importan para armar la alineación — ignora `id` (que se
+// regenera en cada resync) y `position` (derivada), para no disparar falsos positivos.
+const rosterSignature = (roster: Array<{ number: string | number; active: boolean; isLibero?: boolean; role?: string }>) =>
+  JSON.stringify(
+    roster.map((p) => ({ n: String(p.number), a: p.active, l: !!p.isLibero, r: p.role ?? null })),
+  )
+
 const setStartListeners: Array<() => void> = []
 const onSetStart = (listener: () => void) => {
   setStartListeners.push(listener)
@@ -209,15 +216,22 @@ export const useMatchStore = defineStore('match', () => {
       gameState.value[team].headCoach = configTeam.headCoach
       gameState.value[team].assistantCoach = configTeam.assistantCoach
       if (configTeam.roster) {
-        setTeamRoster(team, configTeam.roster.map((p, idx) => ({
-          id: p.id || `p-${Date.now()}-${idx}`,
+        const incomingRoster = configTeam.roster.map((p, idx) => ({
+          id: p.id || `p-${team}-${idx}`,
           number: p.number,
           name: p.name || `Jugador ${p.number}`,
           position: 0,
           active: p.active !== false,
           isLibero: p.isLibero,
           role: p.role,
-        })))
+        }))
+        // syncTeamsFromConfig se re-dispara con cualquier resync de broadcastConfig (incluida una
+        // reconexión de socket sin cambios reales, ver 4.3) — si el roster no cambió de verdad,
+        // no llamamos setTeamRoster, que reconstruye la rotación desde cero y borraría cualquier
+        // sustitución/cambio de líbero/formación manual hecho antes del primer punto.
+        if (rosterSignature(incomingRoster) !== rosterSignature(gameState.value[team].roster ?? [])) {
+          setTeamRoster(team, incomingRoster)
+        }
       }
     })
 

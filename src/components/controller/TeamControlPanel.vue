@@ -200,7 +200,13 @@ const liberoReturningPlayer = computed(() => {
   for (let i = subs.length - 1; i >= 0; i -= 1) {
     if (subs[i].isLibero && String(subs[i].playerIn) === String(libero.number)) return subs[i].playerOut
   }
-  return null
+  // Sin historial de sustitución (el líbero arrancó de titular, nunca "entró") — cae al central
+  // que no está en cancha ahora mismo, que es a quien el líbero reemplaza por construcción de
+  // la rotación (los 2 MB de un plantel siempre quedan 3 zonas apartados entre sí).
+  const benchedMiddleBlocker = props.team.roster?.find(
+    (p) => p.role === 'MB' && !props.team.rotation.some((n) => String(n) === String(p.number)),
+  )
+  return benchedMiddleBlocker?.number ?? null
 })
 
 const liberoSwapMode = computed(() => (activeLiberoOnCourt.value ? 'out' : 'in'))
