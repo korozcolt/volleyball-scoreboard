@@ -58,6 +58,7 @@ const createTeam = (id: TeamSide, config: BroadcastConfig): Team => ({
   timeoutsUsed: 0,
   headCoach: config.teams[id].headCoach,
   assistantCoach: config.teams[id].assistantCoach,
+  substitutions: [],
 })
 
 const createInitialState = (config = DEFAULT_BROADCAST_CONFIG): GameState => {
@@ -499,6 +500,53 @@ export const useMatchStore = defineStore('match', () => {
     addToHistory(`Formación de ${gameState.value[team].shortCode} actualizada`, 'info')
   }
 
+  // Tope de 6 sustituciones por equipo/set (FIVB) — informativo, no bloqueante: el anotador decide.
+  // Las sustituciones que involucran al líbero no cuentan contra ese tope.
+  const substitutionCount = (team: TeamSide) =>
+    (gameState.value[team].substitutions ?? []).filter(
+      (sub) => sub.set === gameState.value.currentSet && !sub.isLibero,
+    ).length
+
+  const substitutePlayer = (team: TeamSide, playerOut: string | number, playerIn: string | number) => {
+    if (gameState.value.gameFinished) return
+
+    const rotation = gameState.value[team].rotation
+    const outIndex = rotation.findIndex((number) => String(number) === String(playerOut))
+    if (outIndex === -1) {
+      addToHistory(`Sustitución inválida: #${playerOut} no está en cancha.`, 'warning')
+      return
+    }
+    if (String(playerOut) === String(playerIn)) return
+
+    const roster = gameState.value[team].roster ?? []
+    const isLibero = roster.some(
+      (player) =>
+        (String(player.number) === String(playerOut) || String(player.number) === String(playerIn)) &&
+        player.isLibero,
+    )
+
+    rotation[outIndex] = playerIn
+    if (String(gameState.value[team].currentPlayer) === String(playerOut)) {
+      gameState.value[team].currentPlayer = playerIn
+    }
+
+    if (!gameState.value[team].substitutions) gameState.value[team].substitutions = []
+    gameState.value[team].substitutions.push({
+      id: createId(),
+      team,
+      set: gameState.value.currentSet,
+      playerOut: String(playerOut),
+      playerIn: String(playerIn),
+      isLibero,
+      timestamp: Date.now(),
+    })
+
+    addToHistory(
+      `Sustitución en ${gameState.value[team].shortCode}: sale #${playerOut}, entra #${playerIn}`,
+      'info',
+    )
+  }
+
   const startTimeout = (team: TeamSide) => {
     if (gameState.value.gameFinished || gameState.value.status === 'idle') return
     if (gameState.value[team].timeoutsUsed >= gameState.value.settings.timeoutsPerSet) return
@@ -596,6 +644,8 @@ export const useMatchStore = defineStore('match', () => {
     rotateTeam,
     setTeamRoster,
     setCourtPositions,
+    substitutePlayer,
+    substitutionCount,
     startTimeout,
     updateGameSettings,
     addToHistory,

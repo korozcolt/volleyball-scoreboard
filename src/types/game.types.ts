@@ -54,6 +54,16 @@ export interface RotationState {
   }>
 }
 
+export interface SubstitutionEvent {
+  id: string
+  team: TeamSide
+  set: number
+  playerOut: string
+  playerIn: string
+  isLibero: boolean
+  timestamp: number
+}
+
 export interface Team {
   id: TeamSide
   name: string
@@ -69,6 +79,7 @@ export interface Team {
   players?: Player[]
   roster?: MatchTeamPlayer[]
   rotationState?: RotationState
+  substitutions?: SubstitutionEvent[]
   primaryColor: string
   color?: string
   timeoutsUsed: number

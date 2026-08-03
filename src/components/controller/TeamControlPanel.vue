@@ -9,6 +9,7 @@ const props = defineProps<{
   matchStarted?: boolean
   gameFinished?: boolean
   status?: MatchStatus
+  substitutionCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -22,11 +23,15 @@ const emit = defineEmits<{
   statSkill: [team: TeamSide, skill: StatSkillType, playerNumber?: string | number]
   rotate: [team: TeamSide]
   rotationFault: [team: TeamSide]
+  substitute: [team: TeamSide, playerOut: string | number, playerIn: string | number]
 }>()
 
 const now = ref(Date.now())
 const showAdvancedStats = ref(false)
+const showSubstitution = ref(false)
 const selectedPlayer = ref<string | number | null>(null)
+const substitutePlayerOut = ref<string>('')
+const substitutePlayerIn = ref<string>('')
 let clock: number | undefined
 
 onMounted(() => {
@@ -125,6 +130,24 @@ const rotateTitle = computed(() =>
     ? 'Pausa el set para corregir la rotación manualmente — en vivo rota automáticamente al recuperar el saque.'
     : '',
 )
+
+const benchPlayers = computed(
+  () =>
+    props.team.roster?.filter(
+      (player) => player.active && !props.team.rotation.some((n) => String(n) === String(player.number)),
+    ) ?? [],
+)
+
+const canConfirmSubstitution = computed(
+  () => !props.gameFinished && substitutePlayerOut.value !== '' && substitutePlayerIn.value !== '',
+)
+
+const confirmSubstitution = () => {
+  if (!canConfirmSubstitution.value) return
+  emit('substitute', side, substitutePlayerOut.value, substitutePlayerIn.value)
+  substitutePlayerOut.value = ''
+  substitutePlayerIn.value = ''
+}
 </script>
 
 <template>
@@ -191,6 +214,51 @@ const rotateTitle = computed(() =>
         >
           #{{ number }}
         </div>
+      </div>
+    </div>
+
+    <div class="rounded border border-broadcast-outline bg-broadcast-surface-low p-3">
+      <button
+        class="flex w-full items-center justify-between text-xs font-black uppercase text-broadcast-muted transition hover:text-broadcast-text"
+        type="button"
+        @click="showSubstitution = !showSubstitution"
+      >
+        <span>Sustituciones (set actual)</span>
+        <span class="flex items-center gap-2">
+          <span class="rounded border border-broadcast-outline bg-broadcast-surface-high px-2 py-0.5 text-broadcast-text">
+            {{ substitutionCount ?? 0 }}/6
+          </span>
+          <ChevronDown class="h-4 w-4 transition" :class="{ 'rotate-180': showSubstitution }" />
+        </span>
+      </button>
+
+      <div v-if="showSubstitution" class="mt-3 grid gap-2">
+        <div class="grid grid-cols-2 gap-2">
+          <select v-model="substitutePlayerOut" class="admin-input h-9 text-xs">
+            <option value="" disabled>Sale</option>
+            <option v-for="number in team.rotation" :key="number" :value="String(number)">
+              #{{ number }}
+            </option>
+          </select>
+          <select v-model="substitutePlayerIn" class="admin-input h-9 text-xs">
+            <option value="" disabled>Entra</option>
+            <option v-for="player in benchPlayers" :key="player.id" :value="String(player.number)">
+              #{{ player.number }} {{ player.name }}{{ player.isLibero ? ' (L)' : '' }}
+            </option>
+          </select>
+        </div>
+        <button
+          class="inline-flex h-9 items-center justify-center rounded border border-broadcast-accent bg-broadcast-accent/10 text-xs font-black uppercase text-broadcast-accent transition hover:bg-broadcast-accent hover:text-[#00354a] disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          :disabled="!canConfirmSubstitution"
+          @click="confirmSubstitution"
+        >
+          Confirmar sustitución
+        </button>
+        <p class="text-[10px] text-broadcast-muted">
+          Contador informativo (no bloquea). Las sustituciones que involucran al líbero no cuentan contra el
+          límite de 6.
+        </p>
       </div>
     </div>
 

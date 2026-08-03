@@ -364,6 +364,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
           :status="match.gameState.status"
+          :substitution-count="match.substitutionCount('local')"
           @score="scorePoint"
           @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
@@ -374,6 +375,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @stat-skill="recordSkill"
           @rotate="match.rotateTeam"
           @rotation-fault="match.rotationFault"
+          @substitute="match.substitutePlayer"
         />
 
         <div class="flex flex-row items-center justify-center gap-4 border-y border-broadcast-outline py-4 md:flex-col md:border-x md:border-y-0 md:py-0">
@@ -401,6 +403,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           :match-started="match.gameState.status !== 'idle'"
           :game-finished="match.gameState.gameFinished"
           :status="match.gameState.status"
+          :substitution-count="match.substitutionCount('visitor')"
           @score="scorePoint"
           @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
@@ -411,6 +414,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @stat-skill="recordSkill"
           @rotate="match.rotateTeam"
           @rotation-fault="match.rotationFault"
+          @substitute="match.substitutePlayer"
         />
       </div>
     </section>
