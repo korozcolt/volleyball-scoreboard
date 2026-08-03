@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, Minus, Plus, RotateCw, ShieldCheck, Target, Timer, Waves } from 'lucide-vue-next'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type {
   MatchStatus,
   SanctionCard,
@@ -38,7 +38,18 @@ const emit = defineEmits<{
 const now = ref(Date.now())
 const showAdvancedStats = ref(false)
 const showSubstitution = ref(false)
-const selectedPlayer = ref<string | number | null>(null)
+const selectedPlayer = ref<string | number | null>(props.team.currentPlayer ?? null)
+
+// Cuando este equipo recupera el saque (o rota, o sustituye a quien estaba en zona 1), el sacador
+// cambia automáticamente. Precargamos "jugador en jugada" con ese sacador para que un Ace se anote
+// con un solo toque — si el punto lo hace otra jugadora (ataque, bloqueo), el anotador la selecciona
+// manualmente antes de tocar el botón, sobrescribiendo este valor por defecto.
+watch(
+  () => props.team.currentPlayer,
+  (next) => {
+    selectedPlayer.value = next
+  },
+)
 const substitutePlayerOut = ref<string>('')
 const substitutePlayerIn = ref<string>('')
 let clock: number | undefined
