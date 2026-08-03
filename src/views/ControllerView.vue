@@ -40,11 +40,12 @@ const resetGame = () => {
 const setManualScore = (team: TeamSide, score: number) => match.setManualScore(team, score)
 const setManualSets = (team: TeamSide, sets: number) => match.setManualSets(team, sets)
 const scorePoint = (team: TeamSide) => statistics.scorePointWithReason(team, 'manual')
-const scorePointWithReason = (team: TeamSide, reason: ScoringReason) =>
-  statistics.scorePointWithReason(team, reason)
-const recordError = (team: TeamSide, errorType: StatErrorType) =>
-  statistics.recordErrorAndPoint(team, errorType)
-const recordSkill = (team: TeamSide, skill: StatSkillType) => statistics.recordSkill(team, skill)
+const scorePointWithReason = (team: TeamSide, reason: ScoringReason, playerNumber?: string | number) =>
+  statistics.scorePointWithReason(team, reason, playerNumber)
+const recordError = (team: TeamSide, errorType: StatErrorType, playerNumber?: string | number) =>
+  statistics.recordErrorAndPoint(team, errorType, playerNumber)
+const recordSkill = (team: TeamSide, skill: StatSkillType, playerNumber?: string | number) =>
+  statistics.recordSkill(team, skill, playerNumber)
 const resetStatistics = () => {
   if (
     window.confirm(
@@ -421,6 +422,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       :block-efficiency="statistics.blockEfficiency"
       :serve-efficiency="statistics.serveEfficiency"
       :reception-rating="statistics.receptionRating"
+      :player-stats-for="statistics.playerStatsFor"
       @reset="resetStatistics"
     />
 

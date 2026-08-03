@@ -238,6 +238,7 @@ export interface StatisticEvent {
     visitor: number
   }
   timestamp: number
+  playerNumber?: string | number
 }
 
 export interface StatisticsState {
@@ -245,6 +246,18 @@ export interface StatisticsState {
   visitor: TeamStatistics
   events: StatisticEvent[]
   lastScoringTeam?: TeamSide
+}
+
+export interface PlayerStatSummary {
+  playerNumber: string
+  attackPoints: number
+  blockPoints: number
+  aces: number
+  attackErrors: number
+  serveErrors: number
+  positiveReceptions: number
+  negativeReceptions: number
+  digs: number
 }
 
 export interface ScoreboardEvent {

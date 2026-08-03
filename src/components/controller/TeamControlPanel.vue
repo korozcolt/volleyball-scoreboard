@@ -17,15 +17,16 @@ const emit = defineEmits<{
   manualScore: [team: TeamSide, score: number]
   manualSets: [team: TeamSide, sets: number]
   timeout: [team: TeamSide]
-  scoreReason: [team: TeamSide, reason: ScoringReason]
-  statError: [team: TeamSide, errorType: StatErrorType]
-  statSkill: [team: TeamSide, skill: StatSkillType]
+  scoreReason: [team: TeamSide, reason: ScoringReason, playerNumber?: string | number]
+  statError: [team: TeamSide, errorType: StatErrorType, playerNumber?: string | number]
+  statSkill: [team: TeamSide, skill: StatSkillType, playerNumber?: string | number]
   rotate: [team: TeamSide]
   rotationFault: [team: TeamSide]
 }>()
 
 const now = ref(Date.now())
 const showAdvancedStats = ref(false)
+const selectedPlayer = ref<string | number | null>(null)
 let clock: number | undefined
 
 onMounted(() => {
@@ -61,31 +62,42 @@ const skillActions: Array<{ label: string; skill: StatSkillType }> = [
   { label: 'Defensa', skill: 'dig' },
 ]
 
-const currentServerIsLibero = computed(
-  () => props.team.roster?.find((p) => String(p.number) === String(props.team.currentPlayer))?.isLibero ?? false,
+const selectedPlayerIsLibero = computed(
+  () => props.team.roster?.find((p) => String(p.number) === String(selectedPlayer.value))?.isLibero ?? false,
 )
+
+// 'opponent_error' no es una estadística personal (el punto lo causó el rival, no un jugador propio).
+const requiresPlayer = (reason: ScoringReason) => reason !== 'opponent_error'
+const liberoRestrictedReasons: ScoringReason[] = ['ace', 'attack', 'block']
 
 const canUseScoringAction = (reason: ScoringReason) => {
   if (props.gameFinished) return false
-  if (reason === 'ace') return props.team.serving && !currentServerIsLibero.value
+  if (requiresPlayer(reason) && selectedPlayer.value === null) return false
+  if (liberoRestrictedReasons.includes(reason) && selectedPlayerIsLibero.value) return false
+  if (reason === 'ace') return props.team.serving
   return true
 }
 
 const scoringActionTitle = (reason: ScoringReason) => {
-  if (reason === 'ace' && !props.team.serving) return 'El ace solo puede registrarlo el equipo que saca.'
-  if (reason === 'ace' && currentServerIsLibero.value) {
-    return 'El líbero no puede sacar (reglamento FIVB) — no se puede registrar ace.'
+  if (requiresPlayer(reason) && selectedPlayer.value === null) {
+    return 'Selecciona el jugador que ejecutó la jugada.'
   }
+  if (liberoRestrictedReasons.includes(reason) && selectedPlayerIsLibero.value) {
+    return 'El líbero no puede sacar, atacar por encima de la red ni bloquear (reglamento FIVB).'
+  }
+  if (reason === 'ace' && !props.team.serving) return 'El ace solo puede registrarlo el equipo que saca.'
   return ''
 }
 
 const canUseErrorAction = (errorType: StatErrorType) => {
   if (props.gameFinished) return false
+  if (selectedPlayer.value === null) return false
   if (errorType === 'serve_error') return props.team.serving
   return true
 }
 
 const errorActionTitle = (errorType: StatErrorType) => {
+  if (selectedPlayer.value === null) return 'Selecciona el jugador que cometió el error.'
   if (errorType === 'serve_error' && !props.team.serving) {
     return 'El error de saque solo aplica al equipo que tiene el saque.'
   }
@@ -94,11 +106,13 @@ const errorActionTitle = (errorType: StatErrorType) => {
 
 const canUseSkillAction = (skill: StatSkillType) => {
   if (props.gameFinished) return false
+  if (selectedPlayer.value === null) return false
   if (skill === 'positive_reception' || skill === 'negative_reception') return !props.team.serving
   return true
 }
 
 const skillActionTitle = (skill: StatSkillType) => {
+  if (selectedPlayer.value === null) return 'Selecciona el jugador que ejecutó la jugada.'
   if ((skill === 'positive_reception' || skill === 'negative_reception') && props.team.serving) {
     return 'La recepción solo aplica al equipo que recibe el saque.'
   }
@@ -180,6 +194,31 @@ const rotateTitle = computed(() =>
       </div>
     </div>
 
+    <div class="rounded border border-broadcast-outline bg-broadcast-surface-low p-3">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <span class="text-xs font-black uppercase text-broadcast-muted">Jugador en jugada</span>
+        <span v-if="selectedPlayer === null" class="text-[10px] font-bold text-broadcast-alert">
+          Selecciona un jugador
+        </span>
+      </div>
+      <div class="grid grid-cols-6 gap-1">
+        <button
+          v-for="number in team.rotation"
+          :key="number"
+          type="button"
+          class="rounded border px-1 py-2 text-center text-xs font-black transition"
+          :class="
+            String(number) === String(selectedPlayer)
+              ? 'border-broadcast-accent bg-broadcast-accent text-[#00354a]'
+              : 'border-broadcast-outline bg-broadcast-surface-high text-broadcast-text hover:border-broadcast-accent'
+          "
+          @click="selectedPlayer = number"
+        >
+          #{{ number }}
+        </button>
+      </div>
+    </div>
+
     <button
       class="relative h-24 overflow-hidden rounded-xl border bg-broadcast-surface-high text-2xl font-black text-broadcast-text transition hover:bg-broadcast-surface-highest hover:text-broadcast-accent"
       :style="{ borderColor: `${team.primaryColor}88` }"
@@ -195,7 +234,7 @@ const rotateTitle = computed(() =>
         v-for="action in scoringActions"
         :key="action.reason"
         class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-lowest px-2 text-xs font-black uppercase text-broadcast-text transition hover:border-broadcast-accent hover:text-broadcast-accent"
-        @click="emit('scoreReason', side, action.reason)"
+        @click="emit('scoreReason', side, action.reason, selectedPlayer ?? undefined)"
         :disabled="!canUseScoringAction(action.reason)"
         :title="scoringActionTitle(action.reason)"
       >
@@ -240,7 +279,7 @@ const rotateTitle = computed(() =>
       <div class="grid grid-cols-3 gap-2">
         <button
           class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
-          @click="emit('statError', side, 'attack_error')"
+          @click="emit('statError', side, 'attack_error', selectedPlayer ?? undefined)"
           :disabled="!canUseErrorAction('attack_error')"
           :title="errorActionTitle('attack_error')"
         >
@@ -249,7 +288,7 @@ const rotateTitle = computed(() =>
         </button>
         <button
           class="inline-flex h-10 items-center justify-center gap-1 rounded border border-broadcast-danger/40 bg-broadcast-danger/10 px-2 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white"
-          @click="emit('statError', side, 'serve_error')"
+          @click="emit('statError', side, 'serve_error', selectedPlayer ?? undefined)"
           :disabled="!canUseErrorAction('serve_error')"
           :title="errorActionTitle('serve_error')"
         >
@@ -272,7 +311,7 @@ const rotateTitle = computed(() =>
         v-for="action in skillActions"
         :key="action.skill"
         class="inline-flex h-9 items-center justify-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-high px-2 text-[11px] font-black uppercase text-broadcast-muted transition hover:text-broadcast-text"
-        @click="emit('statSkill', side, action.skill)"
+        @click="emit('statSkill', side, action.skill, selectedPlayer ?? undefined)"
         :disabled="!canUseSkillAction(action.skill)"
         :title="skillActionTitle(action.skill)"
       >

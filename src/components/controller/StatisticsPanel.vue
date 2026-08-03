@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Activity, BarChart3, RotateCcw, TrendingUp } from 'lucide-vue-next'
-import type { StatisticsState, TeamSide } from '@/types/game.types'
+import type { PlayerStatSummary, StatisticsState, TeamSide } from '@/types/game.types'
 import type { GameState } from '@/types/game.types'
 
 defineProps<{
@@ -10,6 +10,7 @@ defineProps<{
   blockEfficiency: (team: TeamSide) => number
   serveEfficiency: (team: TeamSide) => number
   receptionRating: (team: TeamSide) => number
+  playerStatsFor: (team: TeamSide) => PlayerStatSummary[]
 }>()
 
 const emit = defineEmits<{
@@ -124,6 +125,55 @@ const eventLabel = (type: string) =>
       </div>
     </div>
 
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+      <div
+        v-for="side in (['local', 'visitor'] as TeamSide[])"
+        :key="side"
+        class="rounded border border-broadcast-outline bg-broadcast-surface-high p-4"
+      >
+        <div class="mb-3 text-sm font-bold text-broadcast-text">
+          Líderes por jugador — {{ gameState[side].shortCode }}
+        </div>
+        <div v-if="!playerStatsFor(side).length" class="text-xs text-broadcast-muted">
+          Sin jugadas atribuidas a un jugador todavía.
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full min-w-[420px] text-left text-xs">
+            <thead>
+              <tr class="text-broadcast-muted">
+                <th class="pb-1 font-bold">#</th>
+                <th class="pb-1 font-bold text-right">ATQ</th>
+                <th class="pb-1 font-bold text-right">BLQ</th>
+                <th class="pb-1 font-bold text-right">ACE</th>
+                <th class="pb-1 font-bold text-right">ERR ATQ</th>
+                <th class="pb-1 font-bold text-right">ERR SAQ</th>
+                <th class="pb-1 font-bold text-right">REC+</th>
+                <th class="pb-1 font-bold text-right">REC-</th>
+                <th class="pb-1 font-bold text-right">DEF</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="player in playerStatsFor(side)"
+                :key="player.playerNumber"
+                class="border-t border-broadcast-outline text-broadcast-text"
+              >
+                <td class="py-1 font-black">#{{ player.playerNumber }}</td>
+                <td class="py-1 text-right">{{ player.attackPoints }}</td>
+                <td class="py-1 text-right">{{ player.blockPoints }}</td>
+                <td class="py-1 text-right">{{ player.aces }}</td>
+                <td class="py-1 text-right">{{ player.attackErrors }}</td>
+                <td class="py-1 text-right">{{ player.serveErrors }}</td>
+                <td class="py-1 text-right">{{ player.positiveReceptions }}</td>
+                <td class="py-1 text-right">{{ player.negativeReceptions }}</td>
+                <td class="py-1 text-right">{{ player.digs }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="mt-4 grid gap-2">
       <div class="text-sm font-bold text-broadcast-text">Últimos registros</div>
       <div
@@ -132,7 +182,8 @@ const eventLabel = (type: string) =>
         class="flex items-center justify-between rounded border border-broadcast-outline bg-broadcast-surface-high px-3 py-2"
       >
         <span class="text-sm text-broadcast-text">
-          {{ gameState[event.team].shortCode }} · {{ eventLabel(event.type) }}
+          {{ gameState[event.team].shortCode }}{{ event.playerNumber ? ` #${event.playerNumber}` : '' }} ·
+          {{ eventLabel(event.type) }}
         </span>
         <span class="text-xs text-broadcast-muted">
           Set {{ event.set }} · {{ event.score.local }}-{{ event.score.visitor }}

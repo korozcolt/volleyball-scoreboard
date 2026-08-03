@@ -1,5 +1,6 @@
 import { COMMUNICATION_CONFIG, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
 import type {
+  PlayerStatSummary,
   ScoringReason,
   StatErrorType,
   StatSkillType,
@@ -120,7 +121,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     if (!stored && initialState) publish()
   }
 
-  const addEvent = (team: TeamSide, type: StatisticEvent['type']) => {
+  const addEvent = (team: TeamSide, type: StatisticEvent['type'], playerNumber?: string | number) => {
     state.value.events.unshift({
       id: createId(),
       team,
@@ -131,6 +132,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
         visitor: match.gameState.visitor.score,
       },
       timestamp: Date.now(),
+      playerNumber: playerNumber !== undefined ? String(playerNumber) : undefined,
     })
     state.value.events = state.value.events.slice(0, COMMUNICATION_CONFIG.MAX_HISTORY_ITEMS)
   }
@@ -152,7 +154,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
     )
   }
 
-  const recordScoredPoint = (team: TeamSide, reason: ScoringReason = 'manual') => {
+  // 'opponent_error' y 'manual' no son estadísticas personales — no se les atribuye jugador.
+  const isPersonalReason = (reason: ScoringReason) => reason === 'attack' || reason === 'block' || reason === 'ace'
+
+  const recordScoredPoint = (team: TeamSide, reason: ScoringReason = 'manual', playerNumber?: string | number) => {
     state.value[team].points += 1
     updateRun(team)
 
@@ -161,7 +166,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     if (reason === 'ace') state.value[team].aces += 1
     if (reason === 'opponent_error') state.value[team].opponentErrors += 1
 
-    addEvent(team, reason)
+    addEvent(team, reason, isPersonalReason(reason) ? playerNumber : undefined)
     match.addToHistory(`Estadística: ${scoringLabels[reason]} para ${match.gameState[team].shortCode}`, team)
   }
 
@@ -224,7 +229,9 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
     state.value.events.splice(index, 1)
     match.addToHistory(
-      `Estadística revertida: ${statEventLabels[event.type]} de ${match.gameState[team].shortCode}`,
+      `Estadística revertida: ${statEventLabels[event.type]} de ${match.gameState[team].shortCode}${
+        event.playerNumber ? ` #${event.playerNumber}` : ''
+      }`,
       'warning',
     )
   }
@@ -235,7 +242,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     revertLastEventForTeam(team)
   }
 
-  const scorePointWithReason = (team: TeamSide, reason: ScoringReason) => {
+  const scorePointWithReason = (team: TeamSide, reason: ScoringReason, playerNumber?: string | number) => {
     if (reason === 'ace' && !match.gameState[team].serving) {
       rejectInvalidStat('El ace solo puede registrarlo el equipo que tiene el saque.')
       return
@@ -243,11 +250,11 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
     match.scorePoint(team)
     if (!match.gameState.gameFinished || reason !== 'manual') {
-      recordScoredPoint(team, reason)
+      recordScoredPoint(team, reason, playerNumber)
     }
   }
 
-  const recordErrorAndPoint = (team: TeamSide, errorType: StatErrorType) => {
+  const recordErrorAndPoint = (team: TeamSide, errorType: StatErrorType, playerNumber?: string | number) => {
     if (errorType === 'serve_error' && !match.gameState[team].serving) {
       rejectInvalidStat('El error de saque solo puede registrarlo el equipo que tiene el saque.')
       return
@@ -257,14 +264,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
     state.value[team][errorType === 'attack_error' ? 'attackErrors' : 'serveErrors'] += 1
     match.scorePoint(opponent)
     recordScoredPoint(opponent, 'opponent_error')
-    addEvent(team, errorType)
+    addEvent(team, errorType, playerNumber)
     match.addToHistory(
       `Error de ${errorType === 'attack_error' ? 'ataque' : 'saque'} de ${match.gameState[team].shortCode}`,
       'warning',
     )
   }
 
-  const recordSkill = (team: TeamSide, skill: StatSkillType) => {
+  const recordSkill = (team: TeamSide, skill: StatSkillType, playerNumber?: string | number) => {
     if (
       (skill === 'positive_reception' || skill === 'negative_reception') &&
       match.gameState[team].serving
@@ -276,7 +283,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     if (skill === 'positive_reception') state.value[team].positiveReceptions += 1
     if (skill === 'negative_reception') state.value[team].negativeReceptions += 1
     if (skill === 'dig') state.value[team].digs += 1
-    addEvent(team, skill)
+    addEvent(team, skill, playerNumber)
   }
 
   const resetMatchStats = () => {
@@ -316,6 +323,48 @@ export const useStatisticsStore = defineStore('statistics', () => {
     return ratio(stats.positiveReceptions, stats.negativeReceptions)
   }
 
+  const createPlayerSummary = (playerNumber: string): PlayerStatSummary => ({
+    playerNumber,
+    attackPoints: 0,
+    blockPoints: 0,
+    aces: 0,
+    attackErrors: 0,
+    serveErrors: 0,
+    positiveReceptions: 0,
+    negativeReceptions: 0,
+    digs: 0,
+  })
+
+  const playerStatKeyByEventType: Partial<Record<StatisticEvent['type'], keyof Omit<PlayerStatSummary, 'playerNumber'>>> = {
+    attack: 'attackPoints',
+    block: 'blockPoints',
+    ace: 'aces',
+    attack_error: 'attackErrors',
+    serve_error: 'serveErrors',
+    positive_reception: 'positiveReceptions',
+    negative_reception: 'negativeReceptions',
+    dig: 'digs',
+  }
+
+  const playerStatsFor = (team: TeamSide): PlayerStatSummary[] => {
+    const summaries = new Map<string, PlayerStatSummary>()
+
+    for (const event of state.value.events) {
+      if (event.team !== team || !event.playerNumber) continue
+      const statKey = playerStatKeyByEventType[event.type]
+      if (!statKey) continue
+
+      const summary = summaries.get(event.playerNumber) ?? createPlayerSummary(event.playerNumber)
+      summary[statKey] += 1
+      summaries.set(event.playerNumber, summary)
+    }
+
+    return Array.from(summaries.values()).sort(
+      (a, b) =>
+        b.attackPoints + b.blockPoints + b.aces - (a.attackPoints + a.blockPoints + a.aces),
+    )
+  }
+
   const leaders = computed(() => {
     const localAttack = attackEfficiency('local')
     const visitorAttack = attackEfficiency('visitor')
@@ -346,6 +395,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     blockEfficiency,
     serveEfficiency,
     receptionRating,
+    playerStatsFor,
     unsubscribe: () => unsubscribeSync?.(),
   }
 })
