@@ -600,43 +600,36 @@ onMounted(async () => {
             <div class="mb-3 text-xs font-bold uppercase text-broadcast-muted">
               Estilo de fondo broadcast
             </div>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 gap-3">
               <button
                 class="relative h-20 overflow-hidden rounded border"
                 :class="
-                  broadcast.config.backgroundStyle === 'classic-dark'
+                  broadcast.config.backgroundStyle === 'team-colors' || !broadcast.config.backgroundStyle
                     ? 'border-broadcast-accent'
                     : 'border-broadcast-outline'
                 "
-                @click="setBackground('classic-dark')"
+                @click="setBackground('team-colors')"
               >
-                <span class="absolute inset-0 bg-gradient-to-br from-[#0f172a] to-[#031427]"></span>
-                <span class="relative text-xs font-bold text-white">Clásico</span>
+                <span class="absolute inset-0 bg-gradient-to-r from-[#082cff] via-[#0f172a] to-[#ff3d1f]"></span>
+                <span class="relative text-xs font-bold text-white">Colores de equipo</span>
               </button>
               <button
                 class="relative h-20 overflow-hidden rounded border"
                 :class="
-                  broadcast.config.backgroundStyle === 'steel-blue'
+                  broadcast.config.backgroundStyle === 'sucre'
                     ? 'border-broadcast-accent'
                     : 'border-broadcast-outline'
                 "
-                @click="setBackground('steel-blue')"
+                @click="setBackground('sucre')"
               >
-                <span class="absolute inset-0 bg-gradient-to-br from-[#1b2b3f] to-[#26364a]"></span>
-                <span class="relative text-xs font-bold text-white">Acero</span>
-              </button>
-              <button
-                class="h-20 rounded border bg-broadcast-surface-high text-xs font-bold text-broadcast-muted"
-                :class="
-                  broadcast.config.backgroundStyle === 'custom'
-                    ? 'border-broadcast-accent'
-                    : 'border-broadcast-outline'
-                "
-                @click="setBackground('custom')"
-              >
-                Custom
+                <span class="absolute inset-0 bg-gradient-to-r from-[#1a8f3c] via-[#0a2e15] to-white"></span>
+                <span class="relative text-xs font-bold text-white drop-shadow">Sucre (verde/blanco)</span>
               </button>
             </div>
+            <p class="mt-2 text-[11px] text-broadcast-muted">
+              "Colores de equipo" usa el color real de cada equipo, con azul/rojo como respaldo si no tienen uno
+              configurado. "Sucre" fuerza el esquema verde/blanco sin importar el color de los equipos.
+            </p>
           </div>
         </div>
 

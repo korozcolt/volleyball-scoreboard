@@ -4,7 +4,10 @@ export type TeamSide = 'local' | 'visitor'
 export type MatchStatus = 'idle' | 'live' | 'paused' | 'finished'
 export type GameStatus = MatchStatus | 'waiting' | 'playing'
 export type OverlayMode = 'scoreboard' | 'history' | 'stats'
-export type BackgroundStyle = 'classic-dark' | 'steel-blue' | 'custom'
+// 'team-colors': usa el color real de cada equipo (--team-color), con el azul/rojo
+// de siempre como respaldo cuando un equipo no tiene color propio configurado.
+// 'sucre': esquema fijo verde/blanco (bandera de Sucre), para transmisiones de Sucre.
+export type BackgroundStyle = 'team-colors' | 'sucre' | 'classic-dark' | 'steel-blue' | 'custom'
 export type LowerThirdStyle = 'glass' | 'solid-dark' | 'high-contrast'
 export type ScoringReason = 'manual' | 'attack' | 'block' | 'ace' | 'opponent_error' | 'sanction'
 export type StatErrorType = 'attack_error' | 'serve_error' | 'reception_error'

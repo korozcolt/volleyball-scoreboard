@@ -45,7 +45,11 @@ onUnmounted(() => {
       />
 
       <div class="absolute bottom-8 left-0 right-0 flex justify-center px-8">
-        <OverlayScoreboard :game-state="match.gameState" :mode="overlay.state.activeOverlay" />
+        <OverlayScoreboard
+          :game-state="match.gameState"
+          :mode="overlay.state.activeOverlay"
+          :background-style="broadcast.config.backgroundStyle"
+        />
       </div>
 
       <div

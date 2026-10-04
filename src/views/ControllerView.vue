@@ -11,11 +11,13 @@ import MatchRosterPanel from '@/components/controller/MatchRosterPanel.vue'
 import type { ScoringReason, StatErrorType, StatSkillType, OverlayMode, TeamSide } from '@/types/game.types'
 import { useMatchScope } from '@/composables/useMatchScope'
 import { useMatchStore } from '@/stores/match'
+import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
 import { useOverlayControlStore } from '@/stores/overlayControl'
 import { useStatisticsStore } from '@/stores/statistics'
 import { KEYBOARD_SHORTCUTS } from '@/utils/constants'
 
 const match = useMatchStore()
+const broadcast = useBroadcastConfigStore()
 const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
 const scope = useMatchScope()
@@ -134,7 +136,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
       </div>
 
       <div class="obs-preview flex items-end justify-center pb-[5%]">
-        <OverlayScoreboard :game-state="match.gameState" :mode="activeMode" compact />
+        <OverlayScoreboard
+          :game-state="match.gameState"
+          :mode="activeMode"
+          :background-style="broadcast.config.backgroundStyle"
+          compact
+        />
       </div>
 
       <div class="mt-3 flex justify-end">

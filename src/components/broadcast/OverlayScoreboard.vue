@@ -11,6 +11,7 @@ const props = defineProps<{
   mode?: OverlayMode
   compact?: boolean
   statistics?: StatisticsState
+  backgroundStyle?: string
 }>()
 
 const statisticsStore = useStatisticsStore()
@@ -159,7 +160,7 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
     <div
       v-else
       class="vnl-scorebug relative mx-auto grid h-[126px] w-full max-w-[1180px] grid-cols-[1fr_330px_1fr] overflow-visible shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
-      :class="compact ? 'scale-[0.88]' : ''"
+      :class="[compact ? 'scale-[0.88]' : '', backgroundStyle === 'sucre' ? 'theme-sucre' : '']"
     >
       <div class="scorebug-rim scorebug-rim-left"></div>
       <div class="scorebug-rim scorebug-rim-right"></div>
