@@ -75,7 +75,7 @@
   rotación asistida.
 - **Fase C — [x] cerrada** — Pendientes y edición (`PendingPointsPanel.vue`, `statistics.reclassifyPoint`): cola de "+1 sin clasificar" y pestaña Corregir; no toca marcador ni puntos totales; respeta ace/error de saque/error de recepción según quién tenía el saque. Antes era: cola de puntos sin clasificar, edición/reasignación de eventos pasados.
 - **Fase D — [x] cerrada** — Teclado y táctil. Código `L/V + dorsal + letra` (`useScoutKeyboard.ts`, ayuda con `?`): A ataque · B bloqueo · S ace · E+A/S/R error · X rival erró · P pendiente · F falta rotación · O tiempo · D defensa · T bloqueo tocado · +/− recepción. Botones y teclado comparten reglas (`ScoutTeamColumn` expone `run*`). Bloqueo anti doble toque (450 ms), objetivos ≥44 px, sin scroll en 6 tamaños (laptop/tablet, horizontal/vertical). Antes era: atajos por código, tamaño de objetivos táctiles, pruebas en tablet.
-- **Fase E — Estadísticas por jugadora:** líderes, errores por jugadora y reportes (después de que la captura
+- **Fase E — [x] cerrada** — Estadísticas por jugadora (`src/utils/playerStats.ts`, `PlayerStatsTable`, `PlayerLeaders`, `/report/:matchId`, overlay `leaders`): nombres del roster, puntos/errores/balance/ATQ%/REC%, filtro por set, orden por columna, aviso de puntos sin atribuir, reporte imprimible (PDF), CSV y texto para WhatsApp, overlay de Líderes. Pruebas con vitest (`npm test`). Antes era: líderes, errores por jugadora y reportes (después de que la captura
   sea fiable).
 
 ## Validación

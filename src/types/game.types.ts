@@ -3,7 +3,7 @@ import type { ComputedRef, Ref } from 'vue'
 export type TeamSide = 'local' | 'visitor'
 export type MatchStatus = 'idle' | 'live' | 'paused' | 'finished'
 export type GameStatus = MatchStatus | 'waiting' | 'playing'
-export type OverlayMode = 'scoreboard' | 'history' | 'stats'
+export type OverlayMode = 'scoreboard' | 'history' | 'stats' | 'leaders'
 // 'team-colors': usa el color real de cada equipo (--team-color), con el azul/rojo
 // de siempre como respaldo cuando un equipo no tiene color propio configurado.
 // 'sucre': esquema fijo verde/blanco (bandera de Sucre), para transmisiones de Sucre.
@@ -278,20 +278,6 @@ export interface StatisticsState {
   visitor: TeamStatistics
   events: StatisticEvent[]
   lastScoringTeam?: TeamSide
-}
-
-export interface PlayerStatSummary {
-  playerNumber: string
-  attackPoints: number
-  blockPoints: number
-  blockTouches: number
-  aces: number
-  attackErrors: number
-  serveErrors: number
-  receptionErrors: number
-  positiveReceptions: number
-  negativeReceptions: number
-  digs: number
 }
 
 export interface ScoreboardEvent {

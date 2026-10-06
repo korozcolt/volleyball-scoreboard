@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FileText } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import StatisticsPanel from '@/components/controller/StatisticsPanel.vue'
@@ -10,9 +11,10 @@ import { useStatisticsStore } from '@/stores/statistics'
 const match = useMatchStore()
 const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
-useMatchScope()
+const scope = useMatchScope()
 
 const showStatsOverlay = () => overlay.setActiveOverlay('stats')
+const showLeadersOverlay = () => overlay.setActiveOverlay('leaders')
 
 const resetStatistics = () => {
   if (
@@ -35,9 +37,14 @@ const resetStatistics = () => {
             {{ match.gameState.metadata.tournament }} · Set {{ match.gameState.currentSet }}
           </p>
         </div>
-        <button class="admin-button" @click="showStatsOverlay">
-          Mostrar en OBS
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <RouterLink :to="`/report/${scope.matchId.value}`" class="admin-button">
+            <FileText class="h-4 w-4" />
+            Reporte
+          </RouterLink>
+          <button class="admin-button" @click="showLeadersOverlay">Líderes en OBS</button>
+          <button class="admin-button" @click="showStatsOverlay">Estadísticas en OBS</button>
+        </div>
       </div>
 
       <div class="obs-preview flex items-end justify-center pb-[5%]">
@@ -58,7 +65,6 @@ const resetStatistics = () => {
       :serve-efficiency="statistics.serveEfficiency"
       :reception-rating="statistics.receptionRating"
       :sideout-rating="statistics.sideoutRating"
-      :player-stats-for="statistics.playerStatsFor"
       @reset="resetStatistics"
     />
   </BroadcastLayout>

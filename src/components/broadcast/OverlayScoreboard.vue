@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Radio, Shield } from 'lucide-vue-next'
+import OverlayLeaders from '@/components/overlay/OverlayLeaders.vue'
 import OverlayStats from '@/components/overlay/OverlayStats.vue'
 import type { GameState, OverlayMode, StatisticsState, TeamSide } from '@/types/game.types'
 import { getSetTargetPoints, isMatchPoint, isSetPoint } from '@/utils/volleyballRules'
@@ -149,6 +150,12 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
         <div v-else class="text-2xl font-black text-white/35">-</div>
       </div>
     </div>
+
+    <OverlayLeaders
+      v-else-if="mode === 'leaders'"
+      :game-state="gameState"
+      :statistics="statisticsState"
+    />
 
     <OverlayStats
       v-else-if="mode === 'stats'"

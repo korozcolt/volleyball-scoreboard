@@ -2,7 +2,6 @@ import { COMMUNICATION_CONFIG, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/const
 import type {
   GameState,
   PointClassification,
-  PlayerStatSummary,
   ScoringReason,
   StatErrorType,
   StatSkillType,
@@ -602,53 +601,6 @@ export const useStatisticsStore = defineStore('statistics', () => {
     return ratio(won, lostReceiving)
   }
 
-  const createPlayerSummary = (playerNumber: string): PlayerStatSummary => ({
-    playerNumber,
-    attackPoints: 0,
-    blockPoints: 0,
-    blockTouches: 0,
-    aces: 0,
-    attackErrors: 0,
-    serveErrors: 0,
-    receptionErrors: 0,
-    positiveReceptions: 0,
-    negativeReceptions: 0,
-    digs: 0,
-  })
-
-  const playerStatKeyByEventType: Partial<Record<StatisticEvent['type'], keyof Omit<PlayerStatSummary, 'playerNumber'>>> = {
-    attack: 'attackPoints',
-    block: 'blockPoints',
-    block_touch: 'blockTouches',
-    ace: 'aces',
-    attack_error: 'attackErrors',
-    serve_error: 'serveErrors',
-    reception_error: 'receptionErrors',
-    positive_reception: 'positiveReceptions',
-    negative_reception: 'negativeReceptions',
-    dig: 'digs',
-  }
-
-  const playerStatsFor = (team: TeamSide): PlayerStatSummary[] => {
-    const summaries = new Map<string, PlayerStatSummary>()
-
-    for (const event of state.value.events) {
-      if (event.team !== team || !event.playerNumber) continue
-      const statKey = playerStatKeyByEventType[event.type]
-      if (!statKey) continue
-
-      const playerKey = String(event.playerNumber)
-      const summary = summaries.get(playerKey) ?? createPlayerSummary(playerKey)
-      summary[statKey] += 1
-      summaries.set(playerKey, summary)
-    }
-
-    return Array.from(summaries.values()).sort(
-      (a, b) =>
-        b.attackPoints + b.blockPoints + b.aces - (a.attackPoints + a.blockPoints + a.aces),
-    )
-  }
-
   const leaders = computed(() => {
     const localAttack = attackEfficiency('local')
     const visitorAttack = attackEfficiency('visitor')
@@ -690,7 +642,6 @@ export const useStatisticsStore = defineStore('statistics', () => {
     serveEfficiency,
     receptionRating,
     sideoutRating,
-    playerStatsFor,
     unsubscribe: () => unsubscribeSync?.(),
   }
 })

@@ -201,6 +201,17 @@ useMatchShortcuts({ onResetGame: resetGame })
           >
             Estadísticas
           </button>
+          <button
+            class="rounded px-3 py-1 text-xs font-bold transition"
+            :class="
+              activeMode === 'leaders'
+                ? 'bg-broadcast-accent text-[#00354a]'
+                : 'text-broadcast-muted hover:text-broadcast-text'
+            "
+            @click="setOverlayMode('leaders')"
+          >
+            Líderes
+          </button>
         </div>
       </div>
     </section>
@@ -458,7 +469,6 @@ useMatchShortcuts({ onResetGame: resetGame })
       :serve-efficiency="statistics.serveEfficiency"
       :reception-rating="statistics.receptionRating"
       :sideout-rating="statistics.sideoutRating"
-      :player-stats-for="statistics.playerStatsFor"
       @reset="resetStatistics"
     />
 
