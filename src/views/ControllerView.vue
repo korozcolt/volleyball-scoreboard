@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'ControllerView' })
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import { BarChart2, ClipboardList, ExternalLink, History, LayoutGrid, Radio, RotateCcw, Settings, Shuffle, Undo2, Users, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
@@ -8,13 +8,13 @@ import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
 import StatisticsPanel from '@/components/controller/StatisticsPanel.vue'
 import TeamControlPanel from '@/components/controller/TeamControlPanel.vue'
 import MatchRosterPanel from '@/components/controller/MatchRosterPanel.vue'
-import type { ScoringReason, StatErrorType, StatSkillType, OverlayMode, TeamSide } from '@/types/game.types'
+import type { OverlayMode, TeamSide } from '@/types/game.types'
+import { useMatchActions, useMatchShortcuts } from '@/composables/useMatchActions'
 import { useMatchScope } from '@/composables/useMatchScope'
 import { useMatchStore } from '@/stores/match'
 import { useBroadcastConfigStore } from '@/stores/broadcastConfig'
 import { useOverlayControlStore } from '@/stores/overlayControl'
 import { useStatisticsStore } from '@/stores/statistics'
-import { KEYBOARD_SHORTCUTS } from '@/utils/constants'
 
 const match = useMatchStore()
 const broadcast = useBroadcastConfigStore()
@@ -53,32 +53,19 @@ const resetGame = () => {
   }
 }
 
-// Toda acción que cambia el partido guarda antes una instantánea, para poder deshacerla con "Deshacer".
-const withUndo = <A extends unknown[]>(label: string, action: (...args: A) => unknown) => {
-  return (...args: A) => {
-    statistics.pushUndo(label)
-    action(...args)
-  }
-}
-
-const setManualScore = withUndo('Marcador manual', (team: TeamSide, score: number) => match.setManualScore(team, score))
-const setManualSets = withUndo('Sets manual', (team: TeamSide, sets: number) => match.setManualSets(team, sets))
-const requestTimeout = withUndo('Tiempo', (team: TeamSide) => match.startTimeout(team))
-const rotateManually = withUndo('Rotación manual', (team: TeamSide) => match.rotateTeam(team))
-const substitute = withUndo(
-  'Sustitución',
-  (team: TeamSide, playerOut: string | number, playerIn: string | number) =>
-    match.substitutePlayer(team, playerOut, playerIn),
-)
-const toggleServe = withUndo('Cambio de saque', () => match.toggleServe())
-const nextSet = withUndo('Siguiente set', () => match.nextSet())
-const scorePoint = (team: TeamSide) => statistics.scorePointWithReason(team, 'manual')
-const scorePointWithReason = (team: TeamSide, reason: ScoringReason, playerNumber?: string | number) =>
-  statistics.scorePointWithReason(team, reason, playerNumber)
-const recordError = (team: TeamSide, errorType: StatErrorType, playerNumber?: string | number) =>
-  statistics.recordErrorAndPoint(team, errorType, playerNumber)
-const recordSkill = (team: TeamSide, skill: StatSkillType, playerNumber?: string | number) =>
-  statistics.recordSkill(team, skill, playerNumber)
+const {
+  scorePoint,
+  scorePointWithReason,
+  recordError,
+  recordSkill,
+  setManualScore,
+  setManualSets,
+  requestTimeout,
+  rotateManually,
+  substitute,
+  toggleServe,
+  nextSet,
+} = useMatchActions()
 const resetStatistics = () => {
   if (
     window.confirm(
@@ -94,46 +81,7 @@ const teamSides: Array<{ side: TeamSide; label: string }> = [
   { side: 'visitor', label: 'Visitante' },
 ]
 
-const isTypingTarget = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable)
-
-const handleKeydown = (event: KeyboardEvent) => {
-  // Sin teclas repetidas (mantener Q no suma puntos sin parar) ni mientras se escribe en un campo.
-  if (event.repeat || isTypingTarget(event.target) || event.altKey) return
-
-  if (event.ctrlKey || event.metaKey) {
-    if (event.code === 'KeyZ' && !event.shiftKey) {
-      event.preventDefault()
-      statistics.undoLast()
-    } else if (event.ctrlKey && event.code === KEYBOARD_SHORTCUTS.RESET_GAME) {
-      event.preventDefault()
-      resetGame()
-    }
-    // Cualquier otra combinación con Cmd/Ctrl es del navegador (copiar, guardar, etc.): no se intercepta.
-    return
-  }
-
-  const handlers: Partial<Record<string, () => void>> = {
-    [KEYBOARD_SHORTCUTS.SCORE_LOCAL]: () => scorePoint('local'),
-    [KEYBOARD_SHORTCUTS.SCORE_VISITOR]: () => scorePoint('visitor'),
-    [KEYBOARD_SHORTCUTS.REMOVE_LOCAL]: () => statistics.removePointWithRevert('local'),
-    [KEYBOARD_SHORTCUTS.REMOVE_VISITOR]: () => statistics.removePointWithRevert('visitor'),
-    [KEYBOARD_SHORTCUTS.TOGGLE_SERVE]: () => toggleServe(),
-    [KEYBOARD_SHORTCUTS.NEXT_SET]: () => nextSet(),
-    [KEYBOARD_SHORTCUTS.SHOW_HISTORY]: () =>
-      overlay.setActiveOverlay(overlay.state.activeOverlay === 'history' ? 'scoreboard' : 'history'),
-  }
-
-  const handler = handlers[event.code]
-  if (handler) {
-    event.preventDefault()
-    handler()
-  }
-}
-
-onMounted(() => document.addEventListener('keydown', handleKeydown))
-onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
+useMatchShortcuts({ onResetGame: resetGame })
 </script>
 
 <template>
@@ -163,6 +111,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           </p>
         </div>
         <div class="flex items-center gap-2">
+          <RouterLink
+            :to="`/live/${scope.matchId.value}`"
+            class="admin-button border-broadcast-accent text-broadcast-accent"
+            title="Pantalla única para capturar el partido sin scroll"
+          >
+            <Radio class="h-4 w-4" />
+            Modo Partido
+          </RouterLink>
           <button
             class="admin-button"
             :disabled="!statistics.canUndo"

@@ -21,6 +21,7 @@ const isActive = (basePath: string) =>
 const navItems = computed(() => [
   { to: '/matches', base: '/matches', label: 'Partidos', icon: Trophy, external: false },
   { to: scopedPath('/controller'), base: '/controller', label: 'Partido', icon: MonitorCog, external: false },
+  { to: scopedPath('/live'), base: '/live', label: 'Modo Partido', icon: Radio, external: false },
   { to: scopedPath('/statistics'), base: '/statistics', label: 'Estadísticas', icon: BarChart3, external: false },
   { to: scopedPath('/settings'), base: '/settings', label: 'Configuración', icon: Settings, external: false },
   { to: scopedPath('/overlay'), base: '/overlay', label: 'Overlay OBS', icon: Radio, external: true },

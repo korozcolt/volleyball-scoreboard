@@ -69,9 +69,9 @@
 
 ## Plan por fases
 
-- **Fase A — correcciones previas (bloquean la captura fiable):** tope de 60 eventos, "-1 Punto" completo
+- **Fase A — [x] cerrada (commit 79c9ee6)** — correcciones previas (bloquean la captura fiable):** tope de 60 eventos, "-1 Punto" completo
   (saque/rotación/racha) + Deshacer global, ícono `Settings`, guardas del teclado, chequeo de rosters.
-- **Fase B — Modo Partido:** nueva vista sin scroll con cancha por equipo y flujo jugadora → acción;
+- **Fase B — [x] cerrada** — Modo Partido (`/live/:matchId`, `LiveScoutView.vue` + `ScoutTeamColumn.vue`). Verificado en navegador a 1280×800 y 1024×768 sin scroll. Pendiente de B: el selector de dorsal por teclado (queda en Fase D). nueva vista sin scroll con cancha por equipo y flujo jugadora → acción;
   rotación asistida.
 - **Fase C — Pendientes y edición:** cola de puntos sin clasificar, edición/reasignación de eventos pasados.
 - **Fase D — Teclado y táctil:** atajos por código, tamaño de objetivos táctiles, pruebas en tablet.

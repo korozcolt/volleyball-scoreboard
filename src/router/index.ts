@@ -3,6 +3,7 @@ import { ROUTES, STORAGE_KEYS } from '@utils/constants'
 
 // Importaciones lazy de las vistas para code splitting
 const ControllerView = () => import('@/views/ControllerView.vue')
+const LiveScoutView = () => import('@/views/LiveScoutView.vue')
 const OverlayView = () => import('@/views/OverlayView.vue')
 const LineupOverlayView = () => import('@/views/LineupOverlayView.vue')
 const RosterOverlayView = () => import('@/views/RosterOverlayView.vue')
@@ -44,6 +45,16 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       title: 'Control de Partido | VolleyStream',
       description: 'Panel operativo para marcador, saque, sets, timeouts y overlays',
+      requiresFullscreen: false,
+    },
+  },
+  {
+    path: `${ROUTES.LIVE}/:matchId`,
+    name: 'Live',
+    component: LiveScoutView,
+    meta: {
+      title: 'Modo Partido | VolleyStream',
+      description: 'Captura en vivo de marcador y estadísticas para un solo operador',
       requiresFullscreen: false,
     },
   },

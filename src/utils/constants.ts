@@ -60,6 +60,7 @@ export const scopedSyncChannel = (baseChannel: string, scopeId?: string) =>
 export const ROUTES = {
   HOME: '/',
   CONTROLLER: '/controller',
+  LIVE: '/live',
   OVERLAY: '/overlay',
   LINEUP: '/lineup',
   ROSTER: '/roster',
