@@ -1,6 +1,7 @@
 import { COMMUNICATION_CONFIG, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
 import type {
   GameState,
+  PointClassification,
   PlayerStatSummary,
   ScoringReason,
   StatErrorType,
@@ -362,6 +363,117 @@ export const useStatisticsStore = defineStore('statistics', () => {
     )
   }
 
+  // ─── Clasificar / corregir puntos después de anotarlos ────────────────────
+  // El anotador puede sumar el punto ya ("+1 sin clasificar") y decidir después cómo terminó y quién lo
+  // hizo. Reclasificar nunca toca el marcador, los puntos totales, la racha ni el saque: solo cambia el
+  // desglose (ataque/bloqueo/ace/error rival) y la jugadora atribuida.
+  const counterKeyByType: Partial<Record<StatisticEvent['type'], keyof TeamStatistics>> = {
+    attack: 'attackPoints',
+    block: 'blockPoints',
+    ace: 'aces',
+    opponent_error: 'opponentErrors',
+    attack_error: 'attackErrors',
+    serve_error: 'serveErrors',
+    reception_error: 'receptionErrors',
+  }
+
+  const bumpCounter = (team: TeamSide, type: StatisticEvent['type'], delta: 1 | -1) => {
+    const key = counterKeyByType[type]
+    if (key) state.value[team][key] = Math.max(0, state.value[team][key] + delta)
+  }
+
+  // Puntos que se pueden reclasificar (las sanciones no: son un punto por regla).
+  const reclassifiablePointTypes: ReadonlyArray<StatisticEvent['type']> = [
+    'manual',
+    'attack',
+    'block',
+    'ace',
+    'opponent_error',
+  ]
+
+  const pendingPoints = computed(() => state.value.events.filter((event) => event.type === 'manual'))
+  const classifiedPoints = computed(() =>
+    state.value.events.filter((event) => reclassifiablePointTypes.includes(event.type) && event.type !== 'manual'),
+  )
+
+  // `regainedServe` indica que el equipo que anotó no tenía el saque: define qué clasificaciones son posibles.
+  // En eventos antiguos sin ese dato (undefined) no se restringe nada.
+  const classificationError = (event: StatisticEvent, c: PointClassification): string | null => {
+    if (c.kind === 'point' && c.reason === 'ace' && event.regainedServe === true) {
+      return 'Un ace solo lo anota el equipo que ya tenía el saque.'
+    }
+    if (c.kind === 'error' && c.errorType === 'serve_error' && event.regainedServe === false) {
+      return 'El error de saque es del equipo que saca: aquí el rival no tenía el saque.'
+    }
+    if (c.kind === 'error' && c.errorType === 'reception_error' && event.regainedServe === true) {
+      return 'El error de recepción es del equipo que recibe: aquí el rival tenía el saque.'
+    }
+    return null
+  }
+
+  const reclassifyPoint = (eventId: string, classification: PointClassification): boolean => {
+    let index = state.value.events.findIndex((event) => event.id === eventId)
+    if (index === -1) return false
+    const event = state.value.events[index]
+    if (!reclassifiablePointTypes.includes(event.type)) return false
+
+    const problem = classificationError(event, classification)
+    if (problem) {
+      rejectInvalidStat(problem)
+      return false
+    }
+
+    pushUndo('Clasificar punto')
+    const opponent = getOpponent(event.team)
+
+    // Quita la clasificación anterior, incluido el error del rival que la originó (se registra justo
+    // después del punto, o sea, una posición más reciente en el log).
+    const paired = state.value.events[index - 1]
+    if (
+      event.type === 'opponent_error' &&
+      paired !== undefined &&
+      paired.team === opponent &&
+      errorEventTypes.includes(paired.type)
+    ) {
+      bumpCounter(paired.team, paired.type, -1)
+      state.value.events.splice(index - 1, 1)
+      index -= 1
+    }
+    bumpCounter(event.team, event.type, -1)
+
+    if (classification.kind === 'point') {
+      event.type = classification.reason
+      event.playerNumber =
+        classification.reason !== 'opponent_error' && classification.playerNumber !== undefined
+          ? String(classification.playerNumber)
+          : undefined
+      bumpCounter(event.team, event.type, 1)
+    } else {
+      event.type = 'opponent_error'
+      event.playerNumber = undefined
+      bumpCounter(event.team, 'opponent_error', 1)
+      bumpCounter(opponent, classification.errorType, 1)
+      state.value.events.splice(index, 0, {
+        id: createId(),
+        team: opponent,
+        type: classification.errorType,
+        set: event.set,
+        score: { ...event.score },
+        timestamp: event.timestamp,
+        playerNumber:
+          classification.playerNumber !== undefined ? String(classification.playerNumber) : undefined,
+      })
+    }
+
+    match.addToHistory(
+      `Punto clasificado: ${scoringLabels[event.type as ScoringReason] ?? event.type} · ${
+        match.gameState[event.team].shortCode
+      } (${event.score.local}-${event.score.visitor})`,
+      'info',
+    )
+    return true
+  }
+
   const scorePointWithReason = (team: TeamSide, reason: ScoringReason, playerNumber?: string | number) => {
     if (match.gameState.gameFinished) return
     if (reason === 'ace' && !match.gameState[team].serving) {
@@ -564,6 +676,9 @@ export const useStatisticsStore = defineStore('statistics', () => {
     issueSanction,
     removePointWithRevert,
     recordRotationFault,
+    reclassifyPoint,
+    pendingPoints,
+    classifiedPoints,
     pushUndo,
     undoLast,
     clearUndo,

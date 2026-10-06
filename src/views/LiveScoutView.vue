@@ -1,7 +1,8 @@
 <script setup lang="ts">
 defineOptions({ name: 'LiveScoutView' })
-import { computed } from 'vue'
-import { ArrowLeft, ChevronsRight, Keyboard, Undo2, Volleyball } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { ArrowLeft, ChevronsRight, ClipboardCheck, Keyboard, Undo2, Volleyball } from 'lucide-vue-next'
+import PendingPointsPanel from '@/components/controller/PendingPointsPanel.vue'
 import ScoutTeamColumn from '@/components/controller/ScoutTeamColumn.vue'
 import type { TeamSide } from '@/types/game.types'
 import { useMatchActions, useMatchShortcuts } from '@/composables/useMatchActions'
@@ -18,6 +19,7 @@ const { scorePoint, scorePointWithReason, recordError, recordSkill, requestTimeo
 useMatchShortcuts()
 
 const sides: TeamSide[] = ['local', 'visitor']
+const showPending = ref(false)
 
 const teamsWithoutRoster = computed(() =>
   sides
@@ -100,6 +102,23 @@ const sessionError = scope.sessionError
         </span>
         <button
           type="button"
+          class="inline-flex h-11 items-center gap-1 rounded border px-3 text-xs font-black uppercase transition"
+          :class="
+            statistics.pendingPoints.length > 0
+              ? 'border-broadcast-alert bg-broadcast-alert/10 text-broadcast-alert'
+              : 'border-broadcast-outline bg-broadcast-surface-high text-broadcast-muted hover:text-broadcast-text'
+          "
+          title="Clasificar o corregir puntos"
+          @click="showPending = true"
+        >
+          <ClipboardCheck class="h-4 w-4" />
+          Pendientes
+          <span v-if="statistics.pendingPoints.length > 0" class="rounded bg-broadcast-alert px-1.5 text-[11px] text-[#40000d]">
+            {{ statistics.pendingPoints.length }}
+          </span>
+        </button>
+        <button
+          type="button"
           class="inline-flex h-11 items-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-high px-3 text-xs font-black uppercase text-broadcast-text transition hover:border-broadcast-accent"
           title="Cambiar el saque manualmente (Espacio)"
           @click="toggleServe"
@@ -155,6 +174,15 @@ const sessionError = scope.sessionError
         @substitute="substitute"
       />
     </main>
+
+    <PendingPointsPanel
+      v-if="showPending"
+      :teams="{ local: match.gameState.local, visitor: match.gameState.visitor }"
+      :pending="statistics.pendingPoints"
+      :classified="statistics.classifiedPoints"
+      @classify="statistics.reclassifyPoint"
+      @close="showPending = false"
+    />
 
     <!-- Últimos eventos -->
     <footer class="flex shrink-0 items-center gap-4 border-t border-broadcast-outline px-3 py-1.5 text-xs text-broadcast-muted">

@@ -73,7 +73,7 @@
   (saque/rotación/racha) + Deshacer global, ícono `Settings`, guardas del teclado, chequeo de rosters.
 - **Fase B — [x] cerrada** — Modo Partido (`/live/:matchId`, `LiveScoutView.vue` + `ScoutTeamColumn.vue`). Verificado en navegador a 1280×800 y 1024×768 sin scroll. Pendiente de B: el selector de dorsal por teclado (queda en Fase D). nueva vista sin scroll con cancha por equipo y flujo jugadora → acción;
   rotación asistida.
-- **Fase C — Pendientes y edición:** cola de puntos sin clasificar, edición/reasignación de eventos pasados.
+- **Fase C — [x] cerrada** — Pendientes y edición (`PendingPointsPanel.vue`, `statistics.reclassifyPoint`): cola de "+1 sin clasificar" y pestaña Corregir; no toca marcador ni puntos totales; respeta ace/error de saque/error de recepción según quién tenía el saque. Antes era: cola de puntos sin clasificar, edición/reasignación de eventos pasados.
 - **Fase D — Teclado y táctil:** atajos por código, tamaño de objetivos táctiles, pruebas en tablet.
 - **Fase E — Estadísticas por jugadora:** líderes, errores por jugadora y reportes (después de que la captura
   sea fiable).

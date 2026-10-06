@@ -254,6 +254,11 @@ export interface TeamStatistics {
   biggestRun: number
 }
 
+// Cómo terminó un punto: por una jugadora propia, o por un error de una jugadora rival.
+export type PointClassification =
+  | { kind: 'point'; reason: 'attack' | 'block' | 'ace' | 'opponent_error'; playerNumber?: string | number }
+  | { kind: 'error'; errorType: StatErrorType; playerNumber?: string | number }
+
 export interface StatisticEvent {
   id: string
   team: TeamSide
