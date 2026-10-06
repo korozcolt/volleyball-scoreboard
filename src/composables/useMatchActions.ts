@@ -53,7 +53,13 @@ const isTypingTarget = (target: EventTarget | null) =>
  * Atajos de teclado del operador. Ignora teclas repetidas, Alt y campos de texto; con Cmd/Ctrl solo actúa
  * en Deshacer (Z) y, opcionalmente, reiniciar partido — cualquier otra combinación es del navegador.
  */
-export const useMatchShortcuts = (options: { onResetGame?: () => void } = {}) => {
+export const useMatchShortcuts = (
+  options: {
+    onResetGame?: () => void
+    // Intercepta la tecla antes que los atajos de una letra; devuelve true si la consumió.
+    intercept?: (event: KeyboardEvent) => boolean
+  } = {},
+) => {
   const statistics = useStatisticsStore()
   const overlay = useOverlayControlStore()
   const { scorePoint, toggleServe, nextSet } = useMatchActions()
@@ -69,6 +75,11 @@ export const useMatchShortcuts = (options: { onResetGame?: () => void } = {}) =>
         event.preventDefault()
         options.onResetGame()
       }
+      return
+    }
+
+    if (options.intercept?.(event)) {
+      event.preventDefault()
       return
     }
 

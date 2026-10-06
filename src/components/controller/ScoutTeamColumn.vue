@@ -109,44 +109,79 @@ const secondaryActions: Array<{ label: string; skill: StatSkillType }> = [
   { label: 'Bloq. tocado', skill: 'block_touch' },
 ]
 
-const canPoint = (reason: ScoringReason) => {
-  if (props.gameFinished) return false
-  if (liberoBlocked.value) return false
-  if (reason === 'ace') return props.team.serving && actingPlayer(true) !== null
-  return selected.value !== null
+// Cada regla devuelve el motivo por el que la acción no aplica (o null si sí). Botones y teclado usan
+// estas mismas funciones, así que nunca se comportan distinto.
+const pointBlock = (reason: ScoringReason): string | null => {
+  if (props.gameFinished) return 'El partido ya terminó.'
+  if (reason === 'opponent_error') return null
+  if (liberoBlocked.value) return 'La líbero no puede sacar, atacar ni bloquear.'
+  if (reason === 'ace') {
+    if (!props.team.serving) return 'Solo el equipo que saca puede hacer ace.'
+    return actingPlayer(true) !== null ? null : 'Falta la jugadora.'
+  }
+  return selected.value !== null ? null : 'Falta la jugadora: toca un dorsal primero.'
 }
 
-const canError = (error: StatErrorType) => {
-  if (props.gameFinished) return false
-  if (error === 'serve_error') return props.team.serving && actingPlayer(true) !== null
-  if (error === 'reception_error') return !props.team.serving && selected.value !== null
-  return selected.value !== null
+const errorBlock = (error: StatErrorType): string | null => {
+  if (props.gameFinished) return 'El partido ya terminó.'
+  if (error === 'serve_error') {
+    if (!props.team.serving) return 'El error de saque es del equipo que saca.'
+    return actingPlayer(true) !== null ? null : 'Falta la jugadora.'
+  }
+  if (error === 'reception_error' && props.team.serving) return 'El error de recepción es del equipo que recibe.'
+  return selected.value !== null ? null : 'Falta la jugadora: toca un dorsal primero.'
 }
 
-const canSkill = (skill: StatSkillType) => {
-  if (props.gameFinished || selected.value === null) return false
-  if (skill === 'positive_reception' || skill === 'negative_reception') return !props.team.serving
-  return true
+const skillBlock = (skill: StatSkillType): string | null => {
+  if (props.gameFinished) return 'El partido ya terminó.'
+  if (selected.value === null) return 'Falta la jugadora: toca un dorsal primero.'
+  if ((skill === 'positive_reception' || skill === 'negative_reception') && props.team.serving) {
+    return 'La recepción es del equipo que recibe.'
+  }
+  return null
 }
+
+const canPoint = (reason: ScoringReason) => pointBlock(reason) === null
+const canError = (error: StatErrorType) => errorBlock(error) === null
+const canSkill = (skill: StatSkillType) => skillBlock(skill) === null
 
 const clearSelection = () => {
   selected.value = null
 }
 
-const doPoint = (reason: ScoringReason) => {
-  emit('scoreReason', props.side, reason, actingPlayer(reason === 'ace') ?? undefined)
-  clearSelection()
+// Antídoto contra el doble toque en tablet: acciones que no exigen seleccionar jugadora (Ace, "Rival erró",
+// "Sacó otra", "+1 sin clasificar") sumarían dos puntos si el toque se repite. Tras una acción, la columna
+// ignora nuevas acciones por un instante.
+const LOCK_MS = 450
+let lockedUntil = 0
+const guard = (action: () => void) => {
+  const now = Date.now()
+  if (now < lockedUntil) return
+  lockedUntil = now + LOCK_MS
+  action()
 }
 
-const doError = (error: StatErrorType) => {
-  emit('statError', props.side, error, actingPlayer(error === 'serve_error') ?? undefined)
-  clearSelection()
-}
+const doPoint = (reason: ScoringReason) =>
+  guard(() => {
+    emit('scoreReason', props.side, reason, actingPlayer(reason === 'ace') ?? undefined)
+    clearSelection()
+  })
 
-const doSkill = (skill: StatSkillType) => {
-  emit('statSkill', props.side, skill, selected.value ?? undefined)
-  clearSelection()
-}
+const doError = (error: StatErrorType) =>
+  guard(() => {
+    emit('statError', props.side, error, actingPlayer(error === 'serve_error') ?? undefined)
+    clearSelection()
+  })
+
+const doSkill = (skill: StatSkillType) =>
+  guard(() => {
+    emit('statSkill', props.side, skill, selected.value ?? undefined)
+    clearSelection()
+  })
+
+const doPending = () => guard(() => emit('pendingPoint', props.side))
+const doRotationFault = () => guard(() => emit('rotationFault', props.side))
+const doTimeout = () => guard(() => emit('timeout', props.side))
 
 const onCourtTap = (number: string | null) => {
   if (number === null) return
@@ -214,6 +249,50 @@ const canTimeout = computed(
     props.team.timeoutsUsed < timeoutLimit &&
     timeoutRemaining.value === 0,
 )
+
+// Interfaz para el teclado (ver useScoutKeyboard): misma lógica y validaciones que los botones.
+defineExpose({
+  courtNumbers: () => props.team.rotation.map(String),
+  serverNumber: () => (props.team.rotation[0] === undefined ? null : String(props.team.rotation[0])),
+  selectedNumber: () => selected.value,
+  select: (number: string | null) => {
+    if (number !== null && !props.team.rotation.some((n) => String(n) === number)) return false
+    subMode.value = false
+    selected.value = number
+    return true
+  },
+  clearSelection,
+  runPoint: (reason: ScoringReason) => {
+    const blocked = pointBlock(reason)
+    if (!blocked) doPoint(reason)
+    return blocked
+  },
+  runError: (error: StatErrorType) => {
+    const blocked = errorBlock(error)
+    if (!blocked) doError(error)
+    return blocked
+  },
+  runSkill: (skill: StatSkillType) => {
+    const blocked = skillBlock(skill)
+    if (!blocked) doSkill(skill)
+    return blocked
+  },
+  runPending: () => {
+    if (props.gameFinished) return 'El partido ya terminó.'
+    doPending()
+    return null
+  },
+  runRotationFault: () => {
+    if (props.gameFinished) return 'El partido ya terminó.'
+    doRotationFault()
+    return null
+  },
+  runTimeout: () => {
+    if (!canTimeout.value) return 'No se puede pedir tiempo ahora.'
+    doTimeout()
+    return null
+  },
+})
 </script>
 
 <template>
@@ -237,7 +316,7 @@ const canTimeout = computed(
           type="button"
           class="inline-flex h-11 items-center gap-1 rounded border border-broadcast-outline bg-broadcast-surface-high px-3 text-xs font-black uppercase text-broadcast-text transition hover:border-broadcast-accent disabled:opacity-40"
           :disabled="!canTimeout"
-          @click="emit('timeout', side)"
+          @click="doTimeout"
         >
           <Timer class="h-4 w-4" />
           <span v-if="timeoutRemaining">{{ timeoutRemaining }}s</span>
@@ -262,7 +341,7 @@ const canTimeout = computed(
         class="inline-flex h-11 shrink-0 items-center gap-1 rounded border border-broadcast-danger/60 bg-broadcast-danger/10 px-3 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white disabled:opacity-40"
         :disabled="gameFinished"
         title="Sacó otra jugadora: falta de rotación (punto para el rival)"
-        @click="emit('rotationFault', side)"
+        @click="doRotationFault"
       >
         <TriangleAlert class="h-4 w-4" />
         Sacó otra
@@ -348,7 +427,7 @@ const canTimeout = computed(
           v-for="action in errorActions"
           :key="action.error"
           type="button"
-          class="h-[clamp(2.5rem,6vh,3.5rem)] rounded-lg border border-broadcast-danger/50 bg-broadcast-danger/10 text-sm font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+          class="h-[clamp(2.75rem,6vh,3.5rem)] rounded-lg border border-broadcast-danger/50 bg-broadcast-danger/10 text-sm font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
           :disabled="!canError(action.error)"
           @click="doError(action.error)"
         >
@@ -372,7 +451,7 @@ const canTimeout = computed(
         class="h-12 rounded-lg border border-broadcast-outline bg-broadcast-surface-lowest text-xs font-black uppercase text-broadcast-muted transition hover:text-broadcast-text active:scale-95 disabled:opacity-40"
         :disabled="gameFinished"
         title="Suma el punto ya y lo clasificas después"
-        @click="emit('pendingPoint', side)"
+        @click="doPending"
       >
         +1 sin clasificar
       </button>
@@ -399,7 +478,7 @@ const canTimeout = computed(
         class="inline-flex h-11 items-center gap-1 rounded-lg border border-broadcast-danger/50 bg-broadcast-danger/10 px-3 text-xs font-black uppercase text-broadcast-danger transition hover:bg-broadcast-danger hover:text-white disabled:opacity-40"
         :disabled="gameFinished"
         title="Posición incorrecta al recibir: falta de rotación (punto para el rival)"
-        @click="emit('rotationFault', side)"
+        @click="doRotationFault"
       >
         <TriangleAlert class="h-4 w-4" />
         Falta rot.
@@ -410,7 +489,7 @@ const canTimeout = computed(
     <div>
       <button
         type="button"
-        class="flex w-full items-center justify-between text-[10px] font-black uppercase tracking-widest text-broadcast-muted transition hover:text-broadcast-text"
+        class="flex min-h-11 w-full items-center justify-between text-[10px] font-black uppercase tracking-widest text-broadcast-muted transition hover:text-broadcast-text"
         @click="showSecondary = !showSecondary"
       >
         Recepción y defensa (opcional)
