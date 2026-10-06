@@ -455,6 +455,7 @@
     background: linear-gradient(90deg, #082cff, #ff3d1f);
     padding: 0.28rem 0.9rem;
     text-align: center;
+    white-space: nowrap;
     font-size: 0.68rem;
     font-weight: 900;
     letter-spacing: 0.15em;
@@ -523,90 +524,231 @@
     opacity: 0.8;
   }
 
-  .stats-overlay {
-    isolation: isolate;
-    filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.58));
+  /* ---------------------------------------------------------------------
+   * Overlays secundarios (historial, estadísticas, líderes): viven dentro del
+   * mismo marco que el marcador (.vnl-scorebug) y comparten alto, alas, núcleo
+   * y cinta. Aquí solo van sus contenidos.
+   * ------------------------------------------------------------------- */
+  .flag-tile-sm {
+    height: 62px;
+    width: 62px;
+    padding: 0.3rem;
   }
 
-  .stats-overlay::before {
-    content: '';
-    position: absolute;
-    inset: -16px -22px;
-    z-index: -2;
-    background:
-      radial-gradient(circle at 20% 50%, rgba(8, 44, 255, 0.58), transparent 44%),
-      radial-gradient(circle at 80% 46%, rgba(255, 61, 31, 0.48), transparent 44%),
-      linear-gradient(100deg, rgba(4, 7, 56, 0.96), rgba(22, 8, 72, 0.9), rgba(118, 26, 16, 0.92));
-    clip-path: polygon(2% 12%, 98% 0, 94% 88%, 5% 100%);
+  .ov-code {
+    font-size: 2.6rem;
   }
 
-  .stats-overlay::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background-image:
-      repeating-linear-gradient(105deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 12px),
-      radial-gradient(circle at center, transparent 0 34%, rgba(255, 255, 255, 0.09) 35%, transparent 38%);
-    mix-blend-mode: overlay;
-    opacity: 0.5;
-    pointer-events: none;
+  .ov-tiles {
+    display: grid;
+    flex-shrink: 0;
+    grid-template-columns: repeat(2, 62px);
+    gap: 0.32rem;
   }
 
-  .stats-team-panel {
-    min-height: 144px;
-    background:
-      linear-gradient(90deg, color-mix(in srgb, var(--team-color) 40%, transparent), transparent 44%),
-      linear-gradient(135deg, rgba(3, 12, 52, 0.92), rgba(14, 8, 46, 0.88));
-  }
-
-  .stats-team-panel.order-3 {
-    background:
-      linear-gradient(270deg, color-mix(in srgb, var(--team-color) 40%, transparent), transparent 44%),
-      linear-gradient(225deg, rgba(84, 18, 18, 0.92), rgba(18, 8, 50, 0.88));
-  }
-
-  .stats-team-identity {
-    position: relative;
+  .ov-tile {
     display: flex;
-    min-width: 136px;
+    height: 43px;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.14rem;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    background: linear-gradient(180deg, rgba(9, 9, 15, 0.94), rgba(22, 22, 28, 0.9));
+    transform: skewX(-8deg);
+    box-shadow:
+      inset 0 0 18px rgba(255, 255, 255, 0.04),
+      0 8px 18px rgba(0, 0, 0, 0.28);
   }
 
-  .stats-team-code {
-    font-size: 4.4rem;
+  .ov-tile > * {
+    transform: skewX(8deg);
+  }
+
+  .ov-tile-label {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.58rem;
     font-weight: 900;
-    font-style: italic;
-    line-height: 0.86;
-    letter-spacing: 0;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+
+  .ov-tile-value {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 0.9;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  }
+
+  .ov-core-label {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    text-shadow:
-      0 10px 24px rgba(0, 0, 0, 0.68),
-      0 0 20px color-mix(in srgb, var(--team-color) 54%, transparent);
+  }
+
+  .ov-core-number {
+    color: white;
+    font-size: 2.6rem;
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    text-shadow: 0 6px 14px rgba(0, 0, 0, 0.65);
+  }
+
+  .ov-core-number-dim {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .ov-pill {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(0, 0, 0, 0.35);
+    padding: 0.12rem 0.7rem;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     transform: skewX(-8deg);
   }
 
-  .stats-team-logo {
-    height: 96px;
-    width: 96px;
-    object-fit: contain;
-    filter:
-      drop-shadow(0 12px 20px rgba(0, 0, 0, 0.54))
-      drop-shadow(0 0 18px color-mix(in srgb, var(--team-color) 36%, transparent));
+  .ov-kicker {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
 
-  .stats-team-badge {
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%) skewX(-8deg);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(0, 0, 0, 0.66);
-    padding: 0.12rem 0.45rem;
-    font-size: 0.68rem;
+  .ov-lead-number {
+    color: white;
+    font-size: 2.9rem;
     font-weight: 900;
-    letter-spacing: 0.08em;
+    line-height: 0.9;
+    text-shadow: 0 6px 14px rgba(0, 0, 0, 0.65);
+  }
+
+  .ov-unit {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .ov-lead-name {
+    margin-top: 0.2rem;
+    overflow: hidden;
+    color: white;
+    font-size: 1.05rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ov-lead-name span {
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 700;
+  }
+
+  .ov-breakdown {
+    margin-top: 0.15rem;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .ov-sets-box {
+    min-width: 62px;
+  }
+
+  .ov-sets-number {
+    color: white;
+    font-size: 2.3rem;
+    font-weight: 900;
+    line-height: 0.82;
+    text-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+  }
+
+  .ov-slot {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+    padding-top: 0.45rem;
+  }
+
+  .ov-slot:first-child {
+    border-left: 0;
+  }
+
+  .ov-slot-label {
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .ov-slot-live .ov-slot-label {
+    color: #ffd24a;
+  }
+
+  .ov-slot-score {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    color: white;
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  }
+
+  .ov-slot-dash {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 1.2rem;
+  }
+
+  .ov-slot-loser {
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .ov-slot-pending {
+    opacity: 0.7;
+  }
+
+  .ov-slot-bars {
+    display: grid;
+    width: 76%;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+  }
+
+  .ov-slot-bars span {
+    height: 3px;
+    border-radius: 1px;
+  }
+
+  /* En el tema Sucre el ala derecha es clara: los textos que no van dentro de una caja oscura pasan a verde oscuro. */
+  .vnl-scorebug.theme-sucre .team-wing-right .ov-kicker,
+  .vnl-scorebug.theme-sucre .team-wing-right .ov-unit,
+  .vnl-scorebug.theme-sucre .team-wing-right .ov-breakdown {
+    color: rgba(10, 46, 21, 0.78);
+  }
+
+  .vnl-scorebug.theme-sucre .team-wing-right .ov-lead-number,
+  .vnl-scorebug.theme-sucre .team-wing-right .ov-lead-name,
+  .vnl-scorebug.theme-sucre .team-wing-right .ov-lead-name span {
+    color: #0a2e15;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
   }
 }
 

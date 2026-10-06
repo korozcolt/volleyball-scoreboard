@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Radio, Shield } from 'lucide-vue-next'
+import OverlayHistory from '@/components/overlay/OverlayHistory.vue'
 import OverlayLeaders from '@/components/overlay/OverlayLeaders.vue'
 import OverlayStats from '@/components/overlay/OverlayStats.vue'
 import type { GameState, OverlayMode, StatisticsState, TeamSide } from '@/types/game.types'
@@ -71,90 +72,19 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
 
 <template>
   <div class="relative w-full">
-    <div
+    <OverlayHistory
       v-if="mode === 'history'"
-      class="broadcast-history mx-auto grid min-h-[112px] max-w-[1120px] grid-cols-5 gap-3 rounded-xl border border-white/15 p-4 shadow-2xl"
-    >
-      <div
-        v-for="setNumber in gameState.settings.maxSets"
-        :key="setNumber"
-        class="relative flex min-h-[78px] flex-col items-center justify-center overflow-hidden rounded-lg border text-center"
-        :class="
-          gameState.completedSets[setNumber - 1]
-            ? 'border-white/30 bg-white/10'
-            : setNumber === gameState.currentSet
-              ? 'border-white/60 bg-white/15'
-              : 'border-dashed border-white/15 bg-black/20 opacity-60'
-        "
-      >
-        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#082cff] to-[#ff3d1f]"></div>
-        <div class="text-[10px] font-black uppercase tracking-[0.2em] text-white/65">Set {{ setNumber }}</div>
-        <template v-if="gameState.completedSets[setNumber - 1]">
-          <div class="mt-1 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
-            <div class="history-team-logo justify-self-end">
-              <img
-                v-if="gameState.local.logoUrl"
-                :src="gameState.local.logoUrl"
-                :alt="gameState.local.name"
-              />
-              <span v-else>{{ teamInitial('local') }}</span>
-            </div>
-            <div class="text-2xl font-black leading-none text-white">
-              {{ gameState.completedSets[setNumber - 1].local }} -
-              {{ gameState.completedSets[setNumber - 1].visitor }}
-            </div>
-            <div class="history-team-logo justify-self-start">
-              <img
-                v-if="gameState.visitor.logoUrl"
-                :src="gameState.visitor.logoUrl"
-                :alt="gameState.visitor.name"
-              />
-              <span v-else>{{ teamInitial('visitor') }}</span>
-            </div>
-          </div>
-          <div class="mt-1 flex items-center justify-center gap-1 text-xs font-black text-[#7bd0ff]">
-            <span>Ganó</span>
-            <img
-              v-if="gameState[gameState.completedSets[setNumber - 1].winner].logoUrl"
-              :src="gameState[gameState.completedSets[setNumber - 1].winner].logoUrl"
-              :alt="gameState[gameState.completedSets[setNumber - 1].winner].name"
-              class="h-4 w-4 object-contain"
-            />
-            <span v-else>{{ gameState[gameState.completedSets[setNumber - 1].winner].shortCode }}</span>
-          </div>
-        </template>
-        <template v-else-if="setNumber === gameState.currentSet">
-          <div class="mt-1 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
-            <div class="history-team-logo justify-self-end">
-              <img
-                v-if="gameState.local.logoUrl"
-                :src="gameState.local.logoUrl"
-                :alt="gameState.local.name"
-              />
-              <span v-else>{{ teamInitial('local') }}</span>
-            </div>
-            <div class="text-2xl font-black leading-none text-white">
-              {{ gameState.local.score }} - {{ gameState.visitor.score }}
-            </div>
-            <div class="history-team-logo justify-self-start">
-              <img
-                v-if="gameState.visitor.logoUrl"
-                :src="gameState.visitor.logoUrl"
-                :alt="gameState.visitor.name"
-              />
-              <span v-else>{{ teamInitial('visitor') }}</span>
-            </div>
-          </div>
-          <div class="mt-1 text-xs font-black text-[#ffb2b7]">Actual</div>
-        </template>
-        <div v-else class="text-2xl font-black text-white/35">-</div>
-      </div>
-    </div>
+      :game-state="gameState"
+      :theme="backgroundStyle"
+      :compact="compact"
+    />
 
     <OverlayLeaders
       v-else-if="mode === 'leaders'"
       :game-state="gameState"
       :statistics="statisticsState"
+      :theme="backgroundStyle"
+      :compact="compact"
     />
 
     <OverlayStats
@@ -162,6 +92,8 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
       :game-state="gameState"
       :statistics="statisticsState"
       :attack-efficiency="statisticsStore.attackEfficiency"
+      :theme="backgroundStyle"
+      :compact="compact"
     />
 
     <div

@@ -1,73 +1,85 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Star } from 'lucide-vue-next'
+import OverlayFlag from '@/components/overlay/OverlayFlag.vue'
+import OverlayFrame from '@/components/overlay/OverlayFrame.vue'
 import type { GameState, StatisticsState, TeamSide } from '@/types/game.types'
 import { buildLeaders, buildPlayerLines } from '@/utils/playerStats'
 
 const props = defineProps<{
   gameState: GameState
   statistics: StatisticsState
+  theme?: string
+  compact?: boolean
 }>()
 
-const sides: TeamSide[] = ['local', 'visitor']
+// Mejor anotadora de cada equipo en todo el partido, con su desglose.
+const cardFor = (side: TeamSide) => {
+  const lines = buildPlayerLines(props.statistics.events, side, props.gameState[side].roster ?? [])
+  const leader = buildLeaders(lines).points
+  const line = leader ? lines.find((item) => item.playerNumber === leader.playerNumber) : undefined
+  return { leader, line }
+}
 
-// Líder de puntos de cada equipo en todo el partido, con su desglose.
-const cards = computed(() =>
-  sides.map((side) => {
-    const lines = buildPlayerLines(props.statistics.events, side, props.gameState[side].roster ?? [])
-    const leader = buildLeaders(lines).points
-    const line = leader ? lines.find((item) => item.playerNumber === leader.playerNumber) : undefined
-    return { side, leader, line }
-  }),
-)
-
+const cards = computed(() => ({ local: cardFor('local'), visitor: cardFor('visitor') }))
 const shortName = (name: string) => name.split(' ').slice(0, 2).join(' ')
 </script>
 
 <template>
-  <div class="stats-overlay relative mx-auto grid h-[144px] w-full max-w-[1220px] grid-cols-[1fr_220px_1fr] overflow-hidden text-white">
-    <section
-      v-for="card in cards"
-      :key="card.side"
-      class="stats-team-panel relative flex min-w-0 items-center gap-4 px-8"
-      :class="card.side === 'visitor' ? 'order-3 flex-row-reverse text-right' : 'order-1'"
-      :style="{ '--team-color': gameState[card.side].primaryColor }"
-    >
-      <div class="stats-team-identity">
-        <img
-          v-if="gameState[card.side].logoUrl"
-          :src="gameState[card.side].logoUrl"
-          :alt="gameState[card.side].name"
-          class="stats-team-logo"
-        />
-        <div v-else class="stats-team-code">{{ gameState[card.side].shortCode.slice(0, 3) }}</div>
-      </div>
-
+  <OverlayFrame
+    ribbon="Líderes del partido"
+    :local-color="gameState.local.primaryColor"
+    :visitor-color="gameState.visitor.primaryColor"
+    :theme="theme"
+    :compact="compact"
+  >
+    <template #left>
+      <OverlayFlag :team="gameState.local" />
       <div class="min-w-0 flex-1">
-        <div class="truncate text-xs font-black uppercase tracking-[0.22em] text-white/60">
-          {{ gameState[card.side].name }}
-        </div>
-        <template v-if="card.leader && card.line">
-          <div class="mt-1 flex items-baseline gap-3" :class="card.side === 'visitor' ? 'flex-row-reverse' : ''">
-            <span class="text-5xl font-black leading-none">{{ card.leader.value }}</span>
-            <span class="text-sm font-black uppercase tracking-wider text-white/60">pts</span>
+        <div class="ov-kicker">{{ gameState.local.name }}</div>
+        <template v-if="cards.local.leader && cards.local.line">
+          <div class="flex items-baseline gap-2">
+            <span class="ov-lead-number">{{ cards.local.leader.value }}</span>
+            <span class="ov-unit">pts</span>
           </div>
-          <div class="mt-1 truncate text-lg font-black leading-tight">
-            #{{ card.leader.playerNumber }}
-            <span v-if="card.leader.name" class="font-bold text-white/80">{{ shortName(card.leader.name) }}</span>
+          <div class="ov-lead-name">
+            #{{ cards.local.leader.playerNumber }}
+            <span v-if="cards.local.leader.name">{{ shortName(cards.local.leader.name) }}</span>
           </div>
-          <div class="text-[11px] font-black uppercase tracking-wider text-white/55">
-            ATQ {{ card.line.attackPoints }} · BLQ {{ card.line.blockPoints }} · ACE {{ card.line.aces }}
+          <div class="ov-breakdown">
+            ATQ {{ cards.local.line.attackPoints }} · BLQ {{ cards.local.line.blockPoints }} · ACE {{ cards.local.line.aces }}
           </div>
         </template>
-        <div v-else class="mt-3 text-sm font-bold uppercase tracking-wider text-white/45">Sin datos todavía</div>
+        <div v-else class="ov-breakdown mt-3">Sin datos todavía</div>
       </div>
-    </section>
+    </template>
 
-    <section class="order-2 flex flex-col items-center justify-center border-x border-white/15 bg-black/72">
-      <Star class="mb-1 h-7 w-7 text-broadcast-accent" />
-      <div class="text-[11px] font-black uppercase tracking-[0.24em] text-white/60">Líderes</div>
-      <div class="mt-1 text-center text-xs font-black uppercase tracking-wider text-white/70">del partido</div>
-    </section>
-  </div>
+    <template #center>
+      <div class="flex flex-col items-center gap-1">
+        <Star class="h-9 w-9 text-white" />
+        <div class="ov-pill">Más puntos</div>
+      </div>
+    </template>
+
+    <template #right>
+      <div class="min-w-0 flex-1 text-right">
+        <div class="ov-kicker">{{ gameState.visitor.name }}</div>
+        <template v-if="cards.visitor.leader && cards.visitor.line">
+          <div class="flex flex-row-reverse items-baseline gap-2">
+            <span class="ov-lead-number">{{ cards.visitor.leader.value }}</span>
+            <span class="ov-unit">pts</span>
+          </div>
+          <div class="ov-lead-name">
+            #{{ cards.visitor.leader.playerNumber }}
+            <span v-if="cards.visitor.leader.name">{{ shortName(cards.visitor.leader.name) }}</span>
+          </div>
+          <div class="ov-breakdown">
+            ATQ {{ cards.visitor.line.attackPoints }} · BLQ {{ cards.visitor.line.blockPoints }} · ACE {{ cards.visitor.line.aces }}
+          </div>
+        </template>
+        <div v-else class="ov-breakdown mt-3">Sin datos todavía</div>
+      </div>
+      <OverlayFlag :team="gameState.visitor" />
+    </template>
+  </OverlayFrame>
 </template>

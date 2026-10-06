@@ -1,71 +1,79 @@
 <script setup lang="ts">
-import { Activity, Radio } from 'lucide-vue-next'
+import { computed } from 'vue'
+import OverlayFlag from '@/components/overlay/OverlayFlag.vue'
+import OverlayFrame from '@/components/overlay/OverlayFrame.vue'
 import type { GameState, StatisticsState, TeamSide } from '@/types/game.types'
 
-defineProps<{
+const props = defineProps<{
   gameState: GameState
   statistics: StatisticsState
   attackEfficiency: (team: TeamSide) => number
+  theme?: string
+  compact?: boolean
 }>()
 
-const metricRows = [
+const metrics = [
   { label: 'ATQ', key: 'attackPoints' },
-  { label: 'BLK', key: 'blockPoints' },
+  { label: 'BLQ', key: 'blockPoints' },
   { label: 'ACE', key: 'aces' },
   { label: 'ERR', key: 'opponentErrors' },
 ] as const
+
+// Racha vigente: solo se muestra cuando de verdad es una racha (2 o más) y de quién es.
+const run = computed(() => {
+  const team = props.statistics.lastScoringTeam
+  if (!team) return null
+  const length = props.statistics[team].currentRun
+  return length >= 2 ? { team, length } : null
+})
 </script>
 
 <template>
-  <div class="stats-overlay relative mx-auto grid h-[144px] w-full max-w-[1220px] grid-cols-[1fr_220px_1fr] overflow-hidden text-white">
-    <section
-      v-for="side in (['local', 'visitor'] as TeamSide[])"
-      :key="side"
-      class="stats-team-panel relative flex min-w-0 items-center gap-4 px-8"
-      :class="side === 'visitor' ? 'order-3 flex-row-reverse text-right' : 'order-1'"
-      :style="{ '--team-color': gameState[side].primaryColor }"
-    >
-      <div class="stats-team-identity">
-        <img
-          v-if="gameState[side].logoUrl"
-          :src="gameState[side].logoUrl"
-          :alt="gameState[side].name"
-          class="stats-team-logo"
-        />
-        <div v-else class="stats-team-code">{{ gameState[side].shortCode.slice(0, 3) }}</div>
-        <div v-if="gameState[side].logoUrl" class="stats-team-badge">
-          {{ gameState[side].shortCode.slice(0, 3) }}
-        </div>
-      </div>
+  <OverlayFrame
+    ribbon="Estadísticas"
+    :local-color="gameState.local.primaryColor"
+    :visitor-color="gameState.visitor.primaryColor"
+    :theme="theme"
+    :compact="compact"
+  >
+    <template #left>
+      <OverlayFlag :team="gameState.local" />
       <div class="min-w-0 flex-1">
-        <div class="truncate text-xs font-black uppercase tracking-[0.22em] text-white/60">
-          {{ gameState[side].name }}
-        </div>
-        <div class="mt-3 grid grid-cols-4 gap-2">
-          <div
-            v-for="metric in metricRows"
-            :key="metric.key"
-            class="rounded border border-white/15 bg-black/24 px-2 py-1"
-          >
-            <div class="text-[10px] font-black text-white/54">{{ metric.label }}</div>
-            <div class="text-2xl font-black leading-none">{{ statistics[side][metric.key] }}</div>
-          </div>
+        <div class="team-code team-code-left ov-code">{{ gameState.local.shortCode.slice(0, 3) }}</div>
+        <div class="team-name">{{ gameState.local.name }}</div>
+      </div>
+      <div class="ov-tiles">
+        <div v-for="metric in metrics" :key="metric.key" class="ov-tile">
+          <span class="ov-tile-label">{{ metric.label }}</span>
+          <span class="ov-tile-value">{{ statistics.local[metric.key] }}</span>
         </div>
       </div>
-    </section>
+    </template>
 
-    <section class="order-2 flex flex-col items-center justify-center border-x border-white/15 bg-black/72">
-      <Radio class="mb-1 h-7 w-7 text-broadcast-accent" />
-      <div class="text-[11px] font-black uppercase tracking-[0.24em] text-white/60">Stats</div>
-      <div class="mt-1 flex items-end gap-3">
-        <span class="text-4xl font-black">{{ attackEfficiency('local') }}%</span>
-        <span class="pb-1 text-sm font-black text-white/40">ATQ%</span>
-        <span class="text-4xl font-black">{{ attackEfficiency('visitor') }}%</span>
+    <template #center>
+      <div class="flex flex-col items-center justify-center gap-1.5 px-3">
+        <div class="ov-core-label">% de ataque</div>
+        <div class="flex items-center gap-3">
+          <span class="ov-core-number">{{ attackEfficiency('local') }}%</span>
+          <span class="h-9 w-px bg-white/25"></span>
+          <span class="ov-core-number ov-core-number-dim">{{ attackEfficiency('visitor') }}%</span>
+        </div>
+        <div v-if="run" class="ov-pill">Racha {{ gameState[run.team].shortCode }} · {{ run.length }}</div>
       </div>
-      <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-black uppercase text-white/70">
-        <Activity class="h-3.5 w-3.5 text-broadcast-alert" />
-        Racha {{ Math.max(statistics.local.currentRun, statistics.visitor.currentRun) }}
+    </template>
+
+    <template #right>
+      <div class="ov-tiles">
+        <div v-for="metric in metrics" :key="metric.key" class="ov-tile">
+          <span class="ov-tile-label">{{ metric.label }}</span>
+          <span class="ov-tile-value">{{ statistics.visitor[metric.key] }}</span>
+        </div>
       </div>
-    </section>
-  </div>
+      <div class="min-w-0 flex-1 text-right">
+        <div class="team-code team-code-right ov-code">{{ gameState.visitor.shortCode.slice(0, 3) }}</div>
+        <div class="team-name">{{ gameState.visitor.name }}</div>
+      </div>
+      <OverlayFlag :team="gameState.visitor" />
+    </template>
+  </OverlayFrame>
 </template>
