@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import AdminTokenGate from '@/components/common/AdminTokenGate.vue'
 </script>
 
 <template>
@@ -8,4 +9,5 @@ import { RouterView } from 'vue-router'
       <component :is="Component" />
     </keep-alive>
   </RouterView>
+  <AdminTokenGate />
 </template>

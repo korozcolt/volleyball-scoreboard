@@ -28,3 +28,20 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Base de datos local y archivos subidos: nunca al repositorio (los datos reales viven en el volumen del servidor)
+data/*
+!data/.gitkeep
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Resultados de pruebas y artefactos de herramientas
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+.env
+.env.*
+!.env.example
+test-score-history.html

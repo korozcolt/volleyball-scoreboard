@@ -1,6 +1,7 @@
+import { timingSafeEqual } from 'node:crypto'
 import { createReadStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
-import { extname, join, normalize, resolve } from 'node:path'
+import { extname, join, normalize, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import Database from 'better-sqlite3'
@@ -18,6 +19,40 @@ const dbPath = process.env.DATABASE_URL?.startsWith('file:')
   ? process.env.DATABASE_URL.replace(/^file:/, '')
   : join(dataDir, 'volleystream.sqlite')
 const maxImageBytes = Number(process.env.MAX_IMAGE_MB ?? 3) * 1024 * 1024
+const maxJsonBytes = Number(process.env.MAX_JSON_MB ?? 5) * 1024 * 1024
+const maxSocketBytes = Number(process.env.MAX_WS_MB ?? 2) * 1024 * 1024
+
+// Clave de operador. Con ADMIN_TOKEN definido, toda escritura (POST/PUT/PATCH/DELETE en /api) y todo
+// mensaje por WebSocket exigen esa clave; lecturas y overlays de OBS siguen abiertos. Sin la variable
+// el servidor se comporta como antes (útil en desarrollo), y avisa en el log.
+const adminToken = (process.env.ADMIN_TOKEN ?? '').trim()
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message)
+    this.status = status
+  }
+}
+
+const safeEqual = (a, b) => {
+  const left = Buffer.from(String(a))
+  const right = Buffer.from(String(b))
+  return left.length === right.length && timingSafeEqual(left, right)
+}
+
+const isAuthorized = (candidate) => !adminToken || (Boolean(candidate) && safeEqual(candidate, adminToken))
+
+const requestToken = (request) => {
+  const header = request.headers['x-admin-token']
+  if (typeof header === 'string' && header) return header
+  const bearer = request.headers.authorization
+  return typeof bearer === 'string' && bearer.startsWith('Bearer ') ? bearer.slice(7) : ''
+}
+
+const securityHeaders = {
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'same-origin',
+}
 
 mkdirSync(logoDir, { recursive: true })
 
@@ -68,6 +103,7 @@ try {
   const numberColumn = tableInfo.find(c => c.name === 'number')
   if (numberColumn && numberColumn.type === 'INTEGER') {
     console.log('Migrating team_players number column to TEXT...')
+    db.exec('BEGIN')
     db.exec(`
       CREATE TABLE IF NOT EXISTS new_team_players (
         id TEXT PRIMARY KEY,
@@ -86,9 +122,12 @@ try {
       DROP TABLE team_players;
       ALTER TABLE new_team_players RENAME TO team_players;
     `)
+    db.exec('COMMIT')
     console.log('Migration completed.')
   }
 } catch (e) {
+  // Todo o nada: si falla a mitad, se deshace y la tabla original queda intacta.
+  if (db.inTransaction) db.exec('ROLLBACK')
   console.error('Migration failed:', e)
 }
 
@@ -139,16 +178,39 @@ const mimeTypes = new Map([
 const createId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 
 const sendJson = (response, status, payload) => {
-  response.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
+  response.writeHead(status, { ...securityHeaders, 'content-type': 'application/json; charset=utf-8' })
   response.end(JSON.stringify(payload))
+}
+
+// Lee el cuerpo contando bytes: un cuerpo gigante se corta con 413 en lugar de llenar la memoria.
+async function* limitedChunks(request, maxBytes) {
+  const declared = Number(request.headers['content-length'] ?? 0)
+  if (declared > maxBytes) throw new HttpError(413, 'El cuerpo de la solicitud es demasiado grande.')
+  let total = 0
+  for await (const chunk of request) {
+    total += chunk.length
+    if (total > maxBytes) throw new HttpError(413, 'El cuerpo de la solicitud es demasiado grande.')
+    yield chunk
+  }
 }
 
 const readJsonBody = async (request) => {
   const chunks = []
-  for await (const chunk of request) chunks.push(chunk)
+  for await (const chunk of limitedChunks(request, maxJsonBytes)) chunks.push(chunk)
   if (!chunks.length) return {}
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  try {
+    const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new HttpError(400, 'El cuerpo debe ser un objeto JSON.')
+    }
+    return parsed
+  } catch (error) {
+    if (error instanceof HttpError) throw error
+    throw new HttpError(400, 'JSON inválido.')
+  }
 }
+
+const normalizePlayerNumber = (value) => String(Math.max(1, Math.min(99, Number(value) || 1)))
 
 const toApiTeam = (row) => ({
   id: row.id,
@@ -233,7 +295,7 @@ const upsertPlayer = (teamId, player) => {
   const payload = {
     id,
     teamId,
-    number: String(Math.max(1, Math.min(99, Number(player.number) || 1))),
+    number: normalizePlayerNumber(player.number),
     name: String(player.name ?? '').trim() || `Jugador ${player.number ?? ''}`.trim(),
     active: player.active === false ? 0 : 1,
     isLibero: player.isLibero ? 1 : 0,
@@ -314,17 +376,20 @@ const upsertSession = (session) => {
 const resolveUploadPath = (pathname) => {
   const relativePath = normalize(pathname.replace(/^\/uploads\/?/, '')).replace(/^(\.\.[/\\])+/, '')
   const filePath = join(uploadDir, relativePath)
-  return filePath.startsWith(uploadDir) ? filePath : null
+  return filePath.startsWith(uploadDir + sep) ? filePath : null
 }
 
 const handleLogoUpload = async (request, response) => {
   const webRequest = new Request(`http://localhost${request.url}`, {
     method: 'POST',
     headers: request.headers,
-    body: Readable.toWeb(request),
+    body: Readable.toWeb(Readable.from(limitedChunks(request, maxImageBytes + 512 * 1024))),
     duplex: 'half',
   })
-  const formData = await webRequest.formData()
+  const formData = await webRequest.formData().catch((error) => {
+    if (error instanceof HttpError) throw error
+    throw new HttpError(400, 'Formulario de subida inválido.')
+  })
   const file = formData.get('file')
 
   if (!file || typeof file === 'string') {
@@ -345,6 +410,11 @@ const handleLogoUpload = async (request, response) => {
   const filePath = join(logoDir, filename)
 
   if (isSvg) {
+    // Defensa en profundidad (además del CSP sandbox de /uploads): nada de scripts ni manejadores en el SVG.
+    if (/<script|\son[a-z]+\s*=|javascript:|<foreignObject|<iframe|<embed|<object/i.test(input.toString('utf8'))) {
+      sendJson(response, 400, { error: 'El SVG contiene contenido activo y no se acepta.' })
+      return
+    }
     writeFileSync(filePath, input)
   } else {
     await sharp(input)
@@ -362,8 +432,23 @@ const handleLogoUpload = async (request, response) => {
   })
 }
 
+const isWriteMethod = (method) => !['GET', 'HEAD', 'OPTIONS'].includes(method ?? 'GET')
+
 const handleApi = async (request, response, url) => {
   try {
+    if (url.pathname === '/api/auth/status' && request.method === 'GET') {
+      sendJson(response, 200, {
+        required: Boolean(adminToken),
+        authorized: isAuthorized(requestToken(request)),
+      })
+      return true
+    }
+
+    if (isWriteMethod(request.method) && !isAuthorized(requestToken(request))) {
+      sendJson(response, 401, { error: 'Se requiere la clave de operador para modificar datos.' })
+      return true
+    }
+
     if (url.pathname === '/api/teams' && request.method === 'GET') {
       const rows = db
         .prepare('SELECT * FROM team_profiles ORDER BY updated_at DESC, name ASC')
@@ -426,16 +511,33 @@ const handleApi = async (request, response, url) => {
         return true
       }
       const body = await readJsonBody(request)
-      const player = upsertPlayer(playerMatch[1], {
+      const number = body.number !== undefined ? normalizePlayerNumber(body.number) : current.number
+      const clash = db
+        .prepare('SELECT id FROM team_players WHERE team_id = ? AND number = ? AND id != ?')
+        .get(playerMatch[1], number, playerMatch[2])
+      if (clash) {
+        sendJson(response, 409, { error: `Ya existe otra jugadora con el dorsal ${number} en este equipo.` })
+        return true
+      }
+      // UPDATE explícito por id: renumerar a una jugadora no debe chocar con la clave (team_id, number)
+      // ni sobrescribir a otra jugadora.
+      const name = String(body.name ?? current.name).trim() || current.name
+      db.prepare(`
+        UPDATE team_players
+        SET number = @number, name = @name, active = @active, is_libero = @isLibero, role = @role, updated_at = @updatedAt
+        WHERE id = @id AND team_id = @teamId
+      `).run({
         id: playerMatch[2],
-        createdAt: current.created_at,
-        number: body.number ?? current.number,
-        name: body.name ?? current.name,
-        active: body.active ?? Boolean(current.active),
-        isLibero: body.isLibero ?? Boolean(current.is_libero),
-        role: body.role !== undefined ? body.role : current.role,
+        teamId: playerMatch[1],
+        number,
+        name,
+        active: (body.active ?? Boolean(current.active)) === false ? 0 : 1,
+        isLibero: (body.isLibero ?? Boolean(current.is_libero)) ? 1 : 0,
+        role: body.role !== undefined ? (body.role ? String(body.role) : null) : current.role,
+        updatedAt: Date.now(),
       })
-      sendJson(response, 200, { player })
+      const row = db.prepare('SELECT * FROM team_players WHERE id = ?').get(playerMatch[2])
+      sendJson(response, 200, { player: toApiPlayer(row) })
       return true
     }
 
@@ -513,7 +615,7 @@ const handleApi = async (request, response, url) => {
       const id = createId('match')
       const gameState = snapshot.gameState ?? snapshot
       const winner =
-        gameState?.gameFinished && gameState?.local?.sets !== gameState?.visitor?.sets
+        gameState?.gameFinished && gameState?.local && gameState?.visitor && gameState.local.sets !== gameState.visitor.sets
           ? gameState.local.sets > gameState.visitor.sets
             ? gameState.local.shortCode
             : gameState.visitor.shortCode
@@ -553,6 +655,10 @@ const handleApi = async (request, response, url) => {
 
     return false
   } catch (error) {
+    if (error instanceof HttpError) {
+      sendJson(response, error.status, { error: error.message })
+      return true
+    }
     console.error('API error:', error)
     sendJson(response, 500, { error: 'Error interno del servidor.' })
     return true
@@ -560,18 +666,23 @@ const handleApi = async (request, response, url) => {
 }
 
 const resolveStaticPath = (url) => {
-  const pathname = decodeURIComponent(new URL(url, 'http://localhost').pathname)
+  let pathname
+  try {
+    pathname = decodeURIComponent(new URL(url, 'http://localhost').pathname)
+  } catch {
+    throw new HttpError(400, 'URL inválida.')
+  }
   const requestedPath = normalize(pathname).replace(/^(\.\.[/\\])+/, '')
   const filePath = join(distDir, requestedPath)
 
-  if (filePath.startsWith(distDir) && existsSync(filePath) && statSync(filePath).isFile()) {
+  if (filePath.startsWith(distDir + sep) && existsSync(filePath) && statSync(filePath).isFile()) {
     return filePath
   }
 
   return join(distDir, 'index.html')
 }
 
-const server = createServer(async (request, response) => {
+const handleRequest = async (request, response) => {
   if (!existsSync(distDir)) {
     response.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' })
     response.end('Build no encontrado. Ejecuta npm run build antes de iniciar producción.')
@@ -595,6 +706,9 @@ const server = createServer(async (request, response) => {
     }
 
     response.writeHead(200, {
+      ...securityHeaders,
+      // Los archivos subidos jamás deben ejecutar scripts, ni siquiera un SVG abierto directamente.
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
       'cache-control': 'public, max-age=31536000, immutable',
       'content-type': mimeTypes.get(extname(filePath)) ?? 'application/octet-stream',
     })
@@ -606,50 +720,116 @@ const server = createServer(async (request, response) => {
   const contentType = mimeTypes.get(extname(filePath)) ?? 'application/octet-stream'
 
   response.writeHead(200, {
+    ...securityHeaders,
     'cache-control': filePath.endsWith('index.html') ? 'no-cache' : 'public, max-age=31536000, immutable',
     'content-type': contentType,
   })
   createReadStream(filePath).pipe(response)
+}
+
+const server = createServer((request, response) => {
+  handleRequest(request, response).catch((error) => {
+    const status = error instanceof HttpError ? error.status : 500
+    if (!(error instanceof HttpError)) console.error('Request error:', error)
+    if (response.headersSent) {
+      response.destroy()
+      return
+    }
+    response.writeHead(status, { ...securityHeaders, 'content-type': 'text/plain; charset=utf-8' })
+    response.end(error instanceof HttpError ? error.message : 'Error interno del servidor.')
+  })
 })
 
-const syncServer = new WebSocketServer({ server, path: '/ws' })
+// Un error inesperado en una promesa suelta se registra, pero no tumba el partido en vivo.
+process.on('unhandledRejection', (reason) => console.error('Unhandled rejection:', reason))
+
+const syncServer = new WebSocketServer({ server, path: '/ws', maxPayload: maxSocketBytes })
 const lastByChannel = new Map()
 
 // Sin esto, cada canal (4 por partido: match/broadcastConfig/overlayControl/statistics) queda
 // para siempre en memoria aunque el partido termine hace días — fuga lenta pero indefinida.
+// El TTL usa la hora del servidor (receivedAt): el timestamp del sobre lo pone el cliente y no es confiable.
 const CHANNEL_TTL_MS = 12 * 60 * 60 * 1000
+const MAX_CHANNELS = 500
+const CHANNEL_PATTERN = /^[\w:.-]{1,160}$/
 const pruneStaleChannels = () => {
   const cutoff = Date.now() - CHANNEL_TTL_MS
-  for (const [channel, envelope] of lastByChannel) {
-    if ((envelope.timestamp ?? 0) < cutoff) lastByChannel.delete(channel)
+  for (const [channel, entry] of lastByChannel) {
+    if (entry.receivedAt < cutoff) lastByChannel.delete(channel)
   }
 }
 setInterval(pruneStaleChannels, 30 * 60 * 1000).unref()
 
-syncServer.on('connection', (socket) => {
-  for (const envelope of lastByChannel.values()) {
+const HEARTBEAT_MS = 30 * 1000
+const MAX_MESSAGES_PER_SECOND = 100
+
+syncServer.on('connection', (socket, request) => {
+  // Con ADMIN_TOKEN definido, solo quien presenta la clave puede publicar; el resto (overlays de OBS) solo recibe.
+  const token = new URL(request.url ?? '/', 'http://localhost').searchParams.get('token') ?? ''
+  const canWrite = isAuthorized(token)
+
+  socket.isAlive = true
+  socket.on('pong', () => {
+    socket.isAlive = true
+  })
+  socket.on('error', (error) => console.warn('Socket error:', error.message))
+
+  for (const { envelope } of lastByChannel.values()) {
     socket.send(JSON.stringify(envelope))
   }
 
+  let windowStart = Date.now()
+  let windowCount = 0
+
   socket.on('message', (data) => {
+    if (!canWrite) return
+
+    const now = Date.now()
+    if (now - windowStart >= 1000) {
+      windowStart = now
+      windowCount = 0
+    }
+    if (++windowCount > MAX_MESSAGES_PER_SECOND) return
+
     try {
       const envelope = JSON.parse(data.toString())
-      if (!envelope?.channel || !envelope?.payload) return
+      if (!envelope || typeof envelope.channel !== 'string' || !CHANNEL_PATTERN.test(envelope.channel)) return
+      if (!envelope.payload) return
 
-      lastByChannel.set(envelope.channel, envelope)
+      lastByChannel.delete(envelope.channel)
+      lastByChannel.set(envelope.channel, { envelope, receivedAt: now })
+      if (lastByChannel.size > MAX_CHANNELS) {
+        lastByChannel.delete(lastByChannel.keys().next().value)
+      }
 
+      const message = JSON.stringify(envelope)
       for (const client of syncServer.clients) {
-        if (client.readyState === client.OPEN) {
-          client.send(JSON.stringify(envelope))
-        }
+        if (client.readyState === client.OPEN) client.send(message)
       }
     } catch (error) {
-      console.warn('Invalid sync message:', error)
+      console.warn('Invalid sync message:', error.message)
     }
   })
 })
 
+// Latido: quita conexiones muertas (cierres sin aviso, tablets que se durmieron) en lugar de acumularlas.
+setInterval(() => {
+  for (const client of syncServer.clients) {
+    if (client.isAlive === false) {
+      client.terminate()
+      continue
+    }
+    client.isAlive = false
+    client.ping()
+  }
+}, HEARTBEAT_MS).unref()
+
 server.listen(port, '0.0.0.0', () => {
   console.log(`VolleyStream production server listening on http://0.0.0.0:${port}`)
   console.log(`VolleyStream sync websocket available at ws://0.0.0.0:${port}/ws`)
+  console.log(
+    adminToken
+      ? 'Autenticación de operador ACTIVA (ADMIN_TOKEN definido).'
+      : 'ADVERTENCIA: ADMIN_TOKEN no está definido — cualquiera con la URL puede modificar partidos.',
+  )
 })

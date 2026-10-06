@@ -9,12 +9,16 @@ import type {
   TeamProfile,
 } from '@/types/game.types'
 
-const jsonHeaders = {
+import { authHeaders, markUnauthorized } from '@/services/auth'
+
+const jsonHeaders = () => ({
   'content-type': 'application/json',
-}
+  ...authHeaders(),
+})
 
 const readJson = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json()
+  const payload = await response.json().catch(() => ({}))
+  if (response.status === 401) markUnauthorized()
   if (!response.ok) throw new Error(payload.error ?? 'No se pudo completar la solicitud.')
   return payload as T
 }
@@ -29,12 +33,12 @@ export const libraryApi = {
     const response = team.id
       ? await fetch(`/api/teams/${team.id}`, {
           method: 'PUT',
-          headers: jsonHeaders,
+          headers: jsonHeaders(),
           body: JSON.stringify(team),
         })
       : await fetch('/api/teams', {
           method: 'POST',
-          headers: jsonHeaders,
+          headers: jsonHeaders(),
           body: JSON.stringify(team),
         })
     const payload = await readJson<{ team: TeamProfile }>(response)
@@ -52,12 +56,12 @@ export const libraryApi = {
     const response = player.id
       ? await fetch(`/api/teams/${teamId}/players/${player.id}`, {
           method: 'PATCH',
-          headers: jsonHeaders,
+          headers: jsonHeaders(),
           body: JSON.stringify(player),
         })
       : await fetch(`/api/teams/${teamId}/players`, {
           method: 'POST',
-          headers: jsonHeaders,
+          headers: jsonHeaders(),
           body: JSON.stringify(player),
         })
     const payload = await readJson<{ player: TeamPlayer }>(response)
@@ -68,6 +72,7 @@ export const libraryApi = {
     await readJson<{ ok: true }>(
       await fetch(`/api/teams/${teamId}/players/${playerId}`, {
         method: 'DELETE',
+        headers: authHeaders(),
       }),
     )
   },
@@ -96,7 +101,7 @@ export const libraryApi = {
   }) {
     const response = await fetch('/api/match-sessions', {
       method: 'POST',
-      headers: jsonHeaders,
+      headers: jsonHeaders(),
       body: JSON.stringify(payload),
     })
     const body = await readJson<{ session: MatchSession }>(response)
@@ -109,7 +114,7 @@ export const libraryApi = {
   ) {
     const response = await fetch(`/api/match-sessions/${matchId}`, {
       method: 'PATCH',
-      headers: jsonHeaders,
+      headers: jsonHeaders(),
       body: JSON.stringify(payload),
       keepalive: true,
     })
@@ -129,6 +134,7 @@ export const libraryApi = {
     }>(
       await fetch('/api/assets/logos', {
         method: 'POST',
+        headers: authHeaders(),
         body: formData,
       }),
     )
@@ -140,7 +146,7 @@ export const libraryApi = {
     return readJson<{ id: string }>(
       await fetch('/api/matches', {
         method: 'POST',
-        headers: jsonHeaders,
+        headers: jsonHeaders(),
         body: JSON.stringify(snapshot),
       }),
     )

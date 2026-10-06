@@ -1,7 +1,8 @@
 import { WebSocketServer } from 'ws'
 
 const port = Number(process.env.VOLLEYSTREAM_SYNC_PORT ?? 3010)
-const server = new WebSocketServer({ port, host: '0.0.0.0' })
+// Servidor de sincronización SOLO para desarrollo local; en producción lo reemplaza production-server.mjs.
+const server = new WebSocketServer({ port, host: '0.0.0.0', maxPayload: 2 * 1024 * 1024 })
 const lastByChannel = new Map()
 
 // Sin esto, cada canal (4 por partido: match/broadcastConfig/overlayControl/statistics) queda
@@ -16,6 +17,7 @@ const pruneStaleChannels = () => {
 setInterval(pruneStaleChannels, 30 * 60 * 1000).unref()
 
 server.on('connection', (socket) => {
+  socket.on('error', (error) => console.warn('Socket error:', error.message))
   for (const envelope of lastByChannel.values()) {
     socket.send(JSON.stringify(envelope))
   }

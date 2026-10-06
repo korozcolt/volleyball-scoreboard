@@ -1,5 +1,6 @@
 import { COMMUNICATION_CONFIG } from '@/utils/constants'
 import type { SyncEnvelope } from '@/types/game.types'
+import { getAdminToken } from '@/services/auth'
 
 type Listener<T> = (payload: T, envelope: SyncEnvelope<T>) => void
 
@@ -34,12 +35,18 @@ export function createLocalSyncAdapter<T>(channel: string, storageKey: string): 
   })
 
   const getSocketUrl = () => {
-    const configuredUrl = import.meta.env.VITE_SYNC_WS_URL
-    if (configuredUrl) return configuredUrl
-
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const isProd = import.meta.env.PROD
-    return isProd ? `${protocol}//${window.location.host}/ws` : `${protocol}//${window.location.hostname}:3010`
+    const base =
+      import.meta.env.VITE_SYNC_WS_URL ||
+      (isProd ? `${protocol}//${window.location.host}/ws` : `${protocol}//${window.location.hostname}:3010`)
+
+    // Con clave de operador, el servidor solo deja publicar a quien la presenta; los overlays (sin clave) solo reciben.
+    const token = getAdminToken()
+    if (!token) return base
+    const url = new URL(base)
+    url.searchParams.set('token', token)
+    return url.toString()
   }
 
   const parseEnvelope = (raw: string | null): SyncEnvelope<T> | null => {
