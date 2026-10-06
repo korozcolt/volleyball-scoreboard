@@ -74,6 +74,9 @@ export const COMMUNICATION_CONFIG = {
   DEBOUNCE_DELAY: 100,
   STORAGE_VERSION: '2.1.0',
   MAX_HISTORY_ITEMS: 60,
+  // El log de eventos de estadísticas alimenta stats por jugadora y % de sideout, así que debe cubrir
+  // el partido completo (el tope de 60 de MAX_HISTORY_ITEMS truncaba esos cálculos).
+  MAX_STAT_EVENTS: 2000,
 } as const
 
 export const KEYBOARD_SHORTCUTS = {

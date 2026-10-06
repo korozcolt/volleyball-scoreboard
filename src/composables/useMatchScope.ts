@@ -22,7 +22,10 @@ export const useMatchScope = () => {
     return Array.isArray(param) ? param[0] : param
   })
 
+  let activationToken = 0
+
   const activateScope = async () => {
+    const token = ++activationToken
     if (!matchId.value) {
       await router.replace('/matches')
       return
@@ -33,19 +36,23 @@ export const useMatchScope = () => {
 
     try {
       const session = await libraryApi.getMatchSession(matchId.value)
+      if (token !== activationToken) return
       localStorage.setItem(STORAGE_KEYS.LAST_MATCH_ID, session.id)
       broadcast.setMatchScope(session.id, session.config)
       overlay.setMatchScope(session.id, session.overlay)
       statistics.setMatchScope(session.id, session.statistics)
       match.setMatchScope(session.id, session.state, broadcast.config)
     } catch (error) {
+      if (token !== activationToken) return
       sessionError.value = (error as Error).message
-      broadcast.setMatchScope(matchId.value)
-      overlay.setMatchScope(matchId.value)
-      statistics.setMatchScope(matchId.value)
-      match.setMatchScope(matchId.value)
+      // Sin sesión válida no se activa ningún scope: así nada se persiste al servidor
+      // y un fallo de red no puede sobrescribir el partido real con valores por defecto.
+      broadcast.setMatchScope()
+      overlay.setMatchScope()
+      statistics.setMatchScope()
+      match.setMatchScope()
     } finally {
-      isLoadingSession.value = false
+      if (token === activationToken) isLoadingSession.value = false
     }
   }
 

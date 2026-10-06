@@ -169,7 +169,7 @@ const canConfirmSubstitution = computed(
 
 const confirmSubstitution = () => {
   if (!canConfirmSubstitution.value) return
-  emit('substitute', side, substitutePlayerOut.value, substitutePlayerIn.value)
+  emit('substitute', props.side, substitutePlayerOut.value, substitutePlayerIn.value)
   substitutePlayerOut.value = ''
   substitutePlayerIn.value = ''
 }
@@ -253,13 +253,13 @@ const liberoSwapTitle = computed(() => {
 const confirmLiberoSwap = () => {
   if (!liberoSwapReady.value) return
   if (liberoSwapMode.value === 'out' && activeLiberoOnCourt.value && liberoReturningPlayer.value !== null) {
-    emit('substitute', side, activeLiberoOnCourt.value.number, liberoReturningPlayer.value)
+    emit('substitute', props.side, activeLiberoOnCourt.value.number, liberoReturningPlayer.value)
     return
   }
   if (liberoSwapMode.value === 'in' && backRowMiddleBlocker.value) {
     const incoming =
       liberosOnRoster.value.length === 1 ? liberosOnRoster.value[0].number : selectedLiberoToEnter.value
-    emit('substitute', side, backRowMiddleBlocker.value.number, incoming)
+    emit('substitute', props.side, backRowMiddleBlocker.value.number, incoming)
     selectedLiberoToEnter.value = ''
   }
 }

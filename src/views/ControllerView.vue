@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'ControllerView' })
 import { computed, onMounted, onUnmounted } from 'vue'
-import { BarChart2, ClipboardList, ExternalLink, History, LayoutGrid, Radio, RotateCcw, Shuffle, Users, Volleyball } from 'lucide-vue-next'
+import { BarChart2, ClipboardList, ExternalLink, History, LayoutGrid, Radio, RotateCcw, Settings, Shuffle, Undo2, Users, Volleyball } from 'lucide-vue-next'
 import BroadcastLayout from '@/components/layout/BroadcastLayout.vue'
 import OverlayScoreboard from '@/components/broadcast/OverlayScoreboard.vue'
 import SetHistoryPanel from '@/components/controller/SetHistoryPanel.vue'
@@ -22,6 +22,17 @@ const overlay = useOverlayControlStore()
 const statistics = useStatisticsStore()
 const scope = useMatchScope()
 
+// Un roster sin cargar queda con los jugadores genéricos "Jugador 1–6": las estadísticas por jugadora
+// no sirven. Se avisa de forma visible en lugar de bloquear, para no frenar un partido en curso.
+const teamsWithoutRoster = computed(() =>
+  (['local', 'visitor'] as TeamSide[])
+    .filter((side) => {
+      // `every` es true para un roster vacío, que también cuenta como sin cargar.
+      return (match.gameState[side].roster ?? []).every((player) => /^Jugador \d+$/.test(player.name))
+    })
+    .map((side) => match.gameState[side].name),
+)
+
 const activeMode = computed<OverlayMode>(() => overlay.state.activeOverlay)
 
 const setOverlayMode = (mode: OverlayMode) => {
@@ -29,7 +40,10 @@ const setOverlayMode = (mode: OverlayMode) => {
 }
 
 const resetSet = () => {
-  if (window.confirm('¿Reiniciar solo el set actual?')) match.resetSet()
+  if (window.confirm('¿Reiniciar solo el set actual?')) {
+    match.resetSet()
+    statistics.clearUndo()
+  }
 }
 
 const resetGame = () => {
@@ -39,8 +53,25 @@ const resetGame = () => {
   }
 }
 
-const setManualScore = (team: TeamSide, score: number) => match.setManualScore(team, score)
-const setManualSets = (team: TeamSide, sets: number) => match.setManualSets(team, sets)
+// Toda acción que cambia el partido guarda antes una instantánea, para poder deshacerla con "Deshacer".
+const withUndo = <A extends unknown[]>(label: string, action: (...args: A) => unknown) => {
+  return (...args: A) => {
+    statistics.pushUndo(label)
+    action(...args)
+  }
+}
+
+const setManualScore = withUndo('Marcador manual', (team: TeamSide, score: number) => match.setManualScore(team, score))
+const setManualSets = withUndo('Sets manual', (team: TeamSide, sets: number) => match.setManualSets(team, sets))
+const requestTimeout = withUndo('Tiempo', (team: TeamSide) => match.startTimeout(team))
+const rotateManually = withUndo('Rotación manual', (team: TeamSide) => match.rotateTeam(team))
+const substitute = withUndo(
+  'Sustitución',
+  (team: TeamSide, playerOut: string | number, playerIn: string | number) =>
+    match.substitutePlayer(team, playerOut, playerIn),
+)
+const toggleServe = withUndo('Cambio de saque', () => match.toggleServe())
+const nextSet = withUndo('Siguiente set', () => match.nextSet())
 const scorePoint = (team: TeamSide) => statistics.scorePointWithReason(team, 'manual')
 const scorePointWithReason = (team: TeamSide, reason: ScoringReason, playerNumber?: string | number) =>
   statistics.scorePointWithReason(team, reason, playerNumber)
@@ -63,12 +94,23 @@ const teamSides: Array<{ side: TeamSide; label: string }> = [
   { side: 'visitor', label: 'Visitante' },
 ]
 
-const handleKeydown = (event: KeyboardEvent) => {
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return
+const isTypingTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable)
 
-  if (event.ctrlKey && event.code === KEYBOARD_SHORTCUTS.RESET_GAME) {
-    event.preventDefault()
-    resetGame()
+const handleKeydown = (event: KeyboardEvent) => {
+  // Sin teclas repetidas (mantener Q no suma puntos sin parar) ni mientras se escribe en un campo.
+  if (event.repeat || isTypingTarget(event.target) || event.altKey) return
+
+  if (event.ctrlKey || event.metaKey) {
+    if (event.code === 'KeyZ' && !event.shiftKey) {
+      event.preventDefault()
+      statistics.undoLast()
+    } else if (event.ctrlKey && event.code === KEYBOARD_SHORTCUTS.RESET_GAME) {
+      event.preventDefault()
+      resetGame()
+    }
+    // Cualquier otra combinación con Cmd/Ctrl es del navegador (copiar, guardar, etc.): no se intercepta.
     return
   }
 
@@ -77,8 +119,8 @@ const handleKeydown = (event: KeyboardEvent) => {
     [KEYBOARD_SHORTCUTS.SCORE_VISITOR]: () => scorePoint('visitor'),
     [KEYBOARD_SHORTCUTS.REMOVE_LOCAL]: () => statistics.removePointWithRevert('local'),
     [KEYBOARD_SHORTCUTS.REMOVE_VISITOR]: () => statistics.removePointWithRevert('visitor'),
-    [KEYBOARD_SHORTCUTS.TOGGLE_SERVE]: () => match.toggleServe(),
-    [KEYBOARD_SHORTCUTS.NEXT_SET]: () => match.nextSet(),
+    [KEYBOARD_SHORTCUTS.TOGGLE_SERVE]: () => toggleServe(),
+    [KEYBOARD_SHORTCUTS.NEXT_SET]: () => nextSet(),
     [KEYBOARD_SHORTCUTS.SHOW_HISTORY]: () =>
       overlay.setActiveOverlay(overlay.state.activeOverlay === 'history' ? 'scoreboard' : 'history'),
   }
@@ -96,6 +138,21 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
 
 <template>
   <BroadcastLayout>
+    <div
+      v-if="teamsWithoutRoster.length"
+      class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded border border-broadcast-alert bg-broadcast-alert/10 p-3 text-sm text-broadcast-alert"
+      role="alert"
+    >
+      <span>
+        <strong>Falta cargar el roster de {{ teamsWithoutRoster.join(' y ') }}.</strong>
+        Las estadísticas por jugadora no serán útiles con jugadores genéricos.
+      </span>
+      <a :href="`/settings/${scope.matchId.value}`" class="admin-button">
+        <Settings class="h-4 w-4" />
+        Cargar roster
+      </a>
+    </div>
+
     <section class="mb-8">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -106,6 +163,15 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           </p>
         </div>
         <div class="flex items-center gap-2">
+          <button
+            class="admin-button"
+            :disabled="!statistics.canUndo"
+            :title="statistics.canUndo ? `Deshacer: ${statistics.lastUndoLabel} (Ctrl/Cmd+Z)` : 'Nada que deshacer'"
+            @click="statistics.undoLast()"
+          >
+            <Undo2 class="h-4 w-4" />
+            Deshacer
+          </button>
           <span
             class="rounded border px-3 py-1 text-xs font-black uppercase tracking-wider"
             :class="
@@ -359,7 +425,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           <h2 class="text-xl font-semibold text-broadcast-text">Control de marcador</h2>
           <p class="text-sm text-broadcast-muted">Atajos: Q/W suman, A/S restan, espacio cambia saque.</p>
         </div>
-        <button class="admin-button" :disabled="!match.canAdvanceSet" @click="match.nextSet">
+        <button class="admin-button" :disabled="!match.canAdvanceSet" @click="nextSet">
           Siguiente set
         </button>
       </div>
@@ -376,13 +442,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
           @manual-sets="setManualSets"
-          @timeout="match.startTimeout"
+          @timeout="requestTimeout"
           @score-reason="scorePointWithReason"
           @stat-error="recordError"
           @stat-skill="recordSkill"
-          @rotate="match.rotateTeam"
-          @rotation-fault="match.rotationFault"
-          @substitute="match.substitutePlayer"
+          @rotate="rotateManually"
+          @rotation-fault="statistics.recordRotationFault"
+          @substitute="substitute"
           @sanction="statistics.issueSanction"
         />
 
@@ -392,14 +458,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           </span>
           <button
             class="flex h-16 w-16 items-center justify-center rounded-full border border-broadcast-outline bg-broadcast-surface-high text-broadcast-accent shadow-inner transition hover:bg-broadcast-accent hover:text-[#00354a]"
-            @click="match.toggleServe"
+            @click="toggleServe"
           >
             <Volleyball class="h-7 w-7" />
           </button>
           <button
             class="flex h-11 w-11 items-center justify-center rounded-full border border-broadcast-outline bg-broadcast-surface-lowest text-broadcast-muted transition hover:bg-broadcast-surface-high"
             title="Intercambiar saque"
-            @click="match.toggleServe"
+            @click="toggleServe"
           >
             <Shuffle class="h-5 w-5" />
           </button>
@@ -416,13 +482,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
           @remove="statistics.removePointWithRevert"
           @manual-score="setManualScore"
           @manual-sets="setManualSets"
-          @timeout="match.startTimeout"
+          @timeout="requestTimeout"
           @score-reason="scorePointWithReason"
           @stat-error="recordError"
           @stat-skill="recordSkill"
-          @rotate="match.rotateTeam"
-          @rotation-fault="match.rotationFault"
-          @substitute="match.substitutePlayer"
+          @rotate="rotateManually"
+          @rotation-fault="statistics.recordRotationFault"
+          @substitute="substitute"
           @sanction="statistics.issueSanction"
         />
       </div>

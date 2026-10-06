@@ -1,5 +1,5 @@
 import { COMMUNICATION_CONFIG, DEFAULT_BROADCAST_CONFIG, DEFAULT_GAME_SETTINGS, DEFAULT_MESSAGES, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
-import type { BroadcastConfig, CompletedSet, GameHistory, GameState, HistoryType, SanctionCard, Team, TeamSide } from '@/types/game.types'
+import type { BroadcastConfig, CompletedSet, GameHistory, GameState, HistoryType, MatchTeamPlayer, SanctionCard, Team, TeamSide } from '@/types/game.types'
 import { computed, ref, watch } from 'vue'
 import { createScopedLocalSyncAdapter, type SyncAdapter } from '@/services/syncService'
 import { defineStore } from 'pinia'
@@ -461,7 +461,7 @@ export const useMatchStore = defineStore('match', () => {
 
   function setTeamRoster(team: TeamSide, players: Team['roster'] = []) {
     const activePlayers = players.filter((player) => player.active !== false)
-    const fallback = [1, 2, 3, 4, 5, 6].map((number) => ({
+    const fallback: MatchTeamPlayer[] = [1, 2, 3, 4, 5, 6].map((number) => ({
       id: `${team}-${number}`,
       number: String(number),
       name: `Jugador ${number}`,

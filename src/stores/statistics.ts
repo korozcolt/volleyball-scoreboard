@@ -1,5 +1,6 @@
 import { COMMUNICATION_CONFIG, STORAGE_KEYS, SYNC_CHANNELS } from '@/utils/constants'
 import type {
+  GameState,
   PlayerStatSummary,
   ScoringReason,
   StatErrorType,
@@ -118,6 +119,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     const nextScope = matchId ?? null
     if (activeMatchId.value === nextScope && isLoaded.value) return
     activeMatchId.value = nextScope
+    clearUndo()
     sync = createScopedLocalSyncAdapter<StatisticsState>(
       SYNC_CHANNELS.STATISTICS,
       STORAGE_KEYS.STATISTICS,
@@ -130,18 +132,57 @@ export const useStatisticsStore = defineStore('statistics', () => {
     if (!stored && initialState) publish()
   }
 
+  // Set y marcador tal como quedan justo al anotar. Si el punto cierra el set, el estado del partido ya
+  // avanzó al siguiente (0-0), así que el evento se registra con el contexto capturado antes de avanzar.
+  type PointContext = { set: number; score: { local: number; visitor: number } }
+  const capturePointContext = (scoringTeam: TeamSide): PointContext => ({
+    set: match.gameState.currentSet,
+    score: {
+      local: match.gameState.local.score + (scoringTeam === 'local' ? 1 : 0),
+      visitor: match.gameState.visitor.score + (scoringTeam === 'visitor' ? 1 : 0),
+    },
+  })
+
+  // ─── Deshacer global ──────────────────────────────────────────────────────
+  // Instantánea del marcador (incluye saque, rotación y sets) y de las estadísticas justo antes de cada
+  // acción. Deshacer restaura ambas, así que revierte todo el efecto de la acción, incluso el punto que
+  // cerró un set.
+  type UndoEntry = { game: GameState; stats: StatisticsState; label: string; pointTeam?: TeamSide }
+  const MAX_UNDO_ENTRIES = 40
+  const undoStack = ref<UndoEntry[]>([])
+  const canUndo = computed(() => undoStack.value.length > 0)
+  const lastUndoLabel = computed(() => undoStack.value[undoStack.value.length - 1]?.label ?? '')
+
+  const pushUndo = (label: string, pointTeam?: TeamSide) => {
+    undoStack.value.push({ game: match.getGameState(), stats: cloneState(state.value), label, pointTeam })
+    if (undoStack.value.length > MAX_UNDO_ENTRIES) undoStack.value.shift()
+  }
+
+  const clearUndo = () => {
+    undoStack.value = []
+  }
+
+  const undoLast = () => {
+    const entry = undoStack.value.pop()
+    if (!entry) return
+    match.restoreGameState(entry.game)
+    state.value = cloneState(entry.stats)
+    match.addToHistory(`Deshecho: ${entry.label}`, 'warning')
+  }
+
   const addEvent = (
     team: TeamSide,
     type: StatisticEvent['type'],
     playerNumber?: string | number,
     regainedServe?: boolean,
+    context?: PointContext,
   ) => {
     state.value.events.unshift({
       id: createId(),
       team,
       type,
-      set: match.gameState.currentSet,
-      score: {
+      set: context?.set ?? match.gameState.currentSet,
+      score: context?.score ?? {
         local: match.gameState.local.score,
         visitor: match.gameState.visitor.score,
       },
@@ -149,7 +190,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       playerNumber: playerNumber !== undefined ? String(playerNumber) : undefined,
       regainedServe,
     })
-    state.value.events = state.value.events.slice(0, COMMUNICATION_CONFIG.MAX_HISTORY_ITEMS)
+    state.value.events = state.value.events.slice(0, COMMUNICATION_CONFIG.MAX_STAT_EVENTS)
   }
 
   const updateRun = (team: TeamSide) => {
@@ -177,6 +218,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     reason: ScoringReason = 'manual',
     playerNumber?: string | number,
     regainedServe?: boolean,
+    context?: PointContext,
   ) => {
     state.value[team].points += 1
     updateRun(team)
@@ -186,7 +228,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     if (reason === 'ace') state.value[team].aces += 1
     if (reason === 'opponent_error') state.value[team].opponentErrors += 1
 
-    addEvent(team, reason, isPersonalReason(reason) ? playerNumber : undefined, regainedServe)
+    addEvent(team, reason, isPersonalReason(reason) ? playerNumber : undefined, regainedServe, context)
     match.addToHistory(`Estadística: ${scoringLabels[reason]} para ${match.gameState[team].shortCode}`, team)
   }
 
@@ -205,11 +247,21 @@ export const useStatisticsStore = defineStore('statistics', () => {
     block_touch: 'Bloqueo tocado',
   }
 
-  const revertLastEventForTeam = (team: TeamSide) => {
-    const index = state.value.events.findIndex((event) => event.team === team)
-    if (index === -1) return
+  const pointEventTypes: ReadonlyArray<StatisticEvent['type']> = [
+    'attack',
+    'block',
+    'ace',
+    'opponent_error',
+    'sanction',
+    'manual',
+  ]
+  const errorEventTypes: ReadonlyArray<StatisticEvent['type']> = ['attack_error', 'serve_error', 'reception_error']
 
+  // Revierte el contador y saca del log el evento en `index`. No toca el marcador.
+  const revertEventAt = (index: number) => {
     const event = state.value.events[index]
+    if (!event) return
+    const team = event.team
     const stats = state.value[team]
 
     switch (event.type) {
@@ -267,22 +319,61 @@ export const useStatisticsStore = defineStore('statistics', () => {
     )
   }
 
+  // Respaldo cuando el último movimiento no fue un punto de este equipo: baja el marcador y revierte solo
+  // el último evento de PUNTO del equipo (nunca una recepción o defensa registrada después) junto con el
+  // error del rival que lo originó, si lo hubo (se registra justo después del punto, o sea, más reciente).
+  const revertLastPointEventForTeam = (team: TeamSide) => {
+    const index = state.value.events.findIndex((event) => event.team === team && pointEventTypes.includes(event.type))
+    if (index === -1) return
+    const paired = state.value.events[index - 1]
+    const hasPairedError =
+      state.value.events[index].type === 'opponent_error' &&
+      paired !== undefined &&
+      paired.team !== team &&
+      errorEventTypes.includes(paired.type)
+    revertEventAt(index)
+    if (hasPairedError) revertEventAt(index - 1)
+  }
+
   const removePointWithRevert = (team: TeamSide) => {
-    if (match.gameState[team].score <= 0 || match.gameState.gameFinished) return
+    if (match.gameState[team].score <= 0 && undoStack.value[undoStack.value.length - 1]?.pointTeam !== team) return
+    // Caso normal: el último movimiento fue un punto de este equipo → se deshace completo (marcador,
+    // saque, rotación, racha, estadísticas y sets).
+    if (undoStack.value[undoStack.value.length - 1]?.pointTeam === team) {
+      undoLast()
+      return
+    }
+    if (match.gameState.gameFinished) return
+    pushUndo('Quitar punto', undefined)
     match.removePoint(team)
-    revertLastEventForTeam(team)
+    revertLastPointEventForTeam(team)
+  }
+
+  const recordRotationFault = (offendingTeam: TeamSide) => {
+    if (match.gameState.gameFinished) return
+    const opponent = getOpponent(offendingTeam)
+    pushUndo(`Falta de rotación de ${match.gameState[offendingTeam].shortCode}`, opponent)
+    const context = capturePointContext(opponent)
+    const regainedServe = match.scorePoint(opponent)
+    recordScoredPoint(opponent, 'opponent_error', undefined, regainedServe, context)
+    match.addToHistory(
+      `Falta de rotación: ${match.gameState[offendingTeam].name}. Punto para ${match.gameState[opponent].shortCode}.`,
+      'warning',
+    )
   }
 
   const scorePointWithReason = (team: TeamSide, reason: ScoringReason, playerNumber?: string | number) => {
+    if (match.gameState.gameFinished) return
     if (reason === 'ace' && !match.gameState[team].serving) {
       rejectInvalidStat('El ace solo puede registrarlo el equipo que tiene el saque.')
       return
     }
 
+    if (match.gameState.gameFinished) return
+    pushUndo(scoringLabels[reason], team)
+    const context = capturePointContext(team)
     const regainedServe = match.scorePoint(team)
-    if (!match.gameState.gameFinished || reason !== 'manual') {
-      recordScoredPoint(team, reason, playerNumber, regainedServe)
-    }
+    recordScoredPoint(team, reason, playerNumber, regainedServe, context)
   }
 
   const errorStatKey: Record<StatErrorType, 'attackErrors' | 'serveErrors' | 'receptionErrors'> = {
@@ -307,25 +398,31 @@ export const useStatisticsStore = defineStore('statistics', () => {
       return
     }
 
+    if (match.gameState.gameFinished) return
     const opponent = getOpponent(team)
+    pushUndo(`Error de ${errorLabel[errorType]} de ${match.gameState[team].shortCode}`, opponent)
+    const context = capturePointContext(opponent)
     state.value[team][errorStatKey[errorType]] += 1
     const regainedServe = match.scorePoint(opponent)
-    recordScoredPoint(opponent, 'opponent_error', undefined, regainedServe)
-    addEvent(team, errorType, playerNumber)
+    recordScoredPoint(opponent, 'opponent_error', undefined, regainedServe, context)
+    addEvent(team, errorType, playerNumber, undefined, context)
     match.addToHistory(`Error de ${errorLabel[errorType]} de ${match.gameState[team].shortCode}`, 'warning')
   }
 
   const issueSanction = (team: TeamSide, cardType: 'yellow' | 'red') => {
     if (match.gameState.gameFinished) return
+    const opponent = getOpponent(team)
+    pushUndo(cardType === 'red' ? 'Tarjeta roja' : 'Tarjeta amarilla', cardType === 'red' ? opponent : undefined)
     match.recordSanction(team, cardType)
     if (cardType === 'red') {
-      const opponent = getOpponent(team)
+      const context = capturePointContext(opponent)
       const regainedServe = match.scorePoint(opponent)
-      recordScoredPoint(opponent, 'sanction', undefined, regainedServe)
+      recordScoredPoint(opponent, 'sanction', undefined, regainedServe, context)
     }
   }
 
   const recordSkill = (team: TeamSide, skill: StatSkillType, playerNumber?: string | number) => {
+    if (match.gameState.gameFinished) return
     if (
       (skill === 'positive_reception' || skill === 'negative_reception') &&
       match.gameState[team].serving
@@ -334,6 +431,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       return
     }
 
+    pushUndo(statEventLabels[skill])
     if (skill === 'block_touch') state.value[team].blockTouches += 1
     if (skill === 'positive_reception') state.value[team].positiveReceptions += 1
     if (skill === 'negative_reception') state.value[team].negativeReceptions += 1
@@ -343,6 +441,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
   const resetMatchStats = () => {
     state.value = createInitialState()
+    clearUndo()
   }
 
   const resetRun = () => {
@@ -426,9 +525,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
       const statKey = playerStatKeyByEventType[event.type]
       if (!statKey) continue
 
-      const summary = summaries.get(event.playerNumber) ?? createPlayerSummary(event.playerNumber)
+      const playerKey = String(event.playerNumber)
+      const summary = summaries.get(playerKey) ?? createPlayerSummary(playerKey)
       summary[statKey] += 1
-      summaries.set(event.playerNumber, summary)
+      summaries.set(playerKey, summary)
     }
 
     return Array.from(summaries.values()).sort(
@@ -463,6 +563,12 @@ export const useStatisticsStore = defineStore('statistics', () => {
     recordSkill,
     issueSanction,
     removePointWithRevert,
+    recordRotationFault,
+    pushUndo,
+    undoLast,
+    clearUndo,
+    canUndo,
+    lastUndoLabel,
     resetMatchStats,
     attackEfficiency,
     blockEfficiency,
