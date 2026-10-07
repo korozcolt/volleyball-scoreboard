@@ -174,7 +174,9 @@ const createSession = async () => {
         ...DEFAULT_GAME_SETTINGS,
         maxSets: form.value.format,
         pointsToWin: form.value.format === 1 ? DEFAULT_GAME_SETTINGS.pointsToWin : 25,
-        decidingSetPoints: form.value.format === 1 ? DEFAULT_GAME_SETTINGS.pointsToWin : 15,
+        // Con todos los sets obligatorios son sets independientes: el último se juega a los mismos puntos que los demás.
+        decidingSetPoints:
+          form.value.format === 1 || form.value.playAllSets ? DEFAULT_GAME_SETTINGS.pointsToWin : 15,
         playAllSets: form.value.format > 1 && form.value.playAllSets,
       },
       metadata: {

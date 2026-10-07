@@ -228,12 +228,17 @@ const setMatchFormat = (maxSets: 1 | 3 | 5) => {
   match.updateGameSettings({
     maxSets,
     pointsToWin: maxSets === 1 ? match.gameState.settings.pointsToWin : 25,
-    decidingSetPoints: maxSets === 1 ? match.gameState.settings.pointsToWin : 15,
+    decidingSetPoints:
+      maxSets === 1 || match.gameState.settings.playAllSets ? match.gameState.settings.pointsToWin : 15,
   })
 }
 
 const setPlayAllSets = (playAllSets: boolean) => {
-  match.updateGameSettings({ playAllSets })
+  match.updateGameSettings({
+    playAllSets,
+    // Sets independientes: el último a los mismos puntos que los demás (se puede ajustar abajo).
+    ...(playAllSets ? { decidingSetPoints: match.gameState.settings.pointsToWin } : {}),
+  })
 }
 
 const setPointsToWin = (pointsToWin: number) => {
