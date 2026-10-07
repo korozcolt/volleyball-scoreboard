@@ -1693,3 +1693,46 @@
     box-shadow: 0 2px 8px rgba(255, 207, 74, 0.2);
   }
 }
+
+/* ---------------------------------------------------------------------
+ * Transición entre overlays (marcador / historial / estadísticas / líderes).
+ * Efecto cortina: el marco se cierra desde los costados hacia el centro y el
+ * siguiente se abre desde el centro hacia afuera. Se anima solo clip-path
+ * (barato en OBS) y con márgenes negativos para no recortar las alas, la
+ * cinta ni las sombras que sobresalen del marco.
+ * ------------------------------------------------------------------- */
+.ov-switch-enter-active {
+  transition:
+    clip-path 0.62s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.18s ease-out;
+}
+
+.ov-switch-leave-active {
+  transition:
+    clip-path 0.42s cubic-bezier(0.55, 0, 0.9, 0.4),
+    opacity 0.1s linear 0.32s;
+}
+
+.ov-switch-enter-from,
+.ov-switch-leave-to {
+  clip-path: inset(-90px 50% -90px 50%);
+  opacity: 0;
+}
+
+.ov-switch-enter-to,
+.ov-switch-leave-from {
+  clip-path: inset(-90px -80px -90px -80px);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ov-switch-enter-active,
+  .ov-switch-leave-active {
+    transition: opacity 0.15s linear;
+  }
+
+  .ov-switch-enter-from,
+  .ov-switch-leave-to {
+    clip-path: none;
+  }
+}

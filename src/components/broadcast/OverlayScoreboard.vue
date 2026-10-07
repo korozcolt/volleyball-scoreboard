@@ -72,109 +72,112 @@ const teamInitial = (team: TeamSide) => props.gameState[team].shortCode.slice(0,
 
 <template>
   <div class="relative w-full">
-    <OverlayHistory
-      v-if="mode === 'history'"
-      :game-state="gameState"
-      :theme="backgroundStyle"
-      :compact="compact"
-    />
+    <!-- Cortina: el marco actual se cierra hacia el centro y el siguiente se abre desde ahí. -->
+    <Transition name="ov-switch" mode="out-in" appear>
+      <OverlayHistory
+        v-if="mode === 'history'"
+        :game-state="gameState"
+        :theme="backgroundStyle"
+        :compact="compact"
+      />
 
-    <OverlayLeaders
-      v-else-if="mode === 'leaders'"
-      :game-state="gameState"
-      :statistics="statisticsState"
-      :theme="backgroundStyle"
-      :compact="compact"
-    />
+      <OverlayLeaders
+        v-else-if="mode === 'leaders'"
+        :game-state="gameState"
+        :statistics="statisticsState"
+        :theme="backgroundStyle"
+        :compact="compact"
+      />
 
-    <OverlayStats
-      v-else-if="mode === 'stats'"
-      :game-state="gameState"
-      :statistics="statisticsState"
-      :attack-efficiency="statisticsStore.attackEfficiency"
-      :theme="backgroundStyle"
-      :compact="compact"
-    />
+      <OverlayStats
+        v-else-if="mode === 'stats'"
+        :game-state="gameState"
+        :statistics="statisticsState"
+        :attack-efficiency="statisticsStore.attackEfficiency"
+        :theme="backgroundStyle"
+        :compact="compact"
+      />
 
-    <div
-      v-else
-      class="vnl-scorebug relative mx-auto grid h-[126px] w-full max-w-[1180px] grid-cols-[1fr_330px_1fr] overflow-visible shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
-      :class="[compact ? 'scale-[0.88]' : '', backgroundStyle === 'sucre' ? 'theme-sucre' : '']"
-    >
-      <div class="scorebug-rim scorebug-rim-left"></div>
-      <div class="scorebug-rim scorebug-rim-right"></div>
-
-      <section
-        class="team-wing team-wing-left relative flex min-w-0 items-center gap-5 overflow-hidden pl-8 pr-7"
-        :class="{ 'team-serving team-serving-left': servingTeam === 'local' }"
-        :style="{ '--team-color': gameState.local.primaryColor }"
+      <div
+        v-else
+        class="vnl-scorebug relative mx-auto grid h-[126px] w-full max-w-[1180px] grid-cols-[1fr_330px_1fr] overflow-visible shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+        :class="[compact ? 'scale-[0.88]' : '', backgroundStyle === 'sucre' ? 'theme-sucre' : '']"
       >
-        <div class="energy-lines energy-lines-left"></div>
-        <div class="flag-tile">
-          <img
-            v-if="gameState.local.logoUrl"
-            :src="gameState.local.logoUrl"
-            :alt="gameState.local.name"
-            class="h-full w-full object-contain"
-          />
-          <Shield v-else class="h-8 w-8 text-white/80" />
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-4">
-            <div class="team-code team-code-left">{{ teamInitial('local') }}</div>
-          </div>
-          <div class="team-name">{{ gameState.local.name }}</div>
-        </div>
-        <div class="team-stats-box" aria-label="Sets y timeouts local">
-          <div class="stat-label">Sets</div>
-          <div class="stat-number">{{ gameState.local.sets }}</div>
-        </div>
-      </section>
+        <div class="scorebug-rim scorebug-rim-left"></div>
+        <div class="scorebug-rim scorebug-rim-right"></div>
 
-      <section class="score-core relative flex items-center justify-center">
-        <div class="score-number score-number-left">{{ gameState.local.score }}</div>
-        <div class="center-mark">
-          <img
-            v-if="gameState.leagueLogo"
-            :src="gameState.leagueLogo"
-            alt="Liga"
-            class="h-16 max-w-[92px] object-contain drop-shadow-xl"
-          />
-          <Radio v-else class="h-10 w-10 text-white" />
-          <span>VS</span>
-        </div>
-        <div class="score-number score-number-right">{{ gameState.visitor.score }}</div>
-        <div class="status-ribbon">
-          {{ timeoutLabel || statusLabel }}
-        </div>
-      </section>
-
-      <section
-        class="team-wing team-wing-right relative flex min-w-0 items-center gap-5 overflow-hidden pl-7 pr-8"
-        :class="{ 'team-serving team-serving-right': servingTeam === 'visitor' }"
-        :style="{ '--team-color': gameState.visitor.primaryColor }"
-      >
-        <div class="energy-lines energy-lines-right"></div>
-        <div class="team-stats-box" aria-label="Sets y timeouts visitante">
-          <div class="stat-label">Sets</div>
-          <div class="stat-number">{{ gameState.visitor.sets }}</div>
-        </div>
-        <div class="min-w-0 flex-1 text-right">
-          <div class="flex items-center justify-end gap-3">
-            <div class="team-code team-code-right">{{ teamInitial('visitor') }}</div>
+        <section
+          class="team-wing team-wing-left relative flex min-w-0 items-center gap-5 overflow-hidden pl-8 pr-7"
+          :class="{ 'team-serving team-serving-left': servingTeam === 'local' }"
+          :style="{ '--team-color': gameState.local.primaryColor }"
+        >
+          <div class="energy-lines energy-lines-left"></div>
+          <div class="flag-tile">
+            <img
+              v-if="gameState.local.logoUrl"
+              :src="gameState.local.logoUrl"
+              :alt="gameState.local.name"
+              class="h-full w-full object-contain"
+            />
+            <Shield v-else class="h-8 w-8 text-white/80" />
           </div>
-          <div class="team-name">{{ gameState.visitor.name }}</div>
-        </div>
-        <div class="flag-tile">
-          <img
-            v-if="gameState.visitor.logoUrl"
-            :src="gameState.visitor.logoUrl"
-            :alt="gameState.visitor.name"
-            class="h-full w-full object-contain"
-          />
-          <Shield v-else class="h-8 w-8 text-white/80" />
-        </div>
-      </section>
-    </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-4">
+              <div class="team-code team-code-left">{{ teamInitial('local') }}</div>
+            </div>
+            <div class="team-name">{{ gameState.local.name }}</div>
+          </div>
+          <div class="team-stats-box" aria-label="Sets y timeouts local">
+            <div class="stat-label">Sets</div>
+            <div class="stat-number">{{ gameState.local.sets }}</div>
+          </div>
+        </section>
+
+        <section class="score-core relative flex items-center justify-center">
+          <div class="score-number score-number-left">{{ gameState.local.score }}</div>
+          <div class="center-mark">
+            <img
+              v-if="gameState.leagueLogo"
+              :src="gameState.leagueLogo"
+              alt="Liga"
+              class="h-16 max-w-[92px] object-contain drop-shadow-xl"
+            />
+            <Radio v-else class="h-10 w-10 text-white" />
+            <span>VS</span>
+          </div>
+          <div class="score-number score-number-right">{{ gameState.visitor.score }}</div>
+          <div class="status-ribbon">
+            {{ timeoutLabel || statusLabel }}
+          </div>
+        </section>
+
+        <section
+          class="team-wing team-wing-right relative flex min-w-0 items-center gap-5 overflow-hidden pl-7 pr-8"
+          :class="{ 'team-serving team-serving-right': servingTeam === 'visitor' }"
+          :style="{ '--team-color': gameState.visitor.primaryColor }"
+        >
+          <div class="energy-lines energy-lines-right"></div>
+          <div class="team-stats-box" aria-label="Sets y timeouts visitante">
+            <div class="stat-label">Sets</div>
+            <div class="stat-number">{{ gameState.visitor.sets }}</div>
+          </div>
+          <div class="min-w-0 flex-1 text-right">
+            <div class="flex items-center justify-end gap-3">
+              <div class="team-code team-code-right">{{ teamInitial('visitor') }}</div>
+            </div>
+            <div class="team-name">{{ gameState.visitor.name }}</div>
+          </div>
+          <div class="flag-tile">
+            <img
+              v-if="gameState.visitor.logoUrl"
+              :src="gameState.visitor.logoUrl"
+              :alt="gameState.visitor.name"
+              class="h-full w-full object-contain"
+            />
+            <Shield v-else class="h-8 w-8 text-white/80" />
+          </div>
+        </section>
+      </div>
+    </Transition>
   </div>
 </template>
