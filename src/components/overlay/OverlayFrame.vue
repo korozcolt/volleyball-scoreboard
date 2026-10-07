@@ -13,6 +13,8 @@ withDefaults(
     /** Ancho del núcleo central en px (el marcador usa 330). */
     coreWidth?: number
     compact?: boolean
+    /** Alas con menos relleno, para cuando el núcleo ocupa más ancho (historial de 5 sets). */
+    tightWings?: boolean
   }>(),
   { coreWidth: 330 },
 )
@@ -28,7 +30,8 @@ withDefaults(
     <div class="scorebug-rim scorebug-rim-right"></div>
 
     <section
-      class="team-wing team-wing-left relative flex min-w-0 items-center gap-4 overflow-hidden pl-8 pr-8"
+      class="team-wing team-wing-left relative flex min-w-0 items-center gap-4 overflow-hidden"
+      :class="tightWings ? 'pl-6 pr-6' : 'pl-8 pr-8'"
       :style="{ '--team-color': localColor }"
     >
       <div class="energy-lines energy-lines-left"></div>
@@ -41,7 +44,8 @@ withDefaults(
     </section>
 
     <section
-      class="team-wing team-wing-right relative flex min-w-0 items-center gap-4 overflow-hidden pl-8 pr-8"
+      class="team-wing team-wing-right relative flex min-w-0 items-center gap-4 overflow-hidden"
+      :class="tightWings ? 'pl-6 pr-6' : 'pl-8 pr-8'"
       :style="{ '--team-color': visitorColor }"
     >
       <div class="energy-lines energy-lines-right"></div>

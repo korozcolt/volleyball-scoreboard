@@ -40,6 +40,8 @@ const slots = computed(() =>
 )
 
 const coreWidth = computed(() => Math.max(330, slotCount.value * SLOT_WIDTH))
+// Con 5 columnas las alas quedan angostas: el nombre del equipo se compacta para que no se recorte.
+const tight = computed(() => slotCount.value >= 5)
 </script>
 
 <template>
@@ -50,12 +52,13 @@ const coreWidth = computed(() => Math.max(330, slotCount.value * SLOT_WIDTH))
     :theme="theme"
     :compact="compact"
     :core-width="coreWidth"
+    :tight-wings="tight"
   >
     <template #left>
       <OverlayFlag :team="gameState.local" small />
       <div class="min-w-0 flex-1">
         <div class="team-code team-code-left ov-code">{{ gameState.local.shortCode.slice(0, 3) }}</div>
-        <div class="team-name">{{ gameState.local.name }}</div>
+        <div class="team-name" :class="{ 'ov-name-tight': tight }">{{ gameState.local.name }}</div>
       </div>
       <div class="team-stats-box ov-sets-box" aria-label="Sets ganados local">
         <div class="stat-label">Sets</div>
@@ -93,7 +96,7 @@ const coreWidth = computed(() => Math.max(330, slotCount.value * SLOT_WIDTH))
       </div>
       <div class="min-w-0 flex-1 text-right">
         <div class="team-code team-code-right ov-code">{{ gameState.visitor.shortCode.slice(0, 3) }}</div>
-        <div class="team-name">{{ gameState.visitor.name }}</div>
+        <div class="team-name" :class="{ 'ov-name-tight': tight }">{{ gameState.visitor.name }}</div>
       </div>
       <OverlayFlag :team="gameState.visitor" small />
     </template>
