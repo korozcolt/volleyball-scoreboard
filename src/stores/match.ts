@@ -13,6 +13,7 @@ import {
   hasWonCurrentSet,
   isMatchPoint,
   isSetPoint as isSetPointForTeam,
+  playsAllSets,
 } from '@/utils/volleyballRules'
 import { useBroadcastConfigStore } from './broadcastConfig'
 import { useOverlayControlStore } from './overlayControl'
@@ -358,15 +359,36 @@ export const useMatchStore = defineStore('match', () => {
     gameState.value[winner].sets += 1
     addToHistory(DEFAULT_MESSAGES.SET_WIN(gameState.value[winner].name, gameState.value.currentSet), 'success')
 
+    // El partido termina cuando un equipo asegura la mayoría de sets, salvo que se jueguen todos los sets
+    // (p. ej. 3 sets independientes aunque vaya 2-0): entonces termina al cerrarse el último set.
     const setsToWin = getSetsToWinMatch(gameState.value)
-    if (gameState.value[winner].sets >= setsToWin) {
+    const playedAllSets = gameState.value.completedSets.length >= gameState.value.settings.maxSets
+    const clinched = gameState.value[winner].sets >= setsToWin
+    if (playedAllSets || (clinched && !playsAllSets(gameState.value))) {
+      const leader: TeamSide =
+        gameState.value.local.sets === gameState.value.visitor.sets ? winner : gameState.value.local.sets > gameState.value.visitor.sets ? 'local' : 'visitor'
       gameState.value.gameFinished = true
       gameState.value.status = 'finished'
-      addToHistory(DEFAULT_MESSAGES.GAME_WIN(gameState.value[winner].name), 'winner')
+      addToHistory(DEFAULT_MESSAGES.GAME_WIN(gameState.value[leader].name), 'winner')
       return
     }
 
     advanceToNextSet()
+  }
+
+  /**
+   * Reabre un partido que se cerró antes de tiempo (la app asumió "mejor de N" y se juegan todos los sets):
+   * activa "se juegan todos los sets" y arranca el siguiente set. Devuelve false si no hay nada que reabrir.
+   */
+  const reopenAndPlayAllSets = () => {
+    const state = gameState.value
+    if (!state.gameFinished || state.completedSets.length >= state.settings.maxSets) return false
+    state.settings = { ...state.settings, playAllSets: true }
+    state.gameFinished = false
+    state.status = 'live'
+    addToHistory('Partido reabierto: se juegan todos los sets.', 'info')
+    advanceToNextSet()
+    return true
   }
 
   const advanceToNextSet = () => {
@@ -730,6 +752,7 @@ export const useMatchStore = defineStore('match', () => {
     addToHistory,
     getGameState,
     restoreGameState,
+    reopenAndPlayAllSets,
     syncTeamsFromConfig,
     unsubscribe: () => unsubscribeSync?.(),
   }

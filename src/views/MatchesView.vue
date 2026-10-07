@@ -24,6 +24,7 @@ const status = ref('')
 const form = ref({
   title: '',
   format: 5 as 1 | 3 | 5,
+  playAllSets: false,
   localTeamProfileId: '',
   visitorTeamProfileId: '',
 })
@@ -174,6 +175,7 @@ const createSession = async () => {
         maxSets: form.value.format,
         pointsToWin: form.value.format === 1 ? DEFAULT_GAME_SETTINGS.pointsToWin : 25,
         decidingSetPoints: form.value.format === 1 ? DEFAULT_GAME_SETTINGS.pointsToWin : 15,
+        playAllSets: form.value.format > 1 && form.value.playAllSets,
       },
       metadata: {
         court: config.court,
@@ -234,11 +236,17 @@ onMounted(loadData)
           class="admin-input"
           placeholder="Título opcional"
         />
-        <select v-model.number="form.format" class="admin-input">
-          <option :value="5">Mejor de 5</option>
-          <option :value="3">Mejor de 3</option>
-          <option :value="1">1 set</option>
-        </select>
+        <div class="grid gap-1">
+          <select v-model.number="form.format" class="admin-input">
+            <option :value="5">Mejor de 5</option>
+            <option :value="3">Mejor de 3</option>
+            <option :value="1">1 set</option>
+          </select>
+          <label v-if="form.format > 1" class="flex min-h-9 cursor-pointer items-center gap-2 text-xs font-semibold text-broadcast-muted">
+            <input v-model="form.playAllSets" type="checkbox" class="h-4 w-4" />
+            Se juegan todos los sets
+          </label>
+        </div>
         <select v-model="form.localTeamProfileId" class="admin-input">
           <option value="">Local por defecto</option>
           <option v-for="team in teams" :key="team.id" :value="team.id">

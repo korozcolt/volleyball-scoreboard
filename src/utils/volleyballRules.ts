@@ -28,9 +28,23 @@ export const getCurrentSetWinner = (state: GameState): TeamSide | null => {
 
 export const getSetsToWinMatch = (state: GameState): number => Math.ceil(state.settings.maxSets / 2)
 
+/** ¿Se juegan todos los sets aunque el partido ya esté decidido? */
+export const playsAllSets = (state: GameState): boolean =>
+  state.settings.playAllSets === true && state.settings.maxSets > 1
+
 export const isMatchPoint = (state: GameState, team: TeamSide): boolean => {
   const opponent = getOpponent(team)
   const setsToWin = getSetsToWinMatch(state)
+
+  // Con todos los sets obligatorios, el partido termina al cerrar el último set: solo hay "match point"
+  // en el último set, y si ganarlo deja al equipo con más sets.
+  if (playsAllSets(state)) {
+    return (
+      state.currentSet === state.settings.maxSets &&
+      state[team].sets + 1 > state[opponent].sets &&
+      isSetPoint(state, team)
+    )
+  }
   const target = getSetTargetPoints(state)
 
   return (

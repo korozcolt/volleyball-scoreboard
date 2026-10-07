@@ -110,6 +110,8 @@ export interface GameSettings {
   enablePlayerNames: boolean
   timeoutSeconds: number
   timeoutsPerSet: number
+  /** Se juegan todos los sets aunque un equipo ya haya ganado la mayoría (p. ej. 3 sets independientes). */
+  playAllSets?: boolean
 }
 
 export interface CompletedSet {

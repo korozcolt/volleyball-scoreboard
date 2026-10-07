@@ -64,6 +64,15 @@ const stateLabel = computed(() => {
 const alertLabel = computed(() => Boolean(match.matchPointTeam || match.setPointTeam))
 
 const recentEvents = computed(() => match.gameState.history.slice(0, 3))
+
+// El partido se cerró porque un equipo ganó la mayoría de sets, pero aún faltan sets por jugar.
+const canReopen = computed(
+  () => match.gameState.gameFinished && match.gameState.completedSets.length < match.gameState.settings.maxSets,
+)
+const reopenMatch = () => {
+  statistics.pushUndo('Reabrir partido')
+  match.reopenAndPlayAllSets()
+}
 const sessionError = scope.sessionError
 </script>
 
@@ -166,6 +175,23 @@ const sessionError = scope.sessionError
       </div>
     </header>
 
+    <div
+      v-if="canReopen"
+      class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-broadcast-alert bg-broadcast-alert/10 px-3 py-2 text-sm text-broadcast-alert"
+      role="alert"
+    >
+      <span>
+        <strong>El partido se cerró con {{ match.gameState.completedSets.length }} de {{ match.gameState.settings.maxSets }} sets jugados.</strong>
+        Si se juegan todos los sets, reábrelo para seguir con el set {{ match.gameState.completedSets.length + 1 }}.
+      </span>
+      <button
+        type="button"
+        class="inline-flex h-11 items-center rounded border border-broadcast-alert px-3 text-xs font-black uppercase transition hover:bg-broadcast-alert hover:text-[#40000d]"
+        @click="reopenMatch"
+      >
+        Reabrir y jugar todos los sets
+      </button>
+    </div>
     <div
       v-if="sessionError"
       class="shrink-0 border-b border-broadcast-danger bg-broadcast-danger/10 px-3 py-2 text-sm text-broadcast-danger"

@@ -232,6 +232,10 @@ const setMatchFormat = (maxSets: 1 | 3 | 5) => {
   })
 }
 
+const setPlayAllSets = (playAllSets: boolean) => {
+  match.updateGameSettings({ playAllSets })
+}
+
 const setPointsToWin = (pointsToWin: number) => {
   const sanitizedPoints = Math.max(1, Math.min(99, Number.isFinite(pointsToWin) ? pointsToWin : 25))
   match.updateGameSettings({
@@ -524,6 +528,24 @@ onMounted(async () => {
               <span class="text-xs font-black uppercase">set{{ format > 1 ? 's' : '' }}</span>
             </button>
           </div>
+          <label
+            v-if="match.gameState.settings.maxSets > 1"
+            class="mt-4 flex min-h-11 cursor-pointer items-start gap-3 rounded border border-broadcast-outline bg-broadcast-surface-high p-3"
+          >
+            <input
+              type="checkbox"
+              class="mt-0.5 h-5 w-5 shrink-0"
+              :checked="match.gameState.settings.playAllSets === true"
+              @change="setPlayAllSets(($event.target as HTMLInputElement).checked)"
+            />
+            <span>
+              <span class="block text-sm font-bold text-broadcast-text">Se juegan todos los sets</span>
+              <span class="block text-xs text-broadcast-muted">
+                El partido no termina cuando un equipo ya ganó la mayoría (por ejemplo 2-0 en 3 sets): se juegan
+                todos y gana quien tenga más sets.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div class="grid gap-4 rounded border border-broadcast-outline bg-broadcast-surface-low p-4">
